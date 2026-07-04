@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホロカ 新カード一覧</title>
+<style>
+  :root { --gold: #d4af6a; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: radial-gradient(ellipse at top, #1c2740, #0a0e18);
+    color: #f0e6d2; font-family: "Hiragino Sans","Yu Gothic",sans-serif; padding: 24px;
+  }
+  h1 { text-align: center; font-size: 22px; letter-spacing: 2px; margin-bottom: 4px; }
+  .sub { text-align: center; color: #9aa5c0; font-size: 12px; margin-bottom: 20px; }
+  .setSelectWrap { text-align: center; margin-bottom: 28px; }
+  .setSelectWrap select {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.4);
+    background: #10182a; color: #f0e6d2; font-size: 13px;
+  }
+  section.typeArea { max-width: 1200px; margin: 0 auto 40px; }
+  .typeHeader {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+    border-bottom: 1px solid rgba(212,175,106,0.3); padding-bottom: 6px;
+  }
+  .typeHeader h2 { font-size: 16px; margin: 0; color: var(--gold); }
+  .typeHeader .count { font-size: 12px; color: #9aa5c0; }
+  #grid-新規, #grid-再録, #grid-パラレル {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;
+  }
+  .card {
+    background: linear-gradient(160deg, #1a2233, #10182a); border-radius: 12px;
+    border: 1px solid rgba(212,175,106,0.35); overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4); transition: transform 0.15s;
+  }
+  .card:hover { transform: translateY(-4px); }
+  .card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; background: #10182a; }
+  .card-body { padding: 8px 10px; }
+  .name { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
+  .meta { font-size: 10px; color: #9aa5c0; }
+
+  .card.empty {
+    aspect-ratio: 3/4.6; display: flex; align-items: center; justify-content: center;
+    border: 1px dashed rgba(212,175,106,0.3); background: rgba(255,255,255,0.02);
+  }
+  .card.empty .slotNum { color: rgba(212,175,106,0.4); font-size: 22px; font-weight: bold; }
+
+  #loading, #emptyAll { text-align: center; color: #9aa5c0; margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<h1>hololive OFFICIAL CARD GAME</h1>
+<div class="sub">新カード情報 一覧（公開中のみ表示）</div>
+<div class="setSelectWrap"><select id="setSelect"></select></div>
+
+<div id="loading">読み込み中...</div>
+<div id="emptyAll" style="display:none;">この弾にはまだ公開情報がありません</div>
+
+<div id="areas" style="display:none;">
+  <section class="typeArea">
+    <div class="typeHeader"><h2>新規追加</h2><span class="count" id="count-新規"></span></div>
+    <div id="grid-新規"></div>
+  </section>
+  <section class="typeArea">
+    <div class="typeHeader"><h2>再録</h2><span class="count" id="count-再録"></span></div>
+    <div id="grid-再録"></div>
+  </section>
+  <section class="typeArea">
+    <div class="typeHeader"><h2>パラレル</h2><span class="count" id="count-パラレル"></span></div>
+    <div id="grid-パラレル"></div>
+  </section>
+</div>
+
+<script>
+// ===== 設定：初回だけ書き換えてください =====
+const GAS_URL = 'https://script.google.com/macros/s/xxxx/exec';
+const REFRESH_INTERVAL = 30000;
+
+let currentSetCode = null;
+
+async function init() {
+  const res = await fetch(GAS_URL + '?action=listSets');
+  const sets = await res.json();
+  const sel = document.getElementById('setSelect');
+  sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
+  sel.addEventListener('change', () => { currentSetCode = sel.value; loadCards(); });
+
+  if (sets.length) {
+    currentSetCode = sets[sets.length - 1].setCode; // 最後に登録された弾をデフォルト表示
+    sel.value = currentSetCode;
+  }
+  await loadCards();
+  setInterval(loadCards, REFRESH_INTERVAL);
+}
+
+async function loadCards() {
+  if (!currentSetCode) return;
+  document.getElementById('loading').style.display = 'block';
+
+  const [setsRes, cardsRes] = await Promise.all([
+    fetch(GAS_URL + '?action=listSets'),
+    fetch(GAS_URL + `?action=list&setCode=${encodeURIComponent(currentSetCode)}&status=${encodeURIComponent('公開中')}`)
+  ]);
+  const sets = await setsRes.json();
+  const cards = await cardsRes.json();
+  const setInfo = sets.find(s => s.setCode === currentSetCode) || { totalNew:0, totalRerun:0, totalParallel:0 };
+
+  document.getElementById('loading').style.display = 'none';
+
+  const totalCards = setInfo.totalNew + setInfo.totalRerun + setInfo.totalParallel;
+  if (!totalCards) {
+    document.getElementById('emptyAll').style.display = 'block';
+    document.getElementById('areas').style.display = 'none';
+    return;
+  }
+  document.getElementById('emptyAll').style.display = 'none';
+  document.getElementById('areas').style.display = 'block';
+
+  renderArea('新規', setInfo.totalNew, cards);
+  renderArea('再録', setInfo.totalRerun, cards);
+  renderArea('パラレル', setInfo.totalParallel, cards);
+}
+
+function renderArea(type, total, allCards) {
+  const cardsOfType = allCards.filter(c => c.type === type);
+  const byslot = {};
+  cardsOfType.forEach(c => byslot[Number(c.slot)] = c);
+
+  const publishedCount = cardsOfType.length;
+  document.getElementById('count-' + type).textContent = `${publishedCount} / ${total} 公開`;
+
+  let html = '';
+  for (let slot = 1; slot <= total; slot++) {
+    const c = byslot[slot];
+    if (c) {
+      html += `
+        <div class="card">
+          <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+          <div class="card-body">
+            <div class="name">${escapeHtml(c.cardName)}</div>
+            <div class="meta">${escapeHtml(c.attribute || '')}</div>
+            <div class="meta">${escapeHtml(c.cardNumber || '')}</div>
+          </div>
+        </div>`;
+    } else {
+      html += `
+        <div class="card empty">
+          <span class="slotNum">?</span>
+        </div>`;
+    }
+  }
+  document.getElementById('grid-' + type).innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+init();
+</script>
+</body>
+</html>
