@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カード情報 管理画面</title>
+<style>
+  :root { --gold: #d4af6a; --bg: #0f1420; --panel: #1a2233; --text: #f0e6d2; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: linear-gradient(160deg, #0f1420, #1c2740);
+    color: var(--text); font-family: "Hiragino Sans","Yu Gothic",sans-serif; padding: 24px;
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: var(--gold); }
+  .sub { color: #9aa5c0; font-size: 13px; margin-bottom: 20px; }
+  .panel {
+    background: var(--panel); border: 1px solid rgba(212,175,106,0.3);
+    border-radius: 12px; padding: 20px; max-width: 560px; margin-bottom: 20px;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .field { flex: 1; min-width: 100px; margin-bottom: 10px; }
+  .field label { display: block; font-size: 12px; color: #9aa5c0; margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid rgba(212,175,106,0.3); background: #10182a; color: var(--text); font-size: 14px;
+  }
+  .drop {
+    border: 2px dashed rgba(212,175,106,0.5); border-radius: 10px; padding: 26px;
+    text-align: center; cursor: pointer; transition: 0.2s;
+  }
+  .drop:hover { border-color: var(--gold); background: rgba(212,175,106,0.05); }
+  input[type=file] { display: none; }
+  #previewWrap { margin-top: 16px; text-align: center; }
+  #previewWrap img { max-width: 100%; border-radius: 8px; }
+  .status { margin-top: 12px; font-size: 13px; color: #9aa5c0; white-space: pre-wrap; }
+  .cropPreview { margin-top: 12px; text-align: center; }
+  .cropPreview img { max-width: 200px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.4); }
+  button.primary {
+    margin-top: 10px; width: 100%; padding: 12px; border-radius: 8px; border: none;
+    background: linear-gradient(135deg, var(--gold), #a97c3e); color: #1a1305;
+    font-weight: bold; cursor: pointer; font-size: 14px;
+  }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary {
+    margin-top: 10px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--gold);
+    background: transparent; color: var(--gold); cursor: pointer; font-size: 13px;
+  }
+  details { margin-top: 24px; max-width: 560px; }
+  summary { cursor: pointer; color: #9aa5c0; font-size: 13px; }
+  .configBox input {
+    width: 100%; margin-top: 8px; padding: 8px; border-radius: 6px;
+    border: 1px solid rgba(212,175,106,0.3); background: #10182a; color: var(--text); font-size: 13px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid rgba(212,175,106,0.15); text-align: left; }
+  th { color: #9aa5c0; font-weight: normal; }
+  .typeBadge {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px; color: #1a1305; font-weight: bold;
+  }
+  .type-新規 { background: #7ec8e3; }
+  .type-再録 { background: #d4af6a; }
+  .type-パラレル { background: #e37eb4; }
+  .hint { font-size: 12px; color: #9aa5c0; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>ホロカ 新カード情報 管理画面</h1>
+<div class="sub">公式Xの告知画像をアップロードすると、AIが自動でカード情報を読み取ります</div>
+
+<!-- ===== 弾（セット）設定 ===== -->
+<div class="panel">
+  <h2>① 弾の設定</h2>
+  <div class="row">
+    <div class="field"><label>弾コード（例: hSD06）</label><input id="set_code"></div>
+    <div class="field"><label>弾の名称</label><input id="set_name" placeholder="サマー・ホログラム"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>新規 収録枚数</label><input id="set_new" type="number" min="0"></div>
+    <div class="field"><label>再録 収録枚数</label><input id="set_rerun" type="number" min="0"></div>
+    <div class="field"><label>パラレル 収録枚数</label><input id="set_parallel" type="number" min="0"></div>
+  </div>
+  <button class="secondary" id="saveSetBtn">この弾を保存</button>
+  <div class="field" style="margin-top:14px;">
+    <label>登録先の弾を選択</label>
+    <select id="activeSet"></select>
+  </div>
+</div>
+
+<!-- ===== アップロード ===== -->
+<div class="panel">
+  <h2>② カード画像アップロード</h2>
+  <div class="drop" id="dropZone">
+    <div>ここをクリックして画像を選択</div>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+  <div id="previewWrap"></div>
+  <div class="status" id="status"></div>
+
+  <div id="fields" style="display:none;">
+    <div class="row" style="margin-top:14px;">
+      <div class="field"><label>タグ・種別</label><input id="f_tag"></div>
+      <div class="field"><label>カード名</label><input id="f_name"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>属性</label><input id="f_attr"></div>
+      <div class="field"><label>カード番号（末尾の数字のみ）</label><input id="f_num"></div>
+    </div>
+    <div class="field">
+      <label>区分（新規/再録/パラレル）</label>
+      <select id="f_type">
+        <option value="新規">新規追加</option>
+        <option value="再録">再録</option>
+        <option value="パラレル">パラレル</option>
+      </select>
+    </div>
+    <div class="field" id="slotFieldWrap">
+      <label id="slotLabel">配置スロット番号</label>
+      <select id="f_slot"></select>
+      <div class="hint" id="slotHint"></div>
+    </div>
+    <div class="cropPreview" id="cropPreview"></div>
+  </div>
+
+  <button class="primary" id="registerBtn" style="display:none;">この内容で登録する</button>
+</div>
+
+<!-- ===== 登録済みカード一覧 / 公開ステータス管理 ===== -->
+<div class="panel">
+  <h2>③ 登録済みカード一覧・公開ステータス</h2>
+  <div class="hint">発売済みで公開が終了したカードは「公開終了」にチェックすると表示ページから消えます</div>
+  <table id="cardTable">
+    <thead><tr><th>区分</th><th>枠No</th><th>カード名</th><th>番号</th><th>公開終了</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<details class="configBox">
+  <summary>初期設定（初回のみ入力）</summary>
+  <label style="font-size:12px;color:#9aa5c0;">GAS Web App URL</label>
+  <input id="cfg_gas" placeholder="https://script.google.com/macros/s/xxxx/exec">
+  <label style="font-size:12px;color:#9aa5c0;">GitHub ユーザー名</label>
+  <input id="cfg_user" placeholder="your-github-username">
+  <label style="font-size:12px;color:#9aa5c0;">GitHub リポジトリ名</label>
+  <input id="cfg_repo" placeholder="your-repo-name">
+  <label style="font-size:12px;color:#9aa5c0;">GitHub Personal Access Token</label>
+  <input id="cfg_pat" type="password" placeholder="ghp_xxxx（このブラウザにのみ保存されます）">
+  <button class="primary" id="saveCfgBtn">設定を保存</button>
+</details>
+
+<script>
+// ===== 設定読み書き (localStorage) =====
+const CFG_KEYS = ['gas','user','repo','pat'];
+function loadCfg() {
+  CFG_KEYS.forEach(k => {
+    const v = localStorage.getItem('cfg_'+k);
+    if (v) document.getElementById('cfg_'+k).value = v;
+  });
+}
+function getCfg(k) { return localStorage.getItem('cfg_'+k) || ''; }
+document.getElementById('saveCfgBtn').addEventListener('click', () => {
+  CFG_KEYS.forEach(k => localStorage.setItem('cfg_'+k, document.getElementById('cfg_'+k).value.trim()));
+  alert('設定を保存しました');
+  init();
+});
+loadCfg();
+
+let sets = [];
+let currentImg = null;
+let currentCropBox = null;
+
+async function init() {
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) return;
+  await refreshSets();
+  await refreshCardTable();
+}
+
+// ===== 弾(sets)管理 =====
+async function refreshSets() {
+  const gasUrl = getCfg('gas');
+  const res = await fetch(gasUrl + '?action=listSets');
+  sets = await res.json();
+  const sel = document.getElementById('activeSet');
+  sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
+  sel.addEventListener('change', refreshCardTable, { once: false });
+}
+
+document.getElementById('saveSetBtn').addEventListener('click', async () => {
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) { alert('先にGAS Web App URLを設定してください'); return; }
+  const body = {
+    action: 'saveSet',
+    setCode: document.getElementById('set_code').value.trim(),
+    setName: document.getElementById('set_name').value.trim(),
+    totalNew: Number(document.getElementById('set_new').value) || 0,
+    totalRerun: Number(document.getElementById('set_rerun').value) || 0,
+    totalParallel: Number(document.getElementById('set_parallel').value) || 0
+  };
+  if (!body.setCode) { alert('弾コードを入力してください'); return; }
+  await fetch(gasUrl, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });
+  alert('弾を保存しました');
+  await refreshSets();
+});
+
+// ===== アップロード・解析 =====
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const statusEl = document.getElementById('status');
+const fieldsEl = document.getElementById('fields');
+const registerBtn = document.getElementById('registerBtn');
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', handleFile);
+document.getElementById('f_type').addEventListener('change', onTypeChange);
+
+async function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  fieldsEl.style.display = 'none';
+  registerBtn.style.display = 'none';
+  setStatus('画像を読み込み中...');
+
+  const base64 = await fileToBase64(file);
+  currentImg = await loadImage(file);
+  document.getElementById('previewWrap').innerHTML = `<img src="${currentImg.src}">`;
+
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) { setStatus('エラー: 先に「初期設定」でGAS Web App URLを入力してください'); return; }
+
+  setStatus('AIがカード情報を解析中...');
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'analyze', imageBase64: base64, mimeType: file.type || 'image/png' })
+    });
+    const data = await res.json();
+    if (data.error) { setStatus('解析エラー: ' + data.error); return; }
+
+    document.getElementById('f_tag').value = data.tag || '';
+    document.getElementById('f_name').value = data.cardName || '';
+    document.getElementById('f_attr').value = data.attribute || '';
+    document.getElementById('f_num').value = data.cardNumber || '';
+    currentCropBox = data.cropBox || { x:0, y:0, width:1, height:1 };
+
+    const croppedDataUrl = cropImageToDataUrl(currentImg, currentCropBox);
+    document.getElementById('cropPreview').innerHTML = `<img src="${croppedDataUrl}">`;
+
+    // 読み取ったsetCodeが「①弾の設定」に存在すれば、登録先の弾を自動選択
+    let setMismatchNote = '';
+    if (data.setCode) {
+      const activeSel = document.getElementById('activeSet');
+      const match = sets.find(s => s.setCode === data.setCode);
+      if (match) {
+        activeSel.value = data.setCode;
+      } else if (activeSel.value && activeSel.value !== data.setCode) {
+        setMismatchNote = `\n※読み取ったセットコード「${data.setCode}」は①に未登録です。登録先の弾を確認してください。`;
+      }
+    }
+
+    document.getElementById('f_type').value = '新規';
+    fieldsEl.style.display = 'block';
+    registerBtn.style.display = 'block';
+    await onTypeChange();
+    setStatus('解析完了。区分と配置スロットを確認して登録してください。' + setMismatchNote);
+  } catch (err) {
+    setStatus('通信エラー: ' + err.message);
+  }
+}
+
+// 区分変更時：新規なら番号から自動サジェスト、再録/パラレルなら空き枠一覧を取得
+async function onTypeChange() {
+  const type = document.getElementById('f_type').value;
+  const setCode = document.getElementById('activeSet').value;
+  const slotSel = document.getElementById('f_slot');
+  const hint = document.getElementById('slotHint');
+
+  if (!setCode) { hint.textContent = '先に①で弾を選択してください'; return; }
+
+  const gasUrl = getCfg('gas');
+  const res = await fetch(gasUrl + `?action=emptySlots&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}`);
+  const data = await res.json();
+
+  if (type === '新規') {
+    // カード番号の末尾数字を自動サジェストしつつ、選択肢は空き枠全部から選べるようにする
+    const numMatch = (document.getElementById('f_num').value || '').match(/(\d+)\s*$/);
+    const suggested = numMatch ? Number(numMatch[1]) : null;
+    slotSel.innerHTML = data.empty.map(s =>
+      `<option value="${s}" ${s === suggested ? 'selected' : ''}>${s}${s === suggested ? '（番号から推定）' : ''}</option>`
+    ).join('');
+    hint.textContent = `新規 全${data.total}枚中 空き${data.empty.length}枠。番号から自動推定していますが、違っていれば選び直してください`;
+  } else {
+    slotSel.innerHTML = data.empty.map(s => `<option value="${s}">${s}</option>`).join('');
+    hint.textContent = `${type} 全${data.total}枚中 空き${data.empty.length}枠。カード番号は新規と対応しないため、入れる枠番号を選んでください`;
+  }
+}
+
+registerBtn.addEventListener('click', async () => {
+  const gasUrl = getCfg('gas');
+  const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
+  const setCode = document.getElementById('activeSet').value;
+  const type = document.getElementById('f_type').value;
+  const slot = document.getElementById('f_slot').value;
+
+  if (!ghUser || !ghRepo || !ghPat) { setStatus('エラー: 先に「初期設定」でGitHubの情報を入力してください'); return; }
+  if (!setCode) { setStatus('エラー: 弾を選択してください'); return; }
+  if (!slot) { setStatus('エラー: 配置スロット番号を選択してください'); return; }
+
+  registerBtn.disabled = true;
+  setStatus('カード画像をGitHubにアップロード中...');
+
+  const safeId = `${setCode}_${type}_${slot}`.replace(/[^a-zA-Z0-9\-_]/g, '_');
+  const path = `cards/${safeId}.png`;
+  const croppedBase64 = cropImageToDataUrl(currentImg, currentCropBox).split(',')[1];
+
+  try {
+    await uploadToGithub(ghUser, ghRepo, ghPat, path, croppedBase64);
+    const imageUrl = `https://raw.githubusercontent.com/${ghUser}/${ghRepo}/main/${path}`;
+
+    setStatus('スプレッドシートに登録中...');
+    await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'addCard',
+        setCode, type, slot,
+        tag: document.getElementById('f_tag').value,
+        cardName: document.getElementById('f_name').value,
+        attribute: document.getElementById('f_attr').value,
+        cardNumber: document.getElementById('f_num').value,
+        imageUrl,
+        status: '公開中'
+      })
+    });
+
+    setStatus('登録完了: ' + document.getElementById('f_name').value);
+    fieldsEl.style.display = 'none';
+    registerBtn.style.display = 'none';
+    await refreshCardTable();
+  } catch (err) {
+    setStatus('登録エラー: ' + err.message);
+  } finally {
+    registerBtn.disabled = false;
+  }
+});
+
+// ===== 登録済み一覧・公開ステータス管理 =====
+async function refreshCardTable() {
+  const gasUrl = getCfg('gas');
+  const setCode = document.getElementById('activeSet').value;
+  if (!gasUrl || !setCode) return;
+
+  const res = await fetch(gasUrl + `?action=list&setCode=${encodeURIComponent(setCode)}`);
+  const cards = await res.json();
+  const order = { '新規':0, '再録':1, 'パラレル':2 };
+  cards.sort((a,b) => (order[a.type]-order[b.type]) || (Number(a.slot)-Number(b.slot)));
+
+  const tbody = document.querySelector('#cardTable tbody');
+  tbody.innerHTML = cards.map(c => `
+    <tr>
+      <td><span class="typeBadge type-${c.type}">${c.type}</span></td>
+      <td>${c.slot}</td>
+      <td>${c.cardName}</td>
+      <td>${c.cardNumber || ''}</td>
+      <td><input type="checkbox" data-type="${c.type}" data-slot="${c.slot}" ${c.status === '公開終了' ? 'checked' : ''}></td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'updateStatus',
+          setCode,
+          type: cb.dataset.type,
+          slot: cb.dataset.slot,
+          status: cb.checked ? '公開終了' : '公開中'
+        })
+      });
+    });
+  });
+}
+
+// ===== ユーティリティ =====
+function setStatus(msg) { statusEl.textContent = msg; }
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function loadImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.src = URL.createObjectURL(file);
+  });
+}
+function cropImageToDataUrl(img, box) {
+  const x = Math.max(0, box.x) * img.naturalWidth;
+  const y = Math.max(0, box.y) * img.naturalHeight;
+  const w = Math.min(1 - box.x, box.width) * img.naturalWidth;
+  const h = Math.min(1 - box.y, box.height) * img.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+  return canvas.toDataURL('image/png');
+}
+async function uploadToGithub(user, repo, pat, path, base64Content) {
+  const url = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Authorization': `token ${pat}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `add card image: ${path}`, content: base64Content })
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(`GitHubアップロード失敗 (${res.status}): ${errBody.message || ''}`);
+  }
+}
+
+document.getElementById('activeSet').addEventListener('change', () => { refreshCardTable(); onTypeChange(); });
+init();
+</script>
+</body>
+</html>
