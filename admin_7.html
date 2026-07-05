@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カード情報 管理画面</title>
+<style>
+  :root { --gold: #d4af6a; --bg: #0f1420; --panel: #1a2233; --text: #f0e6d2; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: linear-gradient(160deg, #0f1420, #1c2740);
+    color: var(--text); font-family: "Hiragino Sans","Yu Gothic",sans-serif; padding: 24px;
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: var(--gold); }
+  .sub { color: #9aa5c0; font-size: 13px; margin-bottom: 20px; }
+  .panel {
+    background: var(--panel); border: 1px solid rgba(212,175,106,0.3);
+    border-radius: 12px; padding: 20px; max-width: 560px; margin-bottom: 20px;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .field { flex: 1; min-width: 100px; margin-bottom: 10px; }
+  .field label { display: block; font-size: 12px; color: #9aa5c0; margin-bottom: 4px; }
+  .field input, .field select {
+    width: 100%; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid rgba(212,175,106,0.3); background: #10182a; color: var(--text); font-size: 14px;
+  }
+  .drop {
+    border: 2px dashed rgba(212,175,106,0.5); border-radius: 10px; padding: 26px;
+    text-align: center; cursor: pointer; transition: 0.2s;
+  }
+  .drop:hover { border-color: var(--gold); background: rgba(212,175,106,0.05); }
+  input[type=file] { display: none; }
+  #previewWrap { margin-top: 16px; text-align: center; }
+  #previewWrap img { max-width: 100%; border-radius: 8px; }
+  .status { margin-top: 12px; font-size: 13px; color: #9aa5c0; white-space: pre-wrap; }
+  .cropPreview { margin-top: 12px; text-align: center; }
+  .cropPreview img { max-width: 200px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.4); }
+  button.primary {
+    margin-top: 10px; width: 100%; padding: 12px; border-radius: 8px; border: none;
+    background: linear-gradient(135deg, var(--gold), #a97c3e); color: #1a1305;
+    font-weight: bold; cursor: pointer; font-size: 14px;
+  }
+  button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary {
+    margin-top: 10px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--gold);
+    background: transparent; color: var(--gold); cursor: pointer; font-size: 13px;
+  }
+  details { margin-top: 24px; max-width: 560px; }
+  summary { cursor: pointer; color: #9aa5c0; font-size: 13px; }
+  .configBox input {
+    width: 100%; margin-top: 8px; padding: 8px; border-radius: 6px;
+    border: 1px solid rgba(212,175,106,0.3); background: #10182a; color: var(--text); font-size: 13px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid rgba(212,175,106,0.15); text-align: left; }
+  th { color: #9aa5c0; font-weight: normal; }
+  .typeBadge {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px; color: #1a1305; font-weight: bold;
+  }
+  .type-新規 { background: #7ec8e3; }
+  .type-再録 { background: #d4af6a; }
+  .type-パラレル { background: #e37eb4; }
+  .hint { font-size: 12px; color: #9aa5c0; margin-top: 4px; }
+  .cropAdjustWrap { margin-top: 14px; }
+  #cropStage {
+    position: relative; width: 100%; max-width: 480px; margin-top: 8px;
+    line-height: 0; user-select: none; touch-action: none;
+  }
+  #cropStage img { width: 100%; display: block; border-radius: 6px; }
+  #cropOverlay {
+    position: absolute; border: 2px solid var(--gold);
+    background: rgba(212,175,106,0.15); cursor: move; box-sizing: border-box;
+  }
+  #cropHandle {
+    position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px;
+    background: var(--gold); border-radius: 3px; cursor: nwse-resize;
+  }
+</style>
+</head>
+<body>
+
+<h1>ホロカ 新カード情報 管理画面</h1>
+<div class="sub">公式Xの告知画像をアップロードすると、AIが自動でカード情報を読み取ります</div>
+
+<!-- ===== 弾（セット）設定 ===== -->
+<div class="panel">
+  <h2>① 弾の設定</h2>
+  <div class="row">
+    <div class="field"><label>弾コード（例: hSD06）</label><input id="set_code"></div>
+    <div class="field"><label>弾の名称</label><input id="set_name" placeholder="サマー・ホログラム"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>新規 収録枚数</label><input id="set_new" type="number" min="0"></div>
+    <div class="field"><label>再録 収録枚数</label><input id="set_rerun" type="number" min="0"></div>
+    <div class="field"><label>パラレル 収録枚数</label><input id="set_parallel" type="number" min="0"></div>
+  </div>
+  <button class="secondary" id="saveSetBtn">この弾を保存</button>
+  <div class="field" style="margin-top:14px;">
+    <label>登録先の弾を選択</label>
+    <select id="activeSet"></select>
+  </div>
+</div>
+
+<!-- ===== アップロード ===== -->
+<div class="panel">
+  <h2>② カード画像アップロード</h2>
+  <div class="drop" id="dropZone">
+    <div>ここをクリックして画像を選択</div>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+  <div id="previewWrap"></div>
+  <div class="status" id="status"></div>
+
+  <div id="fields" style="display:none;">
+    <div class="row" style="margin-top:14px;">
+      <div class="field"><label>セットコード（読取）</label><input id="f_setcode"></div>
+      <div class="field"><label>カード番号（末尾の数字のみ）</label><input id="f_num"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>カードタイプ</label><input id="f_tag"></div>
+      <div class="field"><label>タグ（#1D #1D3期生 など）</label><input id="f_tags"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>カード名</label><input id="f_name"></div>
+      <div class="field"><label>属性</label><input id="f_attr"></div>
+    </div>
+    <div class="field">
+      <label>能力テキスト</label>
+      <textarea id="f_ability" rows="4" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:13px;"></textarea>
+    </div>
+
+    <div id="holomenFields" style="display:none; border-top:1px dashed rgba(212,175,106,0.3); margin-top:14px; padding-top:14px;">
+      <div class="row">
+        <div class="field">
+          <label>進化レベル</label>
+          <select id="f_stage">
+            <option value="">-</option>
+            <option value="Debut">Debut</option>
+            <option value="1st">1st</option>
+            <option value="2nd">2nd</option>
+            <option value="Spot">Spot</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>固定スキル</label>
+          <select id="f_skill">
+            <option value="なし">なし</option>
+            <option value="コラボエフェクト">コラボエフェクト</option>
+            <option value="ブルームエフェクト">ブルームエフェクト</option>
+            <option value="ギフト">ギフト</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>エールコスト（アーツに必要な色・枚数）</label>
+        <div id="yellRows"></div>
+        <button type="button" class="secondary" id="addYellBtn">＋ エールを追加</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>区分（新規/再録/パラレル）</label>
+      <select id="f_type">
+        <option value="新規">新規追加</option>
+        <option value="再録">再録</option>
+        <option value="パラレル">パラレル</option>
+      </select>
+    </div>
+    <div class="field" id="slotFieldWrap">
+      <label id="slotLabel">配置スロット番号（手入力）</label>
+      <input type="number" id="f_slot" min="1" placeholder="例: 11">
+      <div class="hint" id="slotHint"></div>
+    </div>
+    <div class="cropAdjustWrap">
+      <div class="hint">枠をドラッグで移動、右下の角をドラッグでサイズ変更できます</div>
+      <div id="cropStage">
+        <img id="stageImg">
+        <div id="cropOverlay">
+          <div id="cropHandle"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cropPreview" id="cropPreview"></div>
+  </div>
+
+  <button class="primary" id="registerBtn" style="display:none;">この内容で登録する</button>
+  <div class="status" id="statusBottom"></div>
+</div>
+
+<!-- ===== 登録済みカード一覧 / 公開ステータス管理 ===== -->
+<div class="panel">
+  <h2>③ 登録済みカード一覧・公開ステータス</h2>
+  <div class="hint">発売済みで公開が終了したカードは「公開終了」にチェックすると表示ページから消えます</div>
+  <table id="cardTable">
+    <thead><tr><th>区分</th><th>枠No</th><th>カード名</th><th>番号</th><th>公開終了</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<details class="configBox">
+  <summary>初期設定（初回のみ入力）</summary>
+  <label style="font-size:12px;color:#9aa5c0;">GAS Web App URL</label>
+  <input id="cfg_gas" placeholder="https://script.google.com/macros/s/xxxx/exec">
+  <label style="font-size:12px;color:#9aa5c0;">GitHub ユーザー名</label>
+  <input id="cfg_user" placeholder="your-github-username">
+  <label style="font-size:12px;color:#9aa5c0;">GitHub リポジトリ名</label>
+  <input id="cfg_repo" placeholder="your-repo-name">
+  <label style="font-size:12px;color:#9aa5c0;">GitHub Personal Access Token</label>
+  <input id="cfg_pat" type="password" placeholder="ghp_xxxx（このブラウザにのみ保存されます）">
+  <button class="primary" id="saveCfgBtn">設定を保存</button>
+</details>
+
+<script>
+// ===== 設定読み書き (localStorage) =====
+const CFG_KEYS = ['gas','user','repo','pat'];
+function loadCfg() {
+  CFG_KEYS.forEach(k => {
+    const v = localStorage.getItem('cfg_'+k);
+    if (v) document.getElementById('cfg_'+k).value = v;
+  });
+}
+function getCfg(k) { return localStorage.getItem('cfg_'+k) || ''; }
+document.getElementById('saveCfgBtn').addEventListener('click', () => {
+  CFG_KEYS.forEach(k => localStorage.setItem('cfg_'+k, document.getElementById('cfg_'+k).value.trim()));
+  alert('設定を保存しました');
+  init();
+});
+loadCfg();
+
+let sets = [];
+let currentImg = null;
+let currentCropBox = null;
+
+async function init() {
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) return;
+  await refreshSets();
+  await refreshCardTable();
+}
+
+// ===== 弾(sets)管理 =====
+async function refreshSets() {
+  const gasUrl = getCfg('gas');
+  const res = await fetch(gasUrl + '?action=listSets');
+  sets = await res.json();
+  const sel = document.getElementById('activeSet');
+  sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
+  sel.addEventListener('change', refreshCardTable, { once: false });
+}
+
+document.getElementById('saveSetBtn').addEventListener('click', async () => {
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) { alert('先にGAS Web App URLを設定してください'); return; }
+  const body = {
+    action: 'saveSet',
+    setCode: document.getElementById('set_code').value.trim(),
+    setName: document.getElementById('set_name').value.trim(),
+    totalNew: Number(document.getElementById('set_new').value) || 0,
+    totalRerun: Number(document.getElementById('set_rerun').value) || 0,
+    totalParallel: Number(document.getElementById('set_parallel').value) || 0
+  };
+  if (!body.setCode) { alert('弾コードを入力してください'); return; }
+  await fetch(gasUrl, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });
+  await refreshSets();
+  document.getElementById('activeSet').value = body.setCode;
+  await refreshCardTable();
+  await onTypeChange();
+  alert('弾を保存しました');
+});
+
+// ===== アップロード・解析 =====
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const statusEl = document.getElementById('status');
+const fieldsEl = document.getElementById('fields');
+const registerBtn = document.getElementById('registerBtn');
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', handleFile);
+document.getElementById('f_type').addEventListener('change', onTypeChange);
+
+// ===== ホロメン専用項目（エール・表示切替） =====
+const YELL_COLORS = ['白','赤','青','緑','紫','黄','無色'];
+
+function addYellRow(color, count) {
+  const wrap = document.getElementById('yellRows');
+  const div = document.createElement('div');
+  div.className = 'row';
+  div.style.alignItems = 'center';
+  div.innerHTML = `
+    <div class="field" style="flex:2;">
+      <select class="yellColor">${YELL_COLORS.map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select>
+    </div>
+    <div class="field" style="flex:1;">
+      <input type="number" class="yellCount" min="1" value="${count || 1}">
+    </div>
+    <div class="field" style="flex:0 0 auto;">
+      <button type="button" class="secondary removeYellBtn">×</button>
+    </div>
+  `;
+  div.querySelector('.removeYellBtn').addEventListener('click', () => div.remove());
+  wrap.appendChild(div);
+}
+
+function getYellRows() {
+  return Array.from(document.querySelectorAll('#yellRows > .row')).map(row => ({
+    color: row.querySelector('.yellColor').value,
+    count: Number(row.querySelector('.yellCount').value) || 1
+  }));
+}
+
+function setYellRows(arr) {
+  document.getElementById('yellRows').innerHTML = '';
+  (Array.isArray(arr) ? arr : []).forEach(item => addYellRow(item.color, item.count));
+}
+
+document.getElementById('addYellBtn').addEventListener('click', () => addYellRow('無色', 1));
+
+function updateHolomenVisibility() {
+  const isHolomen = (document.getElementById('f_tag').value || '').indexOf('ホロメン') !== -1;
+  document.getElementById('holomenFields').style.display = isHolomen ? 'block' : 'none';
+}
+document.getElementById('f_tag').addEventListener('input', updateHolomenVisibility);
+
+// ===== 切り抜き位置調整（ドラッグ&リサイズ） =====
+const stageImg = document.getElementById('stageImg');
+const cropOverlay = document.getElementById('cropOverlay');
+const cropHandle = document.getElementById('cropHandle');
+const cropStage = document.getElementById('cropStage');
+
+function setCropSliders(box) {
+  // オーバーレイの位置・サイズを%で反映
+  cropOverlay.style.left = (box.x * 100) + '%';
+  cropOverlay.style.top = (box.y * 100) + '%';
+  cropOverlay.style.width = (box.width * 100) + '%';
+  cropOverlay.style.height = (box.height * 100) + '%';
+}
+
+function refreshCropPreview() {
+  if (!currentImg) return;
+  document.getElementById('cropPreview').innerHTML =
+    `<img src="${cropImageToDataUrl(currentImg, currentCropBox)}">`;
+}
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+let dragMode = null; // 'move' | 'resize'
+let dragStart = null;
+
+cropOverlay.addEventListener('pointerdown', (e) => {
+  if (e.target === cropHandle) return; // ハンドルは別ハンドラ
+  dragMode = 'move';
+  dragStart = { x: e.clientX, y: e.clientY, box: { ...currentCropBox } };
+  cropOverlay.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+
+cropHandle.addEventListener('pointerdown', (e) => {
+  dragMode = 'resize';
+  dragStart = { x: e.clientX, y: e.clientY, box: { ...currentCropBox } };
+  cropHandle.setPointerCapture(e.pointerId);
+  e.stopPropagation();
+  e.preventDefault();
+});
+
+cropStage.addEventListener('pointermove', (e) => {
+  if (!dragMode) return;
+  const rect = cropStage.getBoundingClientRect();
+  const dxPct = (e.clientX - dragStart.x) / rect.width;
+  const dyPct = (e.clientY - dragStart.y) / rect.height;
+
+  if (dragMode === 'move') {
+    const w = dragStart.box.width, h = dragStart.box.height;
+    currentCropBox = {
+      x: clamp(dragStart.box.x + dxPct, 0, 1 - w),
+      y: clamp(dragStart.box.y + dyPct, 0, 1 - h),
+      width: w, height: h
+    };
+  } else if (dragMode === 'resize') {
+    const x = dragStart.box.x, y = dragStart.box.y;
+    currentCropBox = {
+      x, y,
+      width: clamp(dragStart.box.width + dxPct, 0.05, 1 - x),
+      height: clamp(dragStart.box.height + dyPct, 0.05, 1 - y)
+    };
+  }
+  setCropSliders(currentCropBox);
+});
+
+['pointerup','pointercancel'].forEach(evt => {
+  cropStage.addEventListener(evt, () => {
+    if (dragMode) { dragMode = null; refreshCropPreview(); }
+  });
+});
+
+async function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  fieldsEl.style.display = 'none';
+  registerBtn.style.display = 'none';
+  setStatus('画像を読み込み中...');
+
+  const base64 = await fileToBase64(file);
+  currentImg = await loadImage(file);
+  document.getElementById('previewWrap').innerHTML = `<img src="${currentImg.src}">`;
+  document.getElementById('stageImg').src = currentImg.src;
+
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) { setStatus('エラー: 先に「初期設定」でGAS Web App URLを入力してください'); return; }
+
+  setStatus('AIがカード情報を解析中...');
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'analyze', imageBase64: base64, mimeType: file.type || 'image/png' })
+    });
+    const data = await res.json();
+    if (data.error) { setStatus('解析エラー: ' + data.error); return; }
+
+    document.getElementById('f_setcode').value = data.setCode || '';
+    document.getElementById('f_num').value = data.cardNumber || '';
+    document.getElementById('f_tag').value = data.cardType || '';
+    document.getElementById('f_tags').value = data.tags || '';
+    document.getElementById('f_name').value = data.cardName || '';
+    document.getElementById('f_attr').value = data.attribute || '';
+    document.getElementById('f_ability').value = data.abilityText || '';
+    document.getElementById('f_stage').value = data.stage || '';
+    document.getElementById('f_skill').value = data.skillType || 'なし';
+    setYellRows(data.yellCost || []);
+    updateHolomenVisibility();
+    currentCropBox = data.cropBox || { x:0, y:0, width:1, height:1 };
+    setCropSliders(currentCropBox);
+
+    const croppedDataUrl = cropImageToDataUrl(currentImg, currentCropBox);
+    document.getElementById('cropPreview').innerHTML = `<img src="${croppedDataUrl}">`;
+
+    // 読み取ったsetCodeが「①弾の設定」に存在すれば、登録先の弾を自動選択
+    let setMismatchNote = '';
+    if (data.setCode) {
+      const activeSel = document.getElementById('activeSet');
+      const match = sets.find(s => s.setCode === data.setCode);
+      if (match) {
+        activeSel.value = data.setCode;
+      } else if (activeSel.value && activeSel.value !== data.setCode) {
+        setMismatchNote = `\n※読み取ったセットコード「${data.setCode}」は①に未登録です。登録先の弾を確認してください。`;
+      }
+    }
+
+    document.getElementById('f_type').value = '新規';
+    fieldsEl.style.display = 'block';
+    registerBtn.style.display = 'block';
+    await onTypeChange();
+    setStatus('解析完了。区分と配置スロットを確認して登録してください。' + setMismatchNote);
+  } catch (err) {
+    setStatus('通信エラー: ' + err.message);
+  }
+}
+
+// 区分変更時：新規なら番号から自動サジェスト、再録/パラレルなら空き枠候補をヒント表示（入力は自由）
+async function onTypeChange() {
+  const type = document.getElementById('f_type').value;
+  const setCode = document.getElementById('activeSet').value;
+  const slotInput = document.getElementById('f_slot');
+  const hint = document.getElementById('slotHint');
+
+  if (!setCode) { hint.textContent = '先に①で弾を選択してください'; return; }
+
+  const gasUrl = getCfg('gas');
+  const res = await fetch(gasUrl + `?action=emptySlots&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}`);
+  const data = await res.json();
+
+  if (data.error) {
+    hint.textContent = 'エラー: ' + data.error;
+    return;
+  }
+  if (data.total === 0) {
+    hint.textContent = `⚠ 「①弾の設定」で ${type} の収録枚数が未設定（0枚）です。先に収録枚数を入力して「この弾を保存」を押してください`;
+    return;
+  }
+
+  if (type === '新規') {
+    const numMatch = (document.getElementById('f_num').value || '').match(/(\d+)\s*$/);
+    if (numMatch) slotInput.value = Number(numMatch[1]);
+    hint.textContent = `新規 全${data.total}枠中 空き: ${data.empty.length ? data.empty.join(', ') : 'なし'}（番号から自動推定していますが、手入力で変更できます）`;
+  } else {
+    if (!slotInput.value && data.empty.length) slotInput.value = data.empty[0];
+    hint.textContent = `${type} 全${data.total}枠中 空き: ${data.empty.length ? data.empty.join(', ') : 'なし'}（カード番号と枠番号は対応しないため、入れる枠を手入力で指定してください）`;
+  }
+}
+
+registerBtn.addEventListener('click', async () => {
+  const gasUrl = getCfg('gas');
+  const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
+  const setCode = document.getElementById('activeSet').value;
+  const type = document.getElementById('f_type').value;
+  const slot = document.getElementById('f_slot').value;
+
+  if (!ghUser || !ghRepo || !ghPat) { alert('先に「初期設定」でGitHubの情報を入力してください'); return; }
+  if (!setCode) { alert('①で弾を選択してください'); return; }
+  if (!slot) { alert('配置スロット番号が選択されていません。①で収録枚数が正しく設定されているか確認してください'); return; }
+
+  registerBtn.disabled = true;
+  setStatus('カード画像をGitHubにアップロード中...');
+
+  const safeId = `${setCode}_${type}_${slot}`.replace(/[^a-zA-Z0-9\-_]/g, '_');
+  const path = `cards/${safeId}.png`;
+  const croppedBase64 = cropImageToDataUrl(currentImg, currentCropBox).split(',')[1];
+
+  try {
+    try {
+      await uploadToGithub(ghUser, ghRepo, ghPat, path, croppedBase64);
+    } catch (err) {
+      throw new Error('【画像アップロード段階】' + err.message);
+    }
+    const imageUrl = `https://raw.githubusercontent.com/${ghUser}/${ghRepo}/main/${path}`;
+
+    setStatus('スプレッドシートに登録中...');
+    try {
+      const gasBody = JSON.stringify({
+        action: 'addCard',
+        setCode, type, slot,
+        cardType: document.getElementById('f_tag').value,
+        tags: document.getElementById('f_tags').value,
+        cardName: document.getElementById('f_name').value,
+        attribute: document.getElementById('f_attr').value,
+        cardNumber: document.getElementById('f_num').value,
+        stage: document.getElementById('f_stage').value,
+        skillType: document.getElementById('f_skill').value,
+        yellCost: JSON.stringify(getYellRows()),
+        abilityText: document.getElementById('f_ability').value,
+        imageUrl,
+        status: '公開中'
+      });
+
+      let gasRes;
+      try {
+        gasRes = await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: gasBody });
+      } catch (firstErr) {
+        // 一時的な通信エラーの可能性があるため1回だけ再試行
+        setStatus('通信エラーのため再試行中...');
+        await new Promise(r => setTimeout(r, 1500));
+        gasRes = await fetch(gasUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: gasBody });
+      }
+      const gasJson = await gasRes.json().catch(() => ({}));
+      if (gasJson.error) throw new Error(gasJson.error);
+    } catch (err) {
+      throw new Error('【スプレッドシート登録段階】' + err.message + '（画像はGitHubに保存済みです）');
+    }
+
+    const doneMsg = '登録完了: ' + document.getElementById('f_name').value;
+    setStatus(doneMsg);
+    alert(doneMsg);
+    fieldsEl.style.display = 'none';
+    registerBtn.style.display = 'none';
+    await refreshCardTable();
+  } catch (err) {
+    const errMsg = '登録エラー: ' + err.message;
+    setStatus(errMsg);
+    alert(errMsg);
+  } finally {
+    registerBtn.disabled = false;
+  }
+});
+
+// ===== 登録済み一覧・公開ステータス管理 =====
+async function refreshCardTable() {
+  const gasUrl = getCfg('gas');
+  const setCode = document.getElementById('activeSet').value;
+  if (!gasUrl || !setCode) return;
+
+  const res = await fetch(gasUrl + `?action=list&setCode=${encodeURIComponent(setCode)}`);
+  const cards = await res.json();
+  const order = { '新規':0, '再録':1, 'パラレル':2 };
+  cards.sort((a,b) => (order[a.type]-order[b.type]) || (Number(a.slot)-Number(b.slot)));
+
+  const tbody = document.querySelector('#cardTable tbody');
+  tbody.innerHTML = cards.map(c => `
+    <tr>
+      <td><span class="typeBadge type-${c.type}">${c.type}</span></td>
+      <td>${c.slot}</td>
+      <td>${c.cardName}</td>
+      <td>${c.cardNumber || ''}</td>
+      <td><input type="checkbox" data-type="${c.type}" data-slot="${c.slot}" ${c.status === '公開終了' ? 'checked' : ''}></td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'updateStatus',
+          setCode,
+          type: cb.dataset.type,
+          slot: cb.dataset.slot,
+          status: cb.checked ? '公開終了' : '公開中'
+        })
+      });
+    });
+  });
+}
+
+// ===== ユーティリティ =====
+function setStatus(msg) {
+  statusEl.textContent = msg;
+  const bottom = document.getElementById('statusBottom');
+  if (bottom) bottom.textContent = msg;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function loadImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.src = URL.createObjectURL(file);
+  });
+}
+function cropImageToDataUrl(img, box) {
+  const x = Math.max(0, box.x) * img.naturalWidth;
+  const y = Math.max(0, box.y) * img.naturalHeight;
+  const w = Math.min(1 - box.x, box.width) * img.naturalWidth;
+  const h = Math.min(1 - box.y, box.height) * img.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+  return canvas.toDataURL('image/png');
+}
+async function uploadToGithub(user, repo, pat, path, base64Content) {
+  const url = `https://api.github.com/repos/${user.trim()}/${repo.trim()}/contents/${path}`;
+  const authHeader = `Bearer ${pat.trim()}`;
+
+  const doPut = (sha) => {
+    const payload = { message: `add card image: ${path}`, content: base64Content };
+    if (sha) payload.sha = sha;
+    return fetch(url, {
+      method: 'PUT',
+      headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  };
+
+  let res;
+  try {
+    res = await doPut(null);
+  } catch (e) {
+    throw new Error('GitHubへの通信自体が失敗しました（Failed to fetch）。GitHubユーザー名・リポジトリ名・トークンに誤りがないか確認してください。詳細: ' + e.message);
+  }
+
+  // 既に同名ファイルがある場合（409/422）は、shaを取得して上書き
+  if (!res.ok && (res.status === 409 || res.status === 422)) {
+    const getRes = await fetch(url, { headers: { 'Authorization': authHeader } });
+    if (getRes.ok) {
+      const info = await getRes.json();
+      res = await doPut(info.sha);
+    }
+  }
+
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(`GitHubアップロード失敗 (${res.status}): ${errBody.message || ''}`);
+  }
+}
+
+document.getElementById('activeSet').addEventListener('change', () => { refreshCardTable(); onTypeChange(); });
+init();
+</script>
+</body>
+</html>
