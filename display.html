@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホロカ 新カード一覧</title>
+<style>
+  :root { --gold: #d4af6a; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: radial-gradient(ellipse at top, #1c2740, #0a0e18);
+    color: #f0e6d2; font-family: "Hiragino Sans","Yu Gothic",sans-serif; padding: 24px;
+  }
+  .headerRow { display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 4px; }
+  .youtubeBtn {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #ff0000; color: #fff; text-decoration: none;
+    padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: bold;
+    box-shadow: 0 2px 8px rgba(255,0,0,0.35);
+  }
+  .youtubeBtn:hover { filter: brightness(1.1); }
+  h1 { text-align: center; font-size: 22px; letter-spacing: 2px; margin: 0; }
+  .sub { text-align: center; color: #9aa5c0; font-size: 12px; margin-bottom: 20px; }
+  .controlsRow {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+    gap: 12px; margin-bottom: 28px;
+  }
+  .setSelectWrap select {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.4);
+    background: #10182a; color: #f0e6d2; font-size: 13px;
+  }
+  .searchWrap input {
+    width: 320px; max-width: 60vw; padding: 8px 14px; border-radius: 20px;
+    border: 1px solid rgba(212,175,106,0.4); background: #10182a; color: #f0e6d2; font-size: 13px;
+  }
+  .searchHint { text-align: center; color: #9aa5c0; font-size: 11px; margin-top: 6px; width: 100%; }
+  section.typeArea { max-width: 1200px; margin: 0 auto 40px; }
+  .typeHeader {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+    border-bottom: 1px solid rgba(212,175,106,0.3); padding-bottom: 6px;
+  }
+  .typeHeader h2 { font-size: 16px; margin: 0; color: var(--gold); }
+  .typeHeader .count { font-size: 12px; color: #9aa5c0; }
+  #grid-新規, #grid-再録, #grid-パラレル {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;
+  }
+  .card {
+    background: linear-gradient(160deg, #1a2233, #10182a); border-radius: 12px;
+    border: 1px solid rgba(212,175,106,0.35); overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4); transition: transform 0.15s; cursor: pointer;
+  }
+  .card:hover { transform: translateY(-4px); }
+  .card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; background: #10182a; }
+  .card-body { padding: 8px 10px; }
+  .name { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
+  .meta { font-size: 10px; color: #9aa5c0; }
+  .tag {
+    display: inline-block; font-size: 9px; color: #1a1305; background: var(--gold);
+    padding: 1px 7px; border-radius: 8px; margin-bottom: 4px;
+  }
+
+  .card.empty {
+    aspect-ratio: 3/4.6; display: flex; align-items: center; justify-content: center;
+    border: 1px dashed rgba(212,175,106,0.3); background: rgba(255,255,255,0.02); cursor: default;
+  }
+  .card.empty:hover { transform: none; }
+  .card.empty .slotNum { color: rgba(212,175,106,0.35); font-size: 26px; font-weight: bold; }
+
+  #loading, #emptyAll, #noResults { text-align: center; color: #9aa5c0; margin-top: 60px; }
+
+  .modalOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(5,8,14,0.9);
+    z-index: 100; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modalOverlay.open { display: flex; }
+  .modalBox {
+    background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
+    border-radius: 18px; max-width: 1180px; width: 100%; max-height: 94vh; overflow-y: auto;
+    display: flex; gap: 32px; padding: 36px; position: relative; flex-wrap: wrap;
+  }
+  .modalBox img { width: 420px; max-width: 100%; border-radius: 14px; flex-shrink: 0; }
+  .modalInfo { flex: 1; min-width: 260px; }
+  .modalInfo h3 { margin: 0 0 12px; font-size: 28px; color: var(--gold); }
+  .modalInfo .modalMeta { font-size: 15px; color: #9aa5c0; margin-bottom: 6px; }
+  .modalInfo .modalAbility { margin-top: 16px; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+  .modalTypeBadge {
+    display: inline-block; font-size: 12px; font-weight: bold; color: #1a1305;
+    background: var(--gold); padding: 3px 12px; border-radius: 10px; margin-bottom: 10px; margin-right: 6px;
+  }
+  .modalClose {
+    position: absolute; top: 14px; right: 18px; background: none; border: none;
+    color: #f0e6d2; font-size: 30px; cursor: pointer; line-height: 1;
+  }
+  .modalNavBtn {
+    position: fixed; top: 50%; transform: translateY(-50%); z-index: 101;
+    background: rgba(212,175,106,0.15); border: 1px solid rgba(212,175,106,0.4);
+    color: var(--gold); width: 48px; height: 48px; border-radius: 50%;
+    font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .modalNavBtn:hover { background: rgba(212,175,106,0.3); }
+  .modalNavBtn.prev { left: 24px; }
+  .modalNavBtn.next { right: 24px; }
+  .modalDownloadBtn {
+    position: absolute; right: 24px; bottom: 20px;
+    background: var(--gold); color: #1a1305; border: none; border-radius: 20px;
+    padding: 8px 18px; font-size: 13px; font-weight: bold; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .modalDownloadBtn:hover { filter: brightness(1.1); }
+  .artsBlock {
+    border-top: 1px dashed rgba(212,175,106,0.25); margin-top: 12px; padding-top: 10px;
+  }
+  .artsBlock .artsName { font-size: 15px; font-weight: bold; color: #f0e6d2; }
+  .artsBlock .artsMeta { font-size: 13px; color: #9aa5c0; margin: 2px 0; }
+  .artsBlock .artsEffect { font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="headerRow">
+  <h1>hololive OFFICIAL CARD GAME</h1>
+  <a class="youtubeBtn" href="https://www.youtube.com/channel/UClxMlIDTNlNv4H3QsWWgZbw" target="_blank" rel="noopener">▶ YouTube</a>
+</div>
+<div class="sub">新カード情報 一覧（公開中のみ表示）</div>
+
+<div class="controlsRow">
+  <div class="setSelectWrap"><select id="setSelect"></select></div>
+  <div class="searchWrap"><input id="searchInput" type="text" placeholder="カード名・カード種・番号・能力テキストで検索"></div>
+  <div class="searchHint">カード名／カードタイプ／カード番号／能力テキストが対象です</div>
+</div>
+
+<div id="loading">読み込み中...</div>
+<div id="emptyAll" style="display:none;">この弾にはまだ公開情報がありません</div>
+<div id="noResults" style="display:none;">該当するカードが見つかりませんでした</div>
+
+<div id="searchResultsWrap" style="display:none; max-width:1200px; margin:0 auto 40px;">
+  <div id="searchResultsGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:16px;"></div>
+</div>
+
+<div id="areas" style="display:none;">
+  <section class="typeArea">
+    <div class="typeHeader"><h2>新規追加</h2><span class="count" id="count-新規"></span></div>
+    <div id="grid-新規"></div>
+  </section>
+  <section class="typeArea">
+    <div class="typeHeader"><h2>再録</h2><span class="count" id="count-再録"></span></div>
+    <div id="grid-再録"></div>
+  </section>
+  <section class="typeArea">
+    <div class="typeHeader"><h2>パラレル</h2><span class="count" id="count-パラレル"></span></div>
+    <div id="grid-パラレル"></div>
+  </section>
+</div>
+
+<button class="modalNavBtn prev" id="modalPrev" style="display:none;">‹</button>
+<button class="modalNavBtn next" id="modalNext" style="display:none;">›</button>
+
+<div id="modalOverlay" class="modalOverlay">
+  <div class="modalBox">
+    <button class="modalClose" id="modalClose">×</button>
+    <img id="modalImg" alt="">
+    <div class="modalInfo" id="modalInfo"></div>
+    <button class="modalDownloadBtn" id="modalDownload">⬇ 画像を保存</button>
+  </div>
+</div>
+
+<script>
+// ===== 設定：初回だけ書き換えてください =====
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDQ0iJY8067G9hSLi-u2pvby54EBuhjiPo0inpIaS-8gIiOSEVZmxO8RwHZ00YqlYf/exec';
+const REFRESH_INTERVAL = 30000;
+
+let currentSetCode = null;
+let lastCards = [];      // 現在の弾の公開中カード一覧
+let lastSetInfo = null;  // 現在の弾のtotalNew/totalRerun/totalParallel
+let searchQuery = '';
+let navList = [];        // モーダルの前後移動対象リスト
+let navIndex = -1;
+
+async function init() {
+  const res = await fetch(GAS_URL + '?action=listSets');
+  const sets = await res.json();
+  const sel = document.getElementById('setSelect');
+  sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
+  sel.addEventListener('change', () => { currentSetCode = sel.value; loadCards(); });
+
+  if (sets.length) {
+    currentSetCode = sets[sets.length - 1].setCode; // 最後に登録された弾をデフォルト表示
+    sel.value = currentSetCode;
+  }
+
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    render();
+  });
+
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') closeModal();
+  });
+  document.getElementById('modalPrev').addEventListener('click', () => navigate(-1));
+  document.getElementById('modalNext').addEventListener('click', () => navigate(1));
+  document.getElementById('modalDownload').addEventListener('click', downloadCurrentImage);
+  document.addEventListener('keydown', (e) => {
+    if (!document.getElementById('modalOverlay').classList.contains('open')) return;
+    if (e.key === 'ArrowLeft') navigate(-1);
+    if (e.key === 'ArrowRight') navigate(1);
+    if (e.key === 'Escape') closeModal();
+  });
+
+  await loadCards();
+  setInterval(loadCards, REFRESH_INTERVAL);
+}
+
+async function loadCards() {
+  if (!currentSetCode) return;
+  document.getElementById('loading').style.display = 'block';
+
+  const [setsRes, cardsRes] = await Promise.all([
+    fetch(GAS_URL + '?action=listSets'),
+    fetch(GAS_URL + `?action=list&setCode=${encodeURIComponent(currentSetCode)}&status=${encodeURIComponent('公開中')}`)
+  ]);
+  const sets = await setsRes.json();
+  lastCards = await cardsRes.json();
+  lastSetInfo = sets.find(s => s.setCode === currentSetCode) || { totalNew:0, totalRerun:0, totalParallel:0 };
+
+  document.getElementById('loading').style.display = 'none';
+  render();
+}
+
+function render() {
+  const totalCards = (lastSetInfo.totalNew || 0) + (lastSetInfo.totalRerun || 0) + (lastSetInfo.totalParallel || 0);
+  if (!totalCards) {
+    document.getElementById('emptyAll').style.display = 'block';
+    document.getElementById('areas').style.display = 'none';
+    document.getElementById('searchResultsWrap').style.display = 'none';
+    document.getElementById('noResults').style.display = 'none';
+    return;
+  }
+  document.getElementById('emptyAll').style.display = 'none';
+
+  if (searchQuery) {
+    renderSearchResults();
+  } else {
+    document.getElementById('searchResultsWrap').style.display = 'none';
+    document.getElementById('noResults').style.display = 'none';
+    document.getElementById('areas').style.display = 'block';
+
+    const offsetRerun = lastSetInfo.totalNew || 0;
+    const offsetParallel = offsetRerun + (lastSetInfo.totalRerun || 0);
+    renderArea('新規', lastSetInfo.totalNew || 0, 0);
+    renderArea('再録', lastSetInfo.totalRerun || 0, offsetRerun);
+    renderArea('パラレル', lastSetInfo.totalParallel || 0, offsetParallel);
+
+    const order = { '新規': 0, '再録': 1, 'パラレル': 2 };
+    navList = lastCards.slice().sort((a, b) => (order[a.type] - order[b.type]) || (Number(a.slot) - Number(b.slot)));
+  }
+}
+
+function matchesQuery(c, q) {
+  const query = q.toLowerCase();
+  const fields = [c.cardName, c.cardType, c.cardNumber, c.setCode, c.abilityText, c.tags];
+  return fields.some(f => (f || '').toString().toLowerCase().includes(query));
+}
+
+function renderSearchResults() {
+  document.getElementById('areas').style.display = 'none';
+  const matched = lastCards.filter(c => matchesQuery(c, searchQuery));
+
+  if (!matched.length) {
+    document.getElementById('searchResultsWrap').style.display = 'none';
+    document.getElementById('noResults').style.display = 'block';
+    return;
+  }
+  document.getElementById('noResults').style.display = 'none';
+  document.getElementById('searchResultsWrap').style.display = 'block';
+  document.getElementById('searchResultsGrid').innerHTML = matched.map(c => cardHtml(c)).join('');
+  bindCardClicks(document.getElementById('searchResultsGrid'));
+  navList = matched;
+}
+
+function renderArea(type, total, offset) {
+  const cardsOfType = lastCards.filter(c => c.type === type);
+  const byslot = {};
+  cardsOfType.forEach(c => byslot[Number(c.slot)] = c);
+
+  document.getElementById('count-' + type).textContent = `${cardsOfType.length} / ${total} 公開`;
+
+  let html = '';
+  for (let slot = 1; slot <= total; slot++) {
+    const c = byslot[slot];
+    if (c) {
+      html += cardHtml(c);
+    } else {
+      html += `<div class="card empty"><span class="slotNum">${offset + slot}</span></div>`;
+    }
+  }
+  const gridEl = document.getElementById('grid-' + type);
+  gridEl.innerHTML = html;
+  bindCardClicks(gridEl);
+}
+
+function cardHtml(c) {
+  return `
+    <div class="card" data-key="${c.type}__${c.slot}">
+      <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+      <div class="card-body">
+        ${c.cardType ? `<div class="tag">${escapeHtml(c.cardType)}</div>` : ''}
+        <div class="name">${escapeHtml(c.cardName)}</div>
+        <div class="meta">${escapeHtml(c.attribute || '')}${c.hp ? ' / HP' + escapeHtml(c.hp) : ''}</div>
+        <div class="meta">${escapeHtml(c.rarity || '')} ${escapeHtml(c.setCode || '')}${c.setCode && c.cardNumber ? '-' : ''}${escapeHtml(c.cardNumber || '')}</div>
+        ${c.tags ? `<div class="meta">${escapeHtml(c.tags)}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function bindCardClicks(container) {
+  container.querySelectorAll('.card[data-key]').forEach(el => {
+    el.addEventListener('click', () => {
+      const [type, slot] = el.dataset.key.split('__');
+      const c = lastCards.find(x => x.type === type && String(x.slot) === slot);
+      if (c) openModal(c);
+    });
+  });
+}
+
+function openModal(c) {
+  navIndex = navList.findIndex(x => x.type === c.type && String(x.slot) === String(c.slot));
+
+  document.getElementById('modalImg').src = c.imageUrl;
+  document.getElementById('modalImg').alt = c.cardName;
+
+  let artsHtml = '';
+  try {
+    const arts = JSON.parse(c.artsJson || '[]');
+    if (Array.isArray(arts) && arts.length) {
+      artsHtml = arts.map(a => {
+        const yellText = (a.yellCost || []).map(y => `${escapeHtml(y.color)}×${y.count}`).join(' ');
+        const effectText = (a.effectText || '').replace(/\\n/g, '\n');
+        return `
+          <div class="artsBlock">
+            <div class="artsName">${escapeHtml(a.name || 'アーツ')}${a.damage ? `　${escapeHtml(a.damage)}` : ''}</div>
+            ${yellText ? `<div class="artsMeta">エール: ${yellText}</div>` : ''}
+            ${effectText ? `<div class="artsEffect">${escapeHtml(effectText)}</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+  } catch (e) { /* ignore */ }
+
+  const abilityText = (c.abilityText || '').replace(/\\n/g, '\n');
+
+  document.getElementById('modalInfo').innerHTML = `
+    ${c.type ? `<span class="modalTypeBadge">${escapeHtml(c.type)}</span>` : ''}
+    ${c.rarity ? `<span class="modalTypeBadge" style="background:#7ec8e3;">${escapeHtml(c.rarity)}</span>` : ''}
+    <h3>${escapeHtml(c.cardName)}</h3>
+    ${c.cardType ? `<div class="tag" style="margin-bottom:8px;">${escapeHtml(c.cardType)}</div>` : ''}
+    <div class="modalMeta">番号: ${escapeHtml(c.setCode || '')}${c.setCode && c.cardNumber ? '-' : ''}${escapeHtml(c.cardNumber || '')}</div>
+    ${c.originalNumber ? `<div class="modalMeta">初期収録番号: ${escapeHtml(c.originalNumber)}</div>` : ''}
+    <div class="modalMeta">属性: ${escapeHtml(c.attribute || '-')}${c.hp ? ' ／ HP: ' + escapeHtml(c.hp) : ''}</div>
+    ${c.stage ? `<div class="modalMeta">進化レベル: ${escapeHtml(c.stage)}</div>` : ''}
+    ${c.skillType ? `<div class="modalMeta">固定スキル: ${escapeHtml(c.skillType)}</div>` : ''}
+    ${c.batonTouchCost !== undefined && c.batonTouchCost !== '' ? `<div class="modalMeta">バトンタッチ: ${escapeHtml(c.batonTouchCost)}</div>` : ''}
+    ${c.tags ? `<div class="modalMeta">タグ: ${escapeHtml(c.tags)}</div>` : ''}
+    ${abilityText ? `<div class="modalAbility">${escapeHtml(abilityText)}</div>` : ''}
+    ${artsHtml}
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+
+  const hasNav = navList.length > 1 && navIndex !== -1;
+  document.getElementById('modalPrev').style.display = hasNav ? 'flex' : 'none';
+  document.getElementById('modalNext').style.display = hasNav ? 'flex' : 'none';
+}
+
+function navigate(delta) {
+  if (navIndex === -1 || !navList.length) return;
+  const newIndex = (navIndex + delta + navList.length) % navList.length;
+  openModal(navList[newIndex]);
+}
+
+async function downloadCurrentImage() {
+  if (navIndex === -1) return;
+  const c = navList[navIndex];
+  try {
+    const res = await fetch(c.imageUrl);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = `${c.setCode || ''}-${c.cardNumber || c.slot}_${(c.cardName || 'card').replace(/[^\w\-一-龠ぁ-んァ-ヶ]/g,'')}.png`;
+    a.download = safeName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('画像のダウンロードに失敗しました: ' + e.message);
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('modalPrev').style.display = 'none';
+  document.getElementById('modalNext').style.display = 'none';
+  navIndex = -1;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+init();
+</script>
+</body>
+</html>
