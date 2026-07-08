@@ -58,6 +58,7 @@
   .searchHint { text-align: center; color: #9aa5c0; font-size: 11px; margin: 0 0 26px; width: 100%; }
 
   .favWrap { position: relative; }
+  .sizeFavGroup { display: flex; align-items: center; gap: 8px; }
   .favMenuBtn {
     display: flex; align-items: center; gap: 6px;
     background: linear-gradient(160deg, #1a2233, #10182a); color: #f0e6d2;
@@ -110,6 +111,7 @@
   body.size-small { --cardMin: 96px; --cardGap: 10px; }
   body.size-small .card:not(.empty) .card-body { display: none; }
   body.size-small .card:not(.empty) img { aspect-ratio: 3/4.4; }
+  body.size-small .card:not(.empty) .favStar { display: none; }
   body.size-large { --cardMin: 220px; --cardGap: 22px; }
   .sizeToggle { display: flex; align-items: center; gap: 4px; }
   .sizeToggle button {
@@ -195,10 +197,14 @@
     position: static; width: 30px; height: 30px; margin-left: auto;
     background: rgba(255,255,255,0.08); font-size: 16px;
   }
-  .skillBlock { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed rgba(212,175,106,0.2); }
+  .skillBlock {
+    display: flex; flex-direction: column;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed rgba(212,175,106,0.2);
+  }
   .skillBlock:last-child { border-bottom: none; }
-  .skillBanner { margin: 2px 0 8px; }
+  .skillBanner { order: -1; margin: 2px 0 8px; }
   .skillBanner img { height: 40px; width: auto; max-width: 100%; object-fit: contain; display: block; }
+  .skillTextWrap { order: 1; }
   .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; }
   .yellRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .yellIconWrap { position: relative; display: inline-flex; width: 28px; height: 28px; }
@@ -218,10 +224,16 @@
     .headerRow { min-height: 34px; }
     .headerRow .youtubeBtn { display: none; }
     .topBar {
-      display: flex; justify-content: flex-end; position: fixed; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      position: fixed; top: 0; left: 0; right: 0;
       z-index: 60; background: rgba(10,14,24,0.92); backdrop-filter: blur(6px);
       padding: 8px 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
     }
+    .topBar #searchWrapEl {
+      flex: 1; min-width: 0; padding: 5px 10px; border-radius: 14px;
+    }
+    .topBar #searchWrapEl input { font-size: 12px; }
+    .topBar .icon { font-size: 12px; }
     .youtubeBtnTop {
       display: inline-flex; align-items: center; gap: 6px;
       background: linear-gradient(135deg, #ff3d3d, #d90000); color: #fff; text-decoration: none;
@@ -235,7 +247,7 @@
     #grid-新規, #grid-再録, #grid-パラレル, #searchResultsGrid {
       grid-template-columns: repeat(auto-fill, minmax(var(--cardMin, 108px), 1fr)); gap: var(--cardGap, 10px);
     }
-    body.size-small { --cardMin: 84px; --cardGap: 8px; }
+    body.size-small { --cardMin: 60px; --cardGap: 6px; }
     body.size-large { --cardMin: 160px; --cardGap: 14px; }
     .name { font-size: 11px; }
     .meta { font-size: 9px; }
@@ -255,7 +267,17 @@
     .modalNavBtn.next { right: 8px; }
 
     .favMenu { right: -8px; min-width: 200px; max-width: 80vw; }
-    .skillBanner img { height: 32px; }
+    .skillBanner img { height: 24px; }
+    .skillBlock {
+      flex-direction: row; align-items: flex-start; gap: 10px; flex-wrap: nowrap;
+    }
+    .skillBlock .skillTextWrap { order: 1; flex: 1; min-width: 0; }
+    .skillBlock .skillBanner { order: 2; margin: 0; flex-shrink: 0; }
+    .skillBlock .skillBanner img { height: 20px; }
+    .skillBlock .tag { order: 2; flex-shrink: 0; }
+    .yellIconWrap { width: 20px; height: 20px; }
+    .yellCount { font-size: 9px; }
+    .batonIcon { width: 14px; height: 14px; }
   }
 </style>
 </head>
@@ -278,26 +300,28 @@
 <div class="sub">新カード情報 一覧（公開中のみ表示）</div>
 
 <div class="controlsRow">
-  <div class="sizeToggle">
-    <button type="button" data-size="large" title="大きく表示">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
-    </button>
-    <button type="button" data-size="medium" class="active" title="ふつうに表示">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><rect x="9.25" y="2.5" width="5.5" height="5.5" rx="1"/><rect x="16" y="2.5" width="5.5" height="5.5" rx="1"/><rect x="2.5" y="9.25" width="5.5" height="5.5" rx="1"/><rect x="9.25" y="9.25" width="5.5" height="5.5" rx="1"/><rect x="16" y="9.25" width="5.5" height="5.5" rx="1"/><rect x="2.5" y="16" width="5.5" height="5.5" rx="1"/><rect x="9.25" y="16" width="5.5" height="5.5" rx="1"/><rect x="16" y="16" width="5.5" height="5.5" rx="1"/></svg>
-    </button>
-    <button type="button" data-size="small" title="小さく・画像だけ表示">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="4" height="4" rx="0.8"/><rect x="7.3" y="2" width="4" height="4" rx="0.8"/><rect x="12.6" y="2" width="4" height="4" rx="0.8"/><rect x="17.9" y="2" width="4" height="4" rx="0.8"/><rect x="2" y="7.3" width="4" height="4" rx="0.8"/><rect x="7.3" y="7.3" width="4" height="4" rx="0.8"/><rect x="12.6" y="7.3" width="4" height="4" rx="0.8"/><rect x="17.9" y="7.3" width="4" height="4" rx="0.8"/><rect x="2" y="12.6" width="4" height="4" rx="0.8"/><rect x="7.3" y="12.6" width="4" height="4" rx="0.8"/><rect x="12.6" y="12.6" width="4" height="4" rx="0.8"/><rect x="17.9" y="12.6" width="4" height="4" rx="0.8"/><rect x="2" y="17.9" width="4" height="4" rx="0.8"/><rect x="7.3" y="17.9" width="4" height="4" rx="0.8"/><rect x="12.6" y="17.9" width="4" height="4" rx="0.8"/><rect x="17.9" y="17.9" width="4" height="4" rx="0.8"/></svg>
-    </button>
-  </div>
   <div class="setSelectWrap"><span class="icon">📦</span><select id="setSelect"></select></div>
-  <div class="searchWrap"><span class="icon">🔍</span><input id="searchInput" type="text" placeholder="カード名・カード種・番号・能力テキストで検索"></div>
-  <div class="favWrap">
-    <button type="button" id="favMenuBtn" class="favMenuBtn">⭐ お気に入り</button>
-    <div id="favMenu" class="favMenu" style="display:none;">
-      <div id="favGroupList"></div>
-      <div class="favMenuActions">
-        <button type="button" class="secondary" id="favNewGroupBtn">＋ 新しいグループ</button>
-        <button type="button" class="secondary" id="favShowAllBtn">通常表示に戻る</button>
+  <div class="searchWrap" id="searchWrapEl"><span class="icon">🔍</span><input id="searchInput" type="text" placeholder="カード名・カード種・番号・能力テキストで検索"></div>
+  <div class="sizeFavGroup">
+    <div class="sizeToggle">
+      <button type="button" data-size="large" title="大きく表示">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+      </button>
+      <button type="button" data-size="medium" class="active" title="ふつうに表示">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><rect x="9.25" y="2.5" width="5.5" height="5.5" rx="1"/><rect x="16" y="2.5" width="5.5" height="5.5" rx="1"/><rect x="2.5" y="9.25" width="5.5" height="5.5" rx="1"/><rect x="9.25" y="9.25" width="5.5" height="5.5" rx="1"/><rect x="16" y="9.25" width="5.5" height="5.5" rx="1"/><rect x="2.5" y="16" width="5.5" height="5.5" rx="1"/><rect x="9.25" y="16" width="5.5" height="5.5" rx="1"/><rect x="16" y="16" width="5.5" height="5.5" rx="1"/></svg>
+      </button>
+      <button type="button" data-size="small" title="小さく・画像だけ表示">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="4" height="4" rx="0.8"/><rect x="7.3" y="2" width="4" height="4" rx="0.8"/><rect x="12.6" y="2" width="4" height="4" rx="0.8"/><rect x="17.9" y="2" width="4" height="4" rx="0.8"/><rect x="2" y="7.3" width="4" height="4" rx="0.8"/><rect x="7.3" y="7.3" width="4" height="4" rx="0.8"/><rect x="12.6" y="7.3" width="4" height="4" rx="0.8"/><rect x="17.9" y="7.3" width="4" height="4" rx="0.8"/><rect x="2" y="12.6" width="4" height="4" rx="0.8"/><rect x="7.3" y="12.6" width="4" height="4" rx="0.8"/><rect x="12.6" y="12.6" width="4" height="4" rx="0.8"/><rect x="17.9" y="12.6" width="4" height="4" rx="0.8"/><rect x="2" y="17.9" width="4" height="4" rx="0.8"/><rect x="7.3" y="17.9" width="4" height="4" rx="0.8"/><rect x="12.6" y="17.9" width="4" height="4" rx="0.8"/><rect x="17.9" y="17.9" width="4" height="4" rx="0.8"/></svg>
+      </button>
+    </div>
+    <div class="favWrap" id="favWrapEl">
+      <button type="button" id="favMenuBtn" class="favMenuBtn">⭐ お気に入り</button>
+      <div id="favMenu" class="favMenu" style="display:none;">
+        <div id="favGroupList"></div>
+        <div class="favMenuActions">
+          <button type="button" class="secondary" id="favNewGroupBtn">＋ 新しいグループ</button>
+          <button type="button" class="secondary" id="favShowAllBtn">通常表示に戻る</button>
+        </div>
       </div>
     </div>
   </div>
@@ -472,7 +496,22 @@ async function showFavoritesView(group) {
   navList = matched;
 }
 
+// 画面幅に応じて検索欄をトップバー(スマホ)⇔controlsRow(PC)に移動
+function relocateSearchBar() {
+  const searchWrapEl = document.getElementById('searchWrapEl');
+  const topBar = document.getElementById('topBar');
+  const anchorEl = document.querySelector('.sizeFavGroup');
+  if (!searchWrapEl || !topBar || !anchorEl) return;
+  if (window.innerWidth <= 640) {
+    if (searchWrapEl.parentElement !== topBar) topBar.insertBefore(searchWrapEl, topBar.firstChild);
+  } else {
+    if (searchWrapEl.parentElement !== anchorEl.parentElement) anchorEl.parentElement.insertBefore(searchWrapEl, anchorEl);
+  }
+}
+window.addEventListener('resize', relocateSearchBar);
+
 async function init() {
+  relocateSearchBar();
   const res = await fetch(GAS_URL + '?action=listSets');
   const allSets = await res.json();
   const sets = allSets.filter(s => s.status !== '公開終了'); // 公開終了の弾は一覧から除外
@@ -589,8 +628,10 @@ function render() {
     renderArea('再録', lastSetInfo.totalRerun || 0, offsetRerun);
     renderArea('パラレル', lastSetInfo.totalParallel || 0, offsetParallel);
 
-    const order = { '新規': 0, '再録': 1, 'パラレル': 2 };
-    navList = lastCards.slice().sort((a, b) => (order[a.type] - order[b.type]) || (Number(a.slot) - Number(b.slot)));
+    const newCards = lastCards.filter(c => c.type === '新規').sort((a, b) => Number(a.slot) - Number(b.slot));
+    const rerunCards = sortRerunCards(lastCards.filter(c => c.type === '再録'));
+    const parallelCards = lastCards.filter(c => c.type === 'パラレル').sort((a, b) => Number(a.slot) - Number(b.slot));
+    navList = [...newCards, ...rerunCards, ...parallelCards];
   }
 }
 
@@ -624,22 +665,47 @@ function renderSearchResults() {
   navList = matched;
 }
 
+const ATTR_ORDER = ['白', '緑', '赤', '青', '紫', '黄', '無色'];
+
+// 再録の並び替え順（各属性→サポート→その他）。navList構築側でも同じ順序を使う
+function sortRerunCards(cardsOfType) {
+  const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('ホロメン') !== -1);
+  const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
+  const otherCards = cardsOfType.filter(c => holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1);
+
+  holomenCards.sort((a, b) => {
+    const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
+    return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || (Number(a.slot) - Number(b.slot));
+  });
+  supportCards.sort((a, b) => Number(a.slot) - Number(b.slot));
+  otherCards.sort((a, b) => Number(a.slot) - Number(b.slot));
+
+  return [...holomenCards, ...supportCards, ...otherCards];
+}
+
 function renderArea(type, total, offset) {
   const cardsOfType = lastCards.filter(c => c.type === type);
-  const byslot = {};
-  cardsOfType.forEach(c => byslot[Number(c.slot)] = c);
-
   document.getElementById('count-' + type).textContent = `${cardsOfType.length} / ${total} 公開`;
 
   let html = '';
-  for (let slot = 1; slot <= total; slot++) {
-    const c = byslot[slot];
-    if (c) {
-      html += cardHtml(c);
-    } else {
-      html += `<div class="card empty"><span class="slotNum">${offset + slot}</span></div>`;
+  if (type === '再録') {
+    // 再録は「各属性(ホロメン系)→サポート系→その他」の順に自動並び替え、末尾に残り枠(あまり番号)を表示
+    const orderedCards = sortRerunCards(cardsOfType);
+    const usedSlots = new Set(cardsOfType.map(c => Number(c.slot)));
+    const leftoverSlots = [];
+    for (let s = 1; s <= total; s++) if (!usedSlots.has(s)) leftoverSlots.push(s);
+
+    html = orderedCards.map(c => cardHtml(c)).join('');
+    html += leftoverSlots.map(s => `<div class="card empty"><span class="slotNum">${offset + s}</span></div>`).join('');
+  } else {
+    const byslot = {};
+    cardsOfType.forEach(c => byslot[Number(c.slot)] = c);
+    for (let slot = 1; slot <= total; slot++) {
+      const c = byslot[slot];
+      html += c ? cardHtml(c) : `<div class="card empty"><span class="slotNum">${offset + slot}</span></div>`;
     }
   }
+
   const gridEl = document.getElementById('grid-' + type);
   gridEl.innerHTML = html;
   bindCardClicks(gridEl);
@@ -696,9 +762,10 @@ function yellIconHtml(color, count) {
 function batonHtml(cost) {
   if (cost === undefined || cost === null || cost === '') return '';
   const n = Number(cost) || 0;
-  if (n === 0) return `<div class="modalMeta">バトンタッチ: なし</div>`;
+  const wrapStyle = 'margin-top:16px; padding-top:12px; border-top:1px dashed rgba(212,175,106,0.25);';
+  if (n === 0) return `<div class="modalMeta" style="${wrapStyle}">バトンタッチ: なし</div>`;
   const icons = Array.from({ length: n }).map(() => yellIconHtml('無色', 1)).join('');
-  return `<div class="modalMeta">バトンタッチ: <span class="yellRow" style="display:inline-flex;vertical-align:middle;">${icons}</span></div>`;
+  return `<div class="modalMeta" style="${wrapStyle}">バトンタッチ: <span class="yellRow" style="display:inline-flex;vertical-align:middle;">${icons}</span></div>`;
 }
 
 function skillBlockHtml(skill) {
@@ -708,7 +775,7 @@ function skillBlockHtml(skill) {
     : `<div class="tag" style="margin-bottom:6px;">${escapeHtml(skill.skillType || '固有スキル')}</div>`;
   const titleHtml = skill.title ? `<div class="skillTitle">${escapeHtml(skill.title)}</div>` : '';
   const textHtml = skill.text ? `<div class="modalAbility">${escapeHtml((skill.text || '').replace(/\\n/g, '\n'))}</div>` : '';
-  return `<div class="skillBlock">${bannerHtml}${titleHtml}${textHtml}</div>`;
+  return `<div class="skillBlock"><div class="skillTextWrap">${titleHtml}${textHtml}</div>${bannerHtml}</div>`;
 }
 
 function openModal(c) {
@@ -752,14 +819,9 @@ function openModal(c) {
     </div>
     <h3>${escapeHtml(c.cardName)}</h3>
     ${c.cardType ? `<div class="tag" style="margin-bottom:8px;">${escapeHtml(c.cardType)}</div>` : ''}
-    <div class="modalMeta">属性: ${escapeHtml(c.attribute || '-')}${c.hp ? ' ／ HP: ' + escapeHtml(c.hp) : ''}${c.stage ? ' ／ ' + escapeHtml(c.stage) : ''}</div>
-    ${c.originalNumber ? `<div class="modalMeta">初期収録番号: ${escapeHtml(c.originalNumber)}</div>` : ''}
-    ${batonHtml(c.batonTouchCost)}
-
-    <div class="modalMeta" style="margin-top:10px;">番号: ${escapeHtml(c.setCode || '')}${c.setCode && c.cardNumber ? '-' : ''}${escapeHtml(c.cardNumber || '')}</div>
-    ${c.tags ? `<div class="modalMeta">タグ: ${escapeHtml(c.tags)}</div>` : ''}
     ${skillsHtml}
     ${artsHtml}
+    ${batonHtml(c.batonTouchCost)}
   `;
   document.getElementById('modalOverlay').classList.add('open');
 
