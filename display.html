@@ -211,7 +211,7 @@
   }
   .artsBlock .artsName { font-size: 15px; font-weight: bold; color: #f0e6d2; }
   .artsBlock .artsMeta { font-size: 13px; color: #9aa5c0; margin: 2px 0; }
-  .artsBlock .artsEffect { font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-top: 4px; }
+  .artsBlock .artsEffect { font-size: 26px; line-height: 1.6; white-space: pre-wrap; margin-top: 6px; }
 
   .modalBadgeRow { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
   .modalFavStar {
@@ -227,6 +227,7 @@
   .skillBanner img { height: 40px; width: auto; max-width: 100%; object-fit: contain; display: block; }
   .skillTextWrap { order: 1; }
   .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; }
+  .modalAbility.skillContentLarge { font-size: 26px; }
   .yellRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .yellIconWrap { position: relative; display: inline-flex; width: 28px; height: 28px; }
   .yellIconWrap img { width: 100%; height: 100%; object-fit: contain; }
@@ -320,7 +321,7 @@
 <div class="topBar" id="topBar">
   <a class="youtubeBtnTop" href="https://www.youtube.com/channel/UClxMlIDTNlNv4H3QsWWgZbw" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12Z"/></svg>
-    ホロカチャンネルもやってるよ
+    カードチャンネルもやってるよ
   </a>
 </div>
 
@@ -548,15 +549,33 @@ window.addEventListener('resize', relocateSearchBar);
 
 async function init() {
   relocateSearchBar();
-  const res = await fetch(GAS_URL + '?action=listSets');
-  const allSets = await res.json();
+  const [setsRes, defRes] = await Promise.all([
+    fetch(GAS_URL + '?action=listSets'),
+    fetch(GAS_URL + '?action=getDefaultSet')
+  ]);
+  const allSets = await setsRes.json();
+  const defJson = await defRes.json().catch(() => ({}));
+  const adminDefaultSetCode = defJson.defaultSetCode || '';
   const sets = allSets.filter(s => s.status !== '公開終了'); // 公開終了の弾は一覧から除外
   const sel = document.getElementById('setSelect');
   sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
-  sel.addEventListener('change', () => { favViewGroup = null; currentSetCode = sel.value; loadCards(); });
+  sel.addEventListener('change', () => {
+    favViewGroup = null;
+    currentSetCode = sel.value;
+    localStorage.setItem('lastViewedSetCode', currentSetCode);
+    loadCards();
+  });
 
   if (sets.length) {
-    currentSetCode = sets[sets.length - 1].setCode; // 最後に登録された弾をデフォルト表示
+    // 表示する弾の優先順位: ①前回自分が見ていた弾 → ②管理画面で設定されたデフォルト → ③最後に登録された弾
+    const lastViewed = localStorage.getItem('lastViewedSetCode');
+    if (lastViewed && sets.some(s => s.setCode === lastViewed)) {
+      currentSetCode = lastViewed;
+    } else if (adminDefaultSetCode && sets.some(s => s.setCode === adminDefaultSetCode)) {
+      currentSetCode = adminDefaultSetCode;
+    } else {
+      currentSetCode = sets[sets.length - 1].setCode;
+    }
     sel.value = currentSetCode;
   }
 
@@ -614,6 +633,24 @@ async function init() {
     if (e.key === 'ArrowRight') navigate(1);
     if (e.key === 'Escape') closeModal();
   });
+
+  // スワイプで前後のカードに移動
+  const modalBoxEl = document.querySelector('.modalBox');
+  let swipeStartX = 0, swipeStartY = 0;
+  modalBoxEl.addEventListener('touchstart', (e) => {
+    if (!e.touches.length) return;
+    swipeStartX = e.touches[0].clientX;
+    swipeStartY = e.touches[0].clientY;
+  }, { passive: true });
+  modalBoxEl.addEventListener('touchend', (e) => {
+    if (!e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    const dy = e.changedTouches[0].clientY - swipeStartY;
+    const SWIPE_THRESHOLD = 50;
+    if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy)) {
+      navigate(dx > 0 ? -1 : 1); // 右にスワイプ→前へ、左にスワイプ→次へ
+    }
+  }, { passive: true });
 
   await loadCards();
   setInterval(loadCards, REFRESH_INTERVAL);
@@ -829,7 +866,8 @@ function skillBlockHtml(skill) {
     ? `<div class="skillBanner"><img src="${CARD_ASSETS[bannerKey]}" alt="${escapeHtml(skill.skillType)}"></div>`
     : `<div class="tag" style="margin-bottom:6px;">${escapeHtml(skill.skillType || '固有スキル')}</div>`;
   const titleHtml = skill.title ? `<div class="skillTitle">${escapeHtml(skill.title)}</div>` : '';
-  const textHtml = skill.text ? `<div class="modalAbility">${escapeHtml((skill.text || '').replace(/\\n/g, '\n'))}</div>` : '';
+  const isLarge = skill.skillType !== 'エクストラ';
+  const textHtml = skill.text ? `<div class="modalAbility${isLarge ? ' skillContentLarge' : ''}">${escapeHtml((skill.text || '').replace(/\\n/g, '\n'))}</div>` : '';
   return `<div class="skillBlock"><div class="skillTextWrap">${titleHtml}${textHtml}</div>${bannerHtml}</div>`;
 }
 

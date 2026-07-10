@@ -132,10 +132,10 @@
   </div>
 
   <div class="field" style="margin-top:18px;">
-    <label>弾ごとの公開ステータス</label>
-    <div class="hint">発売済みで公開を終了したい弾は「公開終了」にチェックすると、その弾のカードが表示ページから一括で消えます</div>
+    <label>弾ごとの公開ステータス・デフォルト表示</label>
+    <div class="hint">「公開終了」にチェックすると表示ページから一括で消えます。「デフォルト表示」は表示ページを開いた時に最初に表示される弾です（1つだけ選べます）</div>
     <table id="setStatusTable">
-      <thead><tr><th>弾コード</th><th>名称</th><th>公開終了</th></tr></thead>
+      <thead><tr><th>弾コード</th><th>名称</th><th>公開終了</th><th>デフォルト表示</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -296,10 +296,18 @@ async function init() {
 }
 
 // ===== 弾(sets)管理 =====
+let defaultSetCode = '';
+
 async function refreshSets() {
   const gasUrl = getCfg('gas');
-  const res = await fetch(gasUrl + '?action=listSets');
-  sets = await res.json();
+  const [setsRes, defRes] = await Promise.all([
+    fetch(gasUrl + '?action=listSets'),
+    fetch(gasUrl + '?action=getDefaultSet')
+  ]);
+  sets = await setsRes.json();
+  const defJson = await defRes.json().catch(() => ({}));
+  defaultSetCode = defJson.defaultSetCode || '';
+
   const sel = document.getElementById('activeSet');
   const prevValue = sel.value;
   sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
@@ -316,6 +324,7 @@ function renderSetStatusTable() {
       <td>${s.setCode}</td>
       <td>${s.setName}</td>
       <td><input type="checkbox" class="setStatusCb" data-setcode="${s.setCode}" ${s.status === '公開終了' ? 'checked' : ''}></td>
+      <td><input type="radio" name="defaultSetRadio" class="defaultSetRadio" data-setcode="${s.setCode}" ${defaultSetCode === s.setCode ? 'checked' : ''}></td>
     </tr>
   `).join('');
 
@@ -333,6 +342,18 @@ function renderSetStatusTable() {
       });
       const s = sets.find(x => x.setCode === cb.dataset.setcode);
       if (s) s.status = cb.checked ? '公開終了' : '公開中';
+    });
+  });
+
+  tbody.querySelectorAll('.defaultSetRadio').forEach(radio => {
+    radio.addEventListener('change', async () => {
+      const gasUrl = getCfg('gas');
+      await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'setDefaultSet', setCode: radio.dataset.setcode })
+      });
+      defaultSetCode = radio.dataset.setcode;
     });
   });
 }
