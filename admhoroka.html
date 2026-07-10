@@ -18,18 +18,30 @@
     background: var(--panel); border: 1px solid rgba(212,175,106,0.3);
     border-radius: 12px; padding: 20px; margin-bottom: 20px;
   }
-  .layout { display: block; }
-  .leftCol, .middleCol, .rightCol { width: 100%; }
+  .layout { display: flex; flex-direction: column; gap: 0; }
+  .panelSet { order: 1; }
+  .panelUpload { order: 2; }
+  .panelList { order: 3; }
+  .panelCrop { order: 4; }
   @media (min-width: 1100px) {
     .layout {
-      display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 24px; align-items: start;
+      display: grid; grid-template-columns: 1fr 1.1fr 1fr; grid-template-rows: auto auto;
+      gap: 24px; align-items: start;
       max-width: 1500px; margin: 0 auto;
     }
-    .rightCol { position: sticky; top: 20px; }
+    .panelSet { grid-column: 1; grid-row: 1; order: initial; margin-bottom: 0; }
+    .panelList { grid-column: 1; grid-row: 2; order: initial; margin-bottom: 0; }
+    .panelUpload { grid-column: 2; grid-row: 1 / span 2; order: initial; margin-bottom: 0; }
+    .panelCrop { grid-column: 3; grid-row: 1 / span 2; order: initial; margin-bottom: 0; position: sticky; top: 20px; }
   }
   .row { display: flex; gap: 10px; flex-wrap: wrap; }
   .field { flex: 1; min-width: 100px; margin-bottom: 10px; }
   .field label { display: block; font-size: 12px; color: #9aa5c0; margin-bottom: 4px; }
+  details.field summary {
+    font-size: 12px; color: #9aa5c0; margin-bottom: 4px; cursor: pointer; user-select: none;
+  }
+  details.field summary::marker { color: var(--gold); }
+  details.field[open] summary { margin-bottom: 8px; }
   .field input, .field select {
     width: 100%; padding: 8px 10px; border-radius: 6px;
     border: 1px solid rgba(212,175,106,0.3); background: #10182a; color: var(--text); font-size: 14px;
@@ -46,6 +58,9 @@
     background: var(--panel); padding-bottom: 8px; border-radius: 8px;
   }
   #previewWrap img { max-width: 100%; max-height: 40vh; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+  @media (max-width: 640px) {
+    #previewWrap { position: static; }
+  }
   .status { margin-top: 12px; font-size: 13px; color: #9aa5c0; white-space: pre-wrap; }
   .cropPreview { margin-top: 12px; text-align: center; }
   .cropPreview img { max-width: 100%; width: 100%; border-radius: 8px; border: 1px solid rgba(212,175,106,0.4); }
@@ -97,10 +112,9 @@
 <div class="sub">公式Xの告知画像をアップロードすると、AIが自動でカード情報を読み取ります</div>
 
 <div class="layout">
-<div class="leftCol">
 
 <!-- ===== 弾（セット）設定 ===== -->
-<div class="panel">
+<div class="panel panelSet">
   <h2>① 弾の設定</h2>
   <div class="row">
     <div class="field"><label>弾コード（例: hSD06）</label><input id="set_code"></div>
@@ -128,7 +142,7 @@
 </div>
 
 <!-- ===== 登録済みカード一覧 ===== -->
-<div class="panel">
+<div class="panel panelList">
   <h2>③ 登録済みカード一覧</h2>
   <div class="hint">枠No（配置スロット番号）はここで直接編集できます</div>
   <table id="cardTable">
@@ -137,11 +151,8 @@
   </table>
 </div>
 
-</div><!-- /leftCol -->
-
-<div class="middleCol">
 <!-- ===== アップロード ===== -->
-<div class="panel">
+<div class="panel panelUpload">
   <h2>② カード画像アップロード</h2>
   <div class="drop" id="dropZone">
     <div>ここをクリックして画像を選択（AIで自動解析）</div>
@@ -207,28 +218,26 @@
           <input type="number" id="f_baton" min="0" placeholder="例: 1">
         </div>
       </div>
-      <div class="field">
-        <label>固有スキル一覧（複数可）</label>
+      <details class="field" open>
+        <summary>固有スキル一覧（複数可）</summary>
         <div id="skillsRows"></div>
         <button type="button" class="secondary" id="addSkillBtn">＋ 固有スキルを追加</button>
-      </div>
+      </details>
     </div>
 
-    <div class="field" style="margin-top:14px;">
-      <label>アーツ・効果テキスト一覧（サポートカードはエールなしの1件として登録）</label>
+    <details class="field" style="margin-top:14px;" open>
+      <summary>アーツ・効果テキスト一覧（サポートカードはエールなしの1件として登録）</summary>
       <div id="artsRows"></div>
       <button type="button" class="secondary" id="addArtsBtn">＋ アーツ／効果を追加</button>
-    </div>
+    </details>
   </div>
 
   <button class="primary" id="registerBtn" style="display:none;">この内容で登録する</button>
   <div class="status" id="statusBottom"></div>
 </div>
-</div><!-- /middleCol -->
 
-<div class="rightCol">
 <!-- ===== 切り抜きプレビュー ===== -->
-<div class="panel" id="cropPanel" style="display:none;">
+<div class="panel panelCrop" id="cropPanel" style="display:none;">
   <h2>切り抜きプレビュー</h2>
   <div class="cropAdjustWrap">
     <div class="hint">枠をドラッグで移動、右下の角をドラッグでサイズ変更できます</div>
@@ -242,7 +251,6 @@
   <div class="cropPreview" id="cropPreview"></div>
   <button class="primary" id="registerBtn2" style="display:none;">この内容で登録する</button>
 </div>
-</div><!-- /rightCol -->
 </div><!-- /layout -->
 
 
