@@ -34,6 +34,10 @@
   }
   h1 { text-align: center; font-size: 28px; letter-spacing: 1.5px; margin: 0; font-weight: 800; }
   .sub { text-align: center; color: #9aa5c0; font-size: 12px; margin-bottom: 20px; }
+  .adSlotWrap {
+    max-width: 728px; margin: 0 auto 24px; min-height: 90px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
   .controlsRow {
     display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch;
     gap: 14px; margin-bottom: 8px;
@@ -127,6 +131,8 @@
   }
   body.size-small { --cardMin: 96px; --cardGap: 10px; }
   body.size-small .card:not(.empty) .card-body { display: none; }
+  body.size-medium .card:not(.empty) .metaAttr,
+  body.size-medium .card:not(.empty) .metaNumber { display: none; }
   body.size-small .card:not(.empty) .favStar { display: none; }
   body.size-large { --cardMin: 220px; --cardGap: 22px; }
   .sizeToggle { display: flex; align-items: center; gap: 4px; }
@@ -145,7 +151,7 @@
     display: flex; flex-direction: column;
   }
   .card:hover { transform: translateY(-4px); }
-  .card img { width: 100%; flex: 1 1 auto; min-height: 0; object-fit: cover; display: block; background: #10182a; }
+  .card img { width: 100%; aspect-ratio: 5/7; flex: none; object-fit: cover; display: block; background: #10182a; }
   .card-body { padding: 8px 10px; flex-shrink: 0; }
   .name { font-size: 13px; font-weight: bold; margin-bottom: 2px; }
   .meta { font-size: 10px; color: #9aa5c0; }
@@ -155,7 +161,7 @@
   }
 
   .card.empty {
-    aspect-ratio: 3/4.6; display: flex; align-items: center; justify-content: center;
+    aspect-ratio: 5/7; display: flex; align-items: center; justify-content: center;
     border: 1px dashed rgba(212,175,106,0.3); background: rgba(255,255,255,0.02); cursor: default;
   }
   .card.empty:hover { transform: none; }
@@ -173,7 +179,7 @@
     border-radius: 18px; max-width: 1180px; width: 100%; max-height: 94vh; overflow-y: auto;
     display: flex; gap: 32px; padding: 36px; position: relative; flex-wrap: wrap;
   }
-  .modalBox img { width: 420px; max-width: 100%; border-radius: 14px; flex-shrink: 0; }
+  #modalImg { width: 420px; max-width: 100%; aspect-ratio: 5/7; object-fit: cover; border-radius: 14px; flex-shrink: 0; }
   .modalInfo { flex: 1; min-width: 260px; }
   .modalInfo h3 { margin: 0 0 12px; font-size: 28px; color: var(--gold); }
   .modalInfo .modalMeta { font-size: 15px; color: #9aa5c0; margin-bottom: 6px; }
@@ -285,7 +291,7 @@
     .typeHeader h2 { font-size: 14px; }
 
     .modalBox { padding: 16px; gap: 12px; border-radius: 12px; max-height: 94vh; }
-    .modalBox img { width: 100%; max-width: 360px; margin: 0 auto; }
+    #modalImg { width: 100%; max-width: 360px; aspect-ratio: 5/7; object-fit: cover; margin: 0 auto; }
     .modalInfo h3 { font-size: 19px; }
     .modalInfo .modalMeta, .artsBlock .artsMeta { font-size: 12px; }
     .modalInfo .modalAbility, .artsBlock .artsEffect { font-size: 12px; }
@@ -315,6 +321,10 @@
     .batonIcon { width: 14px; height: 14px; }
   }
 </style>
+<!-- ===== Google AdSense =====
+     ①下記の ca-pub-XXXXXXXXXXXXXXXX を、ご自身のPublisher IDに置き換えてください
+     ②AdSenseの審査が完了し、このサイトのドメインが承認されるまで広告は表示されません -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -333,6 +343,17 @@
   </a>
 </div>
 <div class="sub">新カード情報 一覧（公開中のみ表示）</div>
+
+<!-- ===== 広告枠（AdSense審査完了後、data-ad-slot を実際のスロットIDに置き換えてください） ===== -->
+<div class="adSlotWrap">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+       data-ad-slot="0000000000"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
 
 <div class="controlsRow">
   <div class="setSelectWrap"><span class="icon">📦</span><select id="setSelect"></select></div>
@@ -814,9 +835,9 @@ function cardHtml(c) {
       <div class="card-body">
         ${c.cardType ? `<div class="tag">${escapeHtml(c.cardType)}</div>` : ''}
         <div class="name">${escapeHtml(c.cardName)}</div>
-        <div class="meta">${escapeHtml(c.attribute || '')}${c.hp ? ' / HP' + escapeHtml(c.hp) : ''}</div>
-        <div class="meta">${escapeHtml(c.rarity || '')} ${escapeHtml(c.setCode || '')}${c.setCode && c.cardNumber ? '-' : ''}${escapeHtml(c.cardNumber || '')}</div>
-        ${c.tags ? `<div class="meta">${escapeHtml(c.tags)}</div>` : ''}
+        <div class="meta metaAttr">${escapeHtml(c.attribute || '')}${c.hp ? ' / HP' + escapeHtml(c.hp) : ''}</div>
+        <div class="meta metaNumber">${escapeHtml(c.rarity || '')} ${escapeHtml(c.setCode || '')}${c.setCode && c.cardNumber ? '-' : ''}${escapeHtml(c.cardNumber || '')}</div>
+        ${c.tags ? `<div class="meta metaTags">${escapeHtml(c.tags)}</div>` : ''}
       </div>
     </div>`;
 }
