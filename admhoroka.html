@@ -433,6 +433,16 @@ function addArtsRow(art) {
       <div class="artsYellRows"></div>
       <button type="button" class="secondary addArtsYellBtn">＋ エール追加</button>
     </div>
+    <div class="row">
+      <div class="field">
+        <label>特攻対象色（あれば）</label>
+        <select class="artsSpecialColor">
+          <option value="">-</option>
+          ${YELL_COLORS.map(c => `<option value="${c}" ${c === art.specialAttackColor ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>特攻ダメージ</label><input class="artsSpecialDamage" value="${escapeAttr(art.specialAttackDamage || '')}" placeholder="例: +30"></div>
+    </div>
     <div class="field">
       <label>アーツ効果テキスト</label>
       <textarea class="artsEffect" rows="2" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:12px;">${escapeAttr(art.effectText || '')}</textarea>
@@ -454,6 +464,8 @@ function getArtsRows() {
       color: r.querySelector('.yellColor').value,
       count: Number(r.querySelector('.yellCount').value) || 1
     })),
+    specialAttackColor: box.querySelector('.artsSpecialColor').value,
+    specialAttackDamage: box.querySelector('.artsSpecialDamage').value,
     effectText: box.querySelector('.artsEffect').value
   }));
 }

@@ -179,7 +179,7 @@
     border-radius: 18px; max-width: 1180px; width: 100%; max-height: 94vh; overflow-y: auto;
     display: flex; gap: 32px; padding: 36px; position: relative; flex-wrap: wrap;
   }
-  #modalImg { width: 420px; max-width: 100%; aspect-ratio: 5/7; object-fit: cover; border-radius: 14px; flex-shrink: 0; }
+  #modalImg { width: 420px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain; background: #10182a; border-radius: 14px; flex-shrink: 0; }
   .modalInfo { flex: 1; min-width: 260px; }
   .modalInfo h3 { margin: 0 0 12px; font-size: 28px; color: var(--gold); }
   .modalInfo .modalMeta { font-size: 15px; color: #9aa5c0; margin-bottom: 6px; }
@@ -215,7 +215,7 @@
   .artsBlock {
     border-top: 1px dashed rgba(212,175,106,0.25); margin-top: 12px; padding-top: 10px;
   }
-  .artsBlock .artsName { font-size: 15px; font-weight: bold; color: #f0e6d2; }
+  .artsBlock .artsName { font-size: 26px; font-weight: bold; color: #f0e6d2; }
   .artsBlock .artsMeta { font-size: 13px; color: #9aa5c0; margin: 2px 0; }
   .artsBlock .artsEffect { font-size: 26px; line-height: 1.6; white-space: pre-wrap; margin-top: 6px; }
 
@@ -229,9 +229,9 @@
     margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed rgba(212,175,106,0.2);
   }
   .skillBlock:last-child { border-bottom: none; }
-  .skillBanner { order: -1; margin: 2px 0 8px; }
-  .skillBanner img { height: 40px; width: auto; max-width: 100%; object-fit: contain; display: block; }
-  .skillTextWrap { order: 1; }
+  .skillBannerRow { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+  .skillBannerImg { height: 40px; width: auto; max-width: 220px; object-fit: contain; display: block; flex-shrink: 0; }
+  .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; }
   .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; }
   .modalAbility.skillContentLarge { font-size: 26px; }
   .yellRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -295,6 +295,7 @@
     .modalInfo h3 { font-size: 19px; }
     .modalInfo .modalMeta, .artsBlock .artsMeta { font-size: 12px; }
     .modalInfo .modalAbility, .artsBlock .artsEffect { font-size: 12px; }
+    .artsBlock .artsName { font-size: 13px; }
     .modalDownloadBtn {
       position: absolute; top: 14px; left: 14px; bottom: auto; right: auto;
       width: 34px; height: 34px; padding: 0; border-radius: 50%;
@@ -308,14 +309,10 @@
     .modalNavBtn.next { right: 8px; }
 
     .favMenu { right: -8px; min-width: 200px; max-width: 80vw; }
-    .skillBanner img { height: 24px; }
-    .skillBlock {
-      flex-direction: row; align-items: flex-start; gap: 10px; flex-wrap: nowrap;
-    }
-    .skillBlock .skillTextWrap { order: 1; flex: 1; min-width: 0; }
-    .skillBlock .skillBanner { order: 2; margin: 0; flex-shrink: 0; }
-    .skillBlock .skillBanner img { height: 20px; }
-    .skillBlock .tag { order: 2; flex-shrink: 0; }
+    .skillBlock { flex-direction: column; }
+    .skillBannerImg { height: 22px; max-width: 140px; }
+    .skillTitleInline { font-size: 13px; }
+    .skillBlock .tag { order: 0; flex-shrink: 0; }
     .yellIconWrap { width: 20px; height: 20px; }
     .yellCount { font-size: 9px; }
     .batonIcon { width: 14px; height: 14px; }
@@ -763,6 +760,19 @@ function renderSearchResults() {
 const ATTR_ORDER = ['白', '緑', '赤', '青', '紫', '黄', '無色'];
 
 // 再録の並び替え順（各属性→サポート→その他）。navList構築側でも同じ順序を使う
+const SUPPORT_SUBTYPE_ORDER = ['イベント', 'アイテム', 'スタッフ', 'マスコット', 'ファン'];
+
+function getSupportSubtypeIndex(cardType) {
+  const parts = (cardType || '').split('・');
+  const sub = parts.length > 1 ? parts[1] : '';
+  const idx = SUPPORT_SUBTYPE_ORDER.indexOf(sub);
+  return idx === -1 ? SUPPORT_SUBTYPE_ORDER.length : idx; // 該当なしは「その他」扱いで末尾
+}
+
+function byNameJa(a, b) {
+  return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
+}
+
 function sortRerunCards(cardsOfType) {
   const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('ホロメン') !== -1);
   const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
@@ -770,10 +780,13 @@ function sortRerunCards(cardsOfType) {
 
   holomenCards.sort((a, b) => {
     const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
-    return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || (Number(a.slot) - Number(b.slot));
+    return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b);
   });
-  supportCards.sort((a, b) => Number(a.slot) - Number(b.slot));
-  otherCards.sort((a, b) => Number(a.slot) - Number(b.slot));
+  supportCards.sort((a, b) => {
+    const ai = getSupportSubtypeIndex(a.cardType); const bi = getSupportSubtypeIndex(b.cardType);
+    return (ai - bi) || byNameJa(a, b);
+  });
+  otherCards.sort(byNameJa);
 
   return [...holomenCards, ...supportCards, ...otherCards];
 }
@@ -883,13 +896,25 @@ function batonHtml(cost) {
 
 function skillBlockHtml(skill) {
   const bannerKey = SKILL_BANNER_MAP[skill.skillType];
-  const bannerHtml = bannerKey
-    ? `<div class="skillBanner"><img src="${CARD_ASSETS[bannerKey]}" alt="${escapeHtml(skill.skillType)}"></div>`
-    : `<div class="tag" style="margin-bottom:6px;">${escapeHtml(skill.skillType || '固有スキル')}</div>`;
-  const titleHtml = skill.title ? `<div class="skillTitle">${escapeHtml(skill.title)}</div>` : '';
   const isLarge = skill.skillType !== 'エクストラ';
   const textHtml = skill.text ? `<div class="modalAbility${isLarge ? ' skillContentLarge' : ''}">${escapeHtml((skill.text || '').replace(/\\n/g, '\n'))}</div>` : '';
-  return `<div class="skillBlock"><div class="skillTextWrap">${titleHtml}${textHtml}</div>${bannerHtml}</div>`;
+
+  if (bannerKey) {
+    // バナー画像のある固定スキル（ギフト/コラボエフェクト/ブルームエフェクト）：バナーと技名を横並びに
+    const titleHtml = skill.title ? `<span class="skillTitleInline">${escapeHtml(skill.title)}</span>` : '';
+    return `<div class="skillBlock">
+      <div class="skillBannerRow">
+        <img class="skillBannerImg" src="${CARD_ASSETS[bannerKey]}" alt="${escapeHtml(skill.skillType)}">
+        ${titleHtml}
+      </div>
+      ${textHtml}
+    </div>`;
+  }
+
+  // バナーの無い固有スキル（推しスキル等）：タグ＋技名＋本文
+  const tagHtml = `<div class="tag" style="margin-bottom:6px;">${escapeHtml(skill.skillType || '固有スキル')}</div>`;
+  const titleHtml = skill.title ? `<div class="skillTitle">${escapeHtml(skill.title)}</div>` : '';
+  return `<div class="skillBlock">${tagHtml}${titleHtml}${textHtml}</div>`;
 }
 
 function openModal(c) {
@@ -905,9 +930,13 @@ function openModal(c) {
       artsHtml = arts.map(a => {
         const yellIcons = (a.yellCost || []).map(y => yellIconHtml(y.color, y.count)).join('');
         const effectText = (a.effectText || '').replace(/\\n/g, '\n');
+        const specialHtml = a.specialAttackColor
+          ? `<div class="artsMeta">特攻: ${yellIconHtml(a.specialAttackColor, 1)}${a.specialAttackDamage ? ' ' + escapeHtml(a.specialAttackDamage) : ''}</div>`
+          : '';
         return `
           <div class="artsBlock">
             <div class="artsName">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;margin-right:8px;">${yellIcons}</span>` : ''}${escapeHtml(a.name || 'アーツ')}${a.damage ? `　${escapeHtml(a.damage)}` : ''}</div>
+            ${specialHtml}
             ${effectText ? `<div class="artsEffect">${escapeHtml(effectText)}</div>` : ''}
           </div>`;
       }).join('');
@@ -929,10 +958,10 @@ function openModal(c) {
     <div class="modalBadgeRow">
       ${c.type ? `<span class="modalTypeBadge">${escapeHtml(c.type)}</span>` : ''}
       ${c.rarity ? `<span class="modalTypeBadge" style="background:#7ec8e3;">${escapeHtml(c.rarity)}</span>` : ''}
+      ${c.cardType ? `<span class="modalTypeBadge" style="background:#a3a3a3;">${escapeHtml(c.cardType)}</span>` : ''}
       <button class="favStar modalFavStar ${favActive ? 'active' : ''}" data-fullkey="${key}" title="お気に入りに追加/削除">${favActive ? '★' : '☆'}</button>
     </div>
     <h3>${escapeHtml(c.cardName)}</h3>
-    ${c.cardType ? `<div class="tag" style="margin-bottom:8px;">${escapeHtml(c.cardType)}</div>` : ''}
     ${skillsHtml}
     ${artsHtml}
     ${batonHtml(c.batonTouchCost)}
