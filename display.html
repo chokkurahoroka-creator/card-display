@@ -69,6 +69,7 @@
     border: 1px solid rgba(212,175,106,0.35); border-radius: 14px;
     padding: 8px 16px; font-size: 13px; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
   }
+  .favMenuBtn.active { background: linear-gradient(135deg, var(--gold), #a97c3e); color: #1a1305; border-color: var(--gold); }
   .favMenuBtn:hover { border-color: var(--gold); }
   .favMenu {
     position: absolute; top: calc(100% + 8px); right: 0; z-index: 40;
@@ -234,6 +235,14 @@
   .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; }
   .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; }
   .modalAbility.skillContentLarge { font-size: 26px; }
+  .ratingSection {
+    display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+    margin-top: 20px; padding-top: 16px; border-top: 1px dashed rgba(212,175,106,0.25);
+  }
+  .ratingChart { flex-shrink: 0; }
+  .ratingComment { flex: 1; min-width: 180px; }
+  .ratingCommentLabel { font-size: 13px; color: #9aa5c0; margin-bottom: 6px; }
+  .ratingCommentText { font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
   .yellRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .yellIconWrap { position: relative; display: inline-flex; width: 28px; height: 28px; }
   .yellIconWrap img { width: 100%; height: 100%; object-fit: contain; }
@@ -377,6 +386,7 @@
         </div>
       </div>
     </div>
+    <button type="button" id="featuredFilterBtn" class="favMenuBtn">📌 注目カード</button>
   </div>
 </div>
 <div class="searchHint">カード名／カードタイプ／カード番号／能力テキストが対象です</div>
@@ -439,6 +449,7 @@ let lastCards = [];      // 現在の弾の公開中カード一覧
 let newCardKeys = new Set(); // 「新着」として強調表示するカードのkey集合
 let lastSetInfo = null;  // 現在の弾のtotalNew/totalRerun/totalParallel
 let searchQuery = '';
+let featuredFilterActive = false;
 let navList = [];        // モーダルの前後移動対象リスト
 let navIndex = -1;
 let renderedCardsIndex = {}; // 現在描画中のカードをkey(setCode__type__slot)で引けるように保持
@@ -579,6 +590,8 @@ async function init() {
   sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
   sel.addEventListener('change', () => {
     favViewGroup = null;
+    featuredFilterActive = false;
+    document.getElementById('featuredFilterBtn').classList.remove('active');
     currentSetCode = sel.value;
     localStorage.setItem('lastViewedSetCode', currentSetCode);
     loadCards();
@@ -599,6 +612,8 @@ async function init() {
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     favViewGroup = null;
+    featuredFilterActive = false;
+    document.getElementById('featuredFilterBtn').classList.remove('active');
     searchQuery = e.target.value.trim();
     render();
   });
@@ -625,6 +640,17 @@ async function init() {
   document.getElementById('favShowAllBtn').addEventListener('click', () => {
     favMenu.style.display = 'none';
     favViewGroup = null;
+    render();
+  });
+
+  document.getElementById('featuredFilterBtn').addEventListener('click', () => {
+    featuredFilterActive = !featuredFilterActive;
+    document.getElementById('featuredFilterBtn').classList.toggle('active', featuredFilterActive);
+    if (featuredFilterActive) {
+      searchQuery = '';
+      document.getElementById('searchInput').value = '';
+      favViewGroup = null;
+    }
     render();
   });
 
@@ -707,7 +733,9 @@ function render() {
   }
   document.getElementById('emptyAll').style.display = 'none';
 
-  if (searchQuery) {
+  if (featuredFilterActive) {
+    renderFeaturedResults();
+  } else if (searchQuery) {
     renderSearchResults();
   } else {
     document.getElementById('searchResultsWrap').style.display = 'none';
@@ -741,7 +769,25 @@ function matchesQuery(c, q) {
   return fields.some(f => (f || '').toString().toLowerCase().includes(query));
 }
 
+function renderFeaturedResults() {
+  document.getElementById('areas').style.display = 'none';
+  const matched = lastCards.filter(c => c.featured === 'TRUE');
+
+  if (!matched.length) {
+    document.getElementById('searchResultsWrap').style.display = 'none';
+    document.getElementById('noResults').textContent = 'この弾にはまだ注目カードが設定されていません';
+    document.getElementById('noResults').style.display = 'block';
+    return;
+  }
+  document.getElementById('noResults').style.display = 'none';
+  document.getElementById('searchResultsWrap').style.display = 'block';
+  document.getElementById('searchResultsGrid').innerHTML = matched.map(c => cardHtml(c)).join('');
+  bindCardClicks(document.getElementById('searchResultsGrid'));
+  navList = matched;
+}
+
 function renderSearchResults() {
+  document.getElementById('noResults').textContent = '該当するカードが見つかりませんでした';
   document.getElementById('areas').style.display = 'none';
   const matched = lastCards.filter(c => matchesQuery(c, searchQuery));
 
@@ -917,6 +963,50 @@ function skillBlockHtml(skill) {
   return `<div class="skillBlock">${tagHtml}${titleHtml}${textHtml}</div>`;
 }
 
+const RATING_LABELS = { hp: 'HP', power: 'パワー', speed: 'スピード', stamina: '持久力', luck: '運', potential: '将来性' };
+const RATING_KEYS = ['hp', 'power', 'speed', 'stamina', 'luck', 'potential'];
+
+function buildRadarChartSvg(rating) {
+  const maxVal = 5;
+  const size = 220;
+  const center = size / 2;
+  const radius = size / 2 - 38;
+  const angleStep = (Math.PI * 2) / RATING_KEYS.length;
+
+  const pointAt = (frac, i) => {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const r = frac * radius;
+    return [center + r * Math.cos(angle), center + r * Math.sin(angle)];
+  };
+
+  let gridHtml = '';
+  [0.25, 0.5, 0.75, 1].forEach(frac => {
+    const pts = RATING_KEYS.map((k, i) => pointAt(frac, i).join(',')).join(' ');
+    gridHtml += `<polygon points="${pts}" fill="none" stroke="rgba(212,175,106,0.18)" stroke-width="1"/>`;
+  });
+
+  let axisHtml = '';
+  let labelHtml = '';
+  RATING_KEYS.forEach((k, i) => {
+    const [x2, y2] = pointAt(1, i);
+    axisHtml += `<line x1="${center}" y1="${center}" x2="${x2}" y2="${y2}" stroke="rgba(212,175,106,0.22)" stroke-width="1"/>`;
+    const [lx, ly] = pointAt(1.22, i);
+    labelHtml += `<text x="${lx}" y="${ly}" font-size="12" fill="#c9d1e0" text-anchor="middle" dominant-baseline="middle">${RATING_LABELS[k]}</text>`;
+  });
+
+  const dataPts = RATING_KEYS.map((k, i) => {
+    const val = Math.min(maxVal, Math.max(0, Number(rating[k]) || 0));
+    return pointAt(val / maxVal, i).join(',');
+  }).join(' ');
+
+  return `<svg viewBox="0 0 ${size} ${size}" width="220" height="220">
+    ${gridHtml}
+    ${axisHtml}
+    <polygon points="${dataPts}" fill="rgba(212,175,106,0.35)" stroke="#d4af6a" stroke-width="2"/>
+    ${labelHtml}
+  </svg>`;
+}
+
 function openModal(c) {
   navIndex = navList.findIndex(x => x.type === c.type && String(x.slot) === String(c.slot));
 
@@ -954,6 +1044,19 @@ function openModal(c) {
   const key = cardKey(c);
   const favActive = activeGroup && isFav(c, activeGroup);
 
+  let ratingHtml = '';
+  try {
+    const rating = JSON.parse(c.ratingJson || '{}');
+    const hasRating = RATING_KEYS.some(k => rating[k] !== '' && rating[k] !== undefined && rating[k] !== null);
+    if (hasRating || c.ratingComment) {
+      ratingHtml = `
+        <div class="ratingSection">
+          ${hasRating ? `<div class="ratingChart">${buildRadarChartSvg(rating)}</div>` : ''}
+          ${c.ratingComment ? `<div class="ratingComment"><div class="ratingCommentLabel">評価コメント</div><div class="ratingCommentText">${escapeHtml(c.ratingComment)}</div></div>` : ''}
+        </div>`;
+    }
+  } catch (e) { /* ignore */ }
+
   document.getElementById('modalInfo').innerHTML = `
     <div class="modalBadgeRow">
       ${c.type ? `<span class="modalTypeBadge">${escapeHtml(c.type)}</span>` : ''}
@@ -965,6 +1068,7 @@ function openModal(c) {
     ${skillsHtml}
     ${artsHtml}
     ${batonHtml(c.batonTouchCost)}
+    ${ratingHtml}
   `;
   document.getElementById('modalOverlay').classList.add('open');
 

@@ -51,6 +51,7 @@
     text-align: center; cursor: pointer; transition: 0.2s;
   }
   .drop:hover { border-color: var(--gold); background: rgba(212,175,106,0.05); }
+  .drop.dragover { border-color: var(--gold); background: rgba(212,175,106,0.12); }
   input[type=file] { display: none; }
   #previewWrap {
     margin-top: 16px; text-align: center;
@@ -146,7 +147,7 @@
   <h2>③ 登録済みカード一覧</h2>
   <div class="hint">枠No（配置スロット番号）はここで直接編集できます</div>
   <table id="cardTable">
-    <thead><tr><th>区分</th><th>枠No</th><th>カード名</th><th>番号</th><th></th></tr></thead>
+    <thead><tr><th>区分</th><th>枠No</th><th>カード名</th><th>番号</th><th>注目</th><th></th></tr></thead>
     <tbody></tbody>
   </table>
 </div>
@@ -155,12 +156,15 @@
 <div class="panel panelUpload">
   <h2>② カード画像アップロード</h2>
   <div class="drop" id="dropZone">
-    <div>ここをクリックして画像を選択（AIで自動解析）</div>
+    <div>ここをクリックまたはドラッグ&ドロップ（AIで自動解析）</div>
     <input type="file" id="fileInput" accept="image/*">
   </div>
   <div style="text-align:center; margin-top:10px;">
     <button type="button" class="secondary" id="manualUploadBtn">AIを使わず手動でアップロード</button>
-    <input type="file" id="manualFileInput" accept="image/*" style="display:none;">
+  </div>
+  <div class="drop" id="manualDropZone" style="display:none; margin-top:10px;">
+    <div>ここをクリックまたはドラッグ&ドロップ（手動入力）</div>
+    <input type="file" id="manualFileInput" accept="image/*">
   </div>
   <div id="previewWrap"></div>
   <div class="status" id="status"></div>
@@ -229,6 +233,24 @@
       <summary>アーツ・効果テキスト一覧（サポートカードはエールなしの1件として登録）</summary>
       <div id="artsRows"></div>
       <button type="button" class="secondary" id="addArtsBtn">＋ アーツ／効果を追加</button>
+    </details>
+
+    <details class="field" style="margin-top:14px;" open>
+      <summary>評価パラメータ（レーダーチャート表示用）</summary>
+      <div class="row">
+        <div class="field"><label>HP</label><input type="number" id="rate_hp" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>パワー</label><input type="number" id="rate_power" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>スピード</label><input type="number" id="rate_speed" min="1" max="5" placeholder="1〜5"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>持久力</label><input type="number" id="rate_stamina" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>運</label><input type="number" id="rate_luck" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>将来性</label><input type="number" id="rate_potential" min="1" max="5" placeholder="1〜5"></div>
+      </div>
+      <div class="field">
+        <label>評価コメント</label>
+        <textarea id="rate_comment" rows="2" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:13px;"></textarea>
+      </div>
     </details>
   </div>
 
@@ -391,6 +413,37 @@ dropZone.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', handleFile);
 document.getElementById('f_type').addEventListener('change', onTypeChange);
 
+// ドラッグ&ドロップ対応（AIアップロード欄・手動アップロード欄の両方に適用）
+function enableDragAndDrop(zoneEl, fileInputEl, onFileFn) {
+  ['dragenter', 'dragover'].forEach(evt => {
+    zoneEl.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zoneEl.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    zoneEl.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zoneEl.classList.remove('dragover');
+    });
+  });
+  zoneEl.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (!files || !files.length) return;
+    fileInputEl.files = files;
+    onFileFn({ target: fileInputEl });
+  });
+}
+enableDragAndDrop(dropZone, fileInput, handleFile);
+
+const manualDropZone = document.getElementById('manualDropZone');
+const manualFileInputEl = document.getElementById('manualFileInput');
+manualDropZone.addEventListener('click', (e) => {
+  if (e.target !== manualFileInputEl) manualFileInputEl.click();
+});
+
 // ===== ホロメン専用項目（複数アーツ・表示切替） =====
 const YELL_COLORS = ['白','赤','青','緑','紫','黄','無色'];
 
@@ -520,6 +573,26 @@ function setSkillRows(arr) {
 
 document.getElementById('addSkillBtn').addEventListener('click', () => addSkillRow({}));
 
+function resetRatingFields() {
+  ['rate_hp', 'rate_power', 'rate_speed', 'rate_stamina', 'rate_luck', 'rate_potential'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('rate_comment').value = '';
+}
+
+function getRatingJson() {
+  const rating = {
+    hp: document.getElementById('rate_hp').value,
+    power: document.getElementById('rate_power').value,
+    speed: document.getElementById('rate_speed').value,
+    stamina: document.getElementById('rate_stamina').value,
+    luck: document.getElementById('rate_luck').value,
+    potential: document.getElementById('rate_potential').value
+  };
+  const hasAny = Object.values(rating).some(v => v !== '');
+  return hasAny ? JSON.stringify(rating) : '';
+}
+
 function updateHolomenVisibility() {
   const isHolomen = (document.getElementById('f_tag').value || '').indexOf('ホロメン') !== -1;
   document.getElementById('holomenFields').style.display = isHolomen ? 'block' : 'none';
@@ -645,6 +718,7 @@ async function handleFileManual(e) {
   document.getElementById('f_baton').value = '';
   setArtsRows([]);
   setSkillRows([]);
+  resetRatingFields();
   updateHolomenVisibility();
 
   // 切り抜き枠は画像全体を初期値にしておき、手動で調整してもらう
@@ -662,9 +736,10 @@ async function handleFileManual(e) {
   setStatus('画像を読み込みました。全ての項目を手入力し、切り抜き枠を調整してから登録してください。');
 }
 document.getElementById('manualUploadBtn').addEventListener('click', () => {
-  document.getElementById('manualFileInput').click();
+  manualDropZone.style.display = manualDropZone.style.display === 'none' ? 'block' : 'none';
 });
-document.getElementById('manualFileInput').addEventListener('change', handleFileManual);
+manualFileInputEl.addEventListener('change', handleFileManual);
+enableDragAndDrop(manualDropZone, manualFileInputEl, handleFileManual);
 
 async function handleFile(e) {
   const file = e.target.files[0];
@@ -712,6 +787,7 @@ async function handleFile(e) {
     document.getElementById('f_baton').value = data.batonTouchCost || '';
     setArtsRows(data.arts || []);
     setSkillRows(data.skills || []);
+    resetRatingFields();
     updateHolomenVisibility();
     currentCropBox = data.cropBox || { x:0, y:0, width:1, height:1 };
     setCropSliders(currentCropBox);
@@ -822,6 +898,8 @@ async function handleRegisterClick() {
         batonTouchCost: document.getElementById('f_baton').value,
         artsJson: JSON.stringify(getArtsRows()),
         skillsJson: JSON.stringify(getSkillRows()),
+        ratingJson: getRatingJson(),
+        ratingComment: document.getElementById('rate_comment').value,
         imageUrl,
         status: '公開中'
       });
@@ -877,9 +955,20 @@ async function refreshCardTable() {
       <td><input type="number" class="slotEdit" min="1" value="${c.slot}" data-type="${c.type}" data-slot="${c.slot}" style="width:56px;padding:4px;border-radius:4px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);"></td>
       <td>${c.cardName}</td>
       <td>${c.cardNumber || ''}</td>
+      <td><input type="checkbox" class="featuredCb" data-type="${c.type}" data-slot="${c.slot}" ${c.featured === 'TRUE' ? 'checked' : ''} title="注目カードに設定"></td>
       <td><button type="button" class="deleteCardBtn" data-type="${c.type}" data-slot="${c.slot}" data-name="${escapeAttr(c.cardName)}" style="background:none;border:1px solid rgba(229,57,53,0.5);color:#e57373;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">削除</button></td>
     </tr>
   `).join('');
+
+  tbody.querySelectorAll('.featuredCb').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'updateFeatured', setCode, type: cb.dataset.type, slot: cb.dataset.slot, featured: cb.checked })
+      });
+    });
+  });
 
   tbody.querySelectorAll('.slotEdit').forEach(input => {
     input.addEventListener('change', async () => {
