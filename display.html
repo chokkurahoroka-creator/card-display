@@ -33,9 +33,9 @@
     50% { box-shadow: 0 3px 12px rgba(255,0,0,0.5), 0 0 0 8px rgba(255,0,0,0); }
   }
   h1 { text-align: center; font-size: 28px; letter-spacing: 1.5px; margin: 0; font-weight: 800; }
-  .sub { text-align: center; color: #9aa5c0; font-size: 12px; margin-bottom: 20px; }
+  .sub { text-align: center; color: #9aa5c0; font-size: 12px; margin-bottom: 10px; }
   .adSlotWrap {
-    max-width: 728px; margin: 0 auto 24px; min-height: 90px;
+    max-width: 728px; margin: 0 auto 10px; min-height: 0;
     display: flex; align-items: center; justify-content: center; overflow: hidden;
   }
   .controlsRow {
@@ -234,6 +234,22 @@
   .skillBannerImg { height: 40px; width: auto; max-width: 220px; object-fit: contain; display: block; flex-shrink: 0; }
   .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; }
   .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; }
+
+  .extraBox {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    border: 2px solid var(--gold); border-radius: 10px; padding: 10px 16px; margin-bottom: 8px;
+    background: rgba(212,175,106,0.06);
+  }
+  .extraLabel { font-size: 22px; font-weight: bold; color: var(--gold); flex-shrink: 0; }
+  .extraContent { font-size: 17px; color: #f0e6d2; line-height: 1.5; white-space: pre-wrap; }
+
+  .specialSkillBox { padding: 3px; border-radius: 12px; margin-bottom: 8px; }
+  .specialSkillInner {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    background: #10182a; border-radius: 9px; padding: 10px 16px;
+  }
+  .specialSkillLabel { font-size: 20px; font-weight: bold; color: #fff; flex-shrink: 0; }
+  .specialSkillName { font-size: 20px; font-weight: bold; color: #f0e6d2; }
   .modalAbility.skillContentLarge { font-size: 26px; }
   .ratingSection {
     display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
@@ -245,6 +261,11 @@
   .ratingCommentText { font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
   .yellRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .yellIconWrap { position: relative; display: inline-flex; width: 28px; height: 28px; }
+  .specialAtkInline { display: inline-flex; align-items: center; gap: 2px; margin-left: 10px; vertical-align: middle; }
+  .specialAtkDamage {
+    font-size: 28px; line-height: 28px; font-weight: 900;
+    -webkit-text-stroke: 1.5px #fff; paint-order: stroke fill;
+  }
   .yellIconWrap img { width: 100%; height: 100%; object-fit: contain; }
   .yellFallback { width: 100%; height: 100%; border-radius: 50%; border: 2px solid #1a1305; display: block; }
   .yellCount {
@@ -322,7 +343,11 @@
     .skillBannerImg { height: 22px; max-width: 140px; }
     .skillTitleInline { font-size: 13px; }
     .skillBlock .tag { order: 0; flex-shrink: 0; }
+    .extraLabel { font-size: 16px; }
+    .extraContent { font-size: 13px; }
+    .specialSkillLabel, .specialSkillName { font-size: 14px; }
     .yellIconWrap { width: 20px; height: 20px; }
+    .specialAtkDamage { font-size: 20px; line-height: 20px; }
     .yellCount { font-size: 9px; }
     .batonIcon { width: 14px; height: 14px; }
   }
@@ -940,6 +965,12 @@ function batonHtml(cost) {
   return `<div class="modalMeta" style="${wrapStyle}">バトンタッチ: <span class="yellRow" style="display:inline-flex;vertical-align:middle;">${icons}</span></div>`;
 }
 
+const OSHI_SKILL_GRADIENTS = {
+  '推しステージスキル': 'linear-gradient(90deg, #4caf50, #ffd54f)',
+  'SP推しスキル': 'linear-gradient(90deg, #7c4dff, #2196f3, #ec4899)',
+  '推しスキル': 'linear-gradient(90deg, #ec4899, #9d174d)'
+};
+
 function skillBlockHtml(skill) {
   const bannerKey = SKILL_BANNER_MAP[skill.skillType];
   const isLarge = skill.skillType !== 'エクストラ';
@@ -957,7 +988,30 @@ function skillBlockHtml(skill) {
     </div>`;
   }
 
-  // バナーの無い固有スキル（推しスキル等）：タグ＋技名＋本文
+  if (skill.skillType === 'エクストラ') {
+    // エクストラ：ラベルとスキル内容を横並びで枠囲み
+    return `<div class="skillBlock">
+      <div class="extraBox">
+        <span class="extraLabel">エクストラ</span>
+        <span class="extraContent">${escapeHtml((skill.text || '').replace(/\\n/g, '\n'))}</span>
+      </div>
+    </div>`;
+  }
+
+  if (OSHI_SKILL_GRADIENTS[skill.skillType]) {
+    // 推しステージスキル／SP推しスキル／推しスキル：グラデーション枠でラベル＋スキル名を横並び
+    return `<div class="skillBlock">
+      <div class="specialSkillBox" style="background:${OSHI_SKILL_GRADIENTS[skill.skillType]};">
+        <div class="specialSkillInner">
+          <span class="specialSkillLabel">${escapeHtml(skill.skillType)}</span>
+          ${skill.title ? `<span class="specialSkillName">${escapeHtml(skill.title)}</span>` : ''}
+        </div>
+      </div>
+      ${textHtml}
+    </div>`;
+  }
+
+  // バナーの無いその他の固有スキル：タグ＋技名＋本文
   const tagHtml = `<div class="tag" style="margin-bottom:6px;">${escapeHtml(skill.skillType || '固有スキル')}</div>`;
   const titleHtml = skill.title ? `<div class="skillTitle">${escapeHtml(skill.title)}</div>` : '';
   return `<div class="skillBlock">${tagHtml}${titleHtml}${textHtml}</div>`;
@@ -1020,13 +1074,13 @@ function openModal(c) {
       artsHtml = arts.map(a => {
         const yellIcons = (a.yellCost || []).map(y => yellIconHtml(y.color, y.count)).join('');
         const effectText = (a.effectText || '').replace(/\\n/g, '\n');
-        const specialHtml = a.specialAttackColor
-          ? `<div class="artsMeta">特攻: ${yellIconHtml(a.specialAttackColor, 1)}${a.specialAttackDamage ? ' ' + escapeHtml(a.specialAttackDamage) : ''}</div>`
+        const specialColorCss = YELL_COLOR_CSS[a.specialAttackColor] || '#fff';
+        const specialInline = a.specialAttackColor
+          ? `<span class="specialAtkInline">${yellIconHtml(a.specialAttackColor, 1)}${a.specialAttackDamage ? `<span class="specialAtkDamage" style="color:${specialColorCss};">${escapeHtml(a.specialAttackDamage)}</span>` : ''}</span>`
           : '';
         return `
           <div class="artsBlock">
-            <div class="artsName">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;margin-right:8px;">${yellIcons}</span>` : ''}${escapeHtml(a.name || 'アーツ')}${a.damage ? `　${escapeHtml(a.damage)}` : ''}</div>
-            ${specialHtml}
+            <div class="artsName">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;margin-right:8px;">${yellIcons}</span>` : ''}${escapeHtml(a.name || 'アーツ')}${a.damage ? `　${escapeHtml(a.damage)}` : ''}${specialInline}</div>
             ${effectText ? `<div class="artsEffect">${escapeHtml(effectText)}</div>` : ''}
           </div>`;
       }).join('');
