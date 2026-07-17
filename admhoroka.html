@@ -91,6 +91,57 @@
   .type-再録 { background: #d4af6a; }
   .type-パラレル { background: #e37eb4; }
   .hint { font-size: 12px; color: #9aa5c0; margin-top: 4px; }
+  .galleryPanel { max-width: 1500px; margin: 20px auto 0; }
+  .galleryGrid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px;
+  }
+  .galleryCard {
+    background: linear-gradient(160deg, #1a2233, #10182a); border-radius: 10px;
+    border: 1px solid rgba(212,175,106,0.3); overflow: hidden; cursor: pointer;
+    transition: transform 0.15s; position: relative;
+  }
+  .galleryCard:hover { transform: translateY(-3px); border-color: var(--gold); }
+  .galleryCard img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; background: #10182a; }
+  .galleryCard .gcBody { padding: 6px 8px; }
+  .galleryCard .gcTag {
+    display: inline-block; font-size: 9px; color: #1a1305; background: var(--gold);
+    padding: 1px 6px; border-radius: 7px; margin-bottom: 3px;
+  }
+  .galleryCard .gcName { font-size: 12px; font-weight: bold; color: var(--text); }
+  .galleryCard .gcFeatured {
+    position: absolute; top: 5px; right: 5px; font-size: 13px;
+    background: rgba(10,14,24,0.6); border-radius: 50%; width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .editModalOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(5,8,14,0.85);
+    z-index: 200; align-items: center; justify-content: center; padding: 20px;
+  }
+  .editModalOverlay.open { display: flex; }
+  .editModalBox {
+    background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
+    border-radius: 16px; max-width: 1100px; width: 100%; max-height: 92vh; overflow-y: auto;
+    display: flex; gap: 24px; padding: 28px; position: relative; flex-wrap: wrap;
+  }
+  .editModalImg {
+    width: 320px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain;
+    background: #10182a; border-radius: 12px; flex-shrink: 0; border: 1px solid rgba(212,175,106,0.25);
+  }
+  .editModalFieldsSlot { flex: 1; min-width: 280px; }
+  .editModalHeading { font-size: 18px; font-weight: bold; color: var(--gold); margin-bottom: 12px; }
+  .editModalFieldsSlot .panelUpload { background: none; border: none; padding: 0; margin: 0; }
+  .modalCloseBtn {
+    position: absolute; top: 14px; right: 16px; z-index: 3;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(10,14,24,0.65); border: 1px solid rgba(212,175,106,0.4);
+    color: #f0e6d2; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .modalCloseBtn:hover { background: rgba(10,14,24,0.9); border-color: var(--gold); }
+  @media (max-width: 640px) {
+    .editModalBox { padding: 16px; gap: 14px; }
+    .editModalImg { width: 100%; max-width: 260px; margin: 0 auto; }
+  }
   .cropAdjustWrap { margin-top: 14px; }
   #cropStage {
     position: relative; width: 100%; max-width: 100%; margin-top: 8px;
@@ -145,6 +196,7 @@
 <!-- ===== 登録済みカード一覧 ===== -->
 <div class="panel panelList">
   <h2>③ 登録済みカード一覧</h2>
+  <button type="button" class="secondary" id="galleryToggleBtn" style="margin-bottom:10px;">📋 一覧画面表示（クリックで編集）</button>
   <div class="hint">枠No（配置スロット番号）はここで直接編集できます</div>
   <table id="cardTable">
     <thead><tr><th>区分</th><th>枠No</th><th>カード名</th><th>番号</th><th>注目</th><th></th></tr></thead>
@@ -154,12 +206,12 @@
 
 <!-- ===== アップロード ===== -->
 <div class="panel panelUpload">
-  <h2>② カード画像アップロード</h2>
+  <h2 id="uploadPanelTitle">② カード画像アップロード</h2>
   <div class="drop" id="dropZone">
     <div>ここをクリックまたはドラッグ&ドロップ（AIで自動解析）</div>
     <input type="file" id="fileInput" accept="image/*">
   </div>
-  <div style="text-align:center; margin-top:10px;">
+  <div style="text-align:center; margin-top:10px;" id="manualUploadWrap">
     <button type="button" class="secondary" id="manualUploadBtn">AIを使わず手動でアップロード</button>
   </div>
   <div class="drop" id="manualDropZone" style="display:none; margin-top:10px;">
@@ -275,6 +327,24 @@
 </div>
 </div><!-- /layout -->
 
+<!-- ===== 一覧画面表示（表示ページ風ギャラリー、クリックで編集） ===== -->
+<div class="panel galleryPanel" id="galleryPanel" style="display:none;">
+  <h2>一覧画面表示 <span class="hint" style="display:inline;">（カードをクリックするとポップアップで編集できます）</span></h2>
+  <div id="galleryGrid" class="galleryGrid"></div>
+</div>
+
+<!-- ===== カード編集ポップアップ（表示画面の詳細ポップに近いUI） ===== -->
+<div id="editModalOverlay" class="editModalOverlay">
+  <div class="editModalBox">
+    <button type="button" id="editModalCloseBtn" class="modalCloseBtn">×</button>
+    <img id="editModalImg" class="editModalImg" alt="">
+    <div class="editModalFieldsSlot">
+      <div id="editModalHeading" class="editModalHeading"></div>
+      <div id="editModalFieldsMount"></div>
+    </div>
+  </div>
+</div>
+
 
 <details class="configBox">
   <summary>初期設定（初回のみ入力）</summary>
@@ -309,6 +379,7 @@ loadCfg();
 let sets = [];
 let currentImg = null;
 let currentCropBox = null;
+let editingCard = null; // 編集中のカード（ギャラリーから選択時にセット）
 
 async function init() {
   const gasUrl = getCfg('gas');
@@ -695,6 +766,7 @@ cropStage.addEventListener('pointermove', (e) => {
 async function handleFileManual(e) {
   const file = e.target.files[0];
   if (!file) return;
+  exitEditMode();
   fieldsEl.style.display = 'none';
   document.getElementById('cropPanel').style.display = 'none';
   allRegisterBtns.forEach(b => b.style.display = 'none');
@@ -744,6 +816,7 @@ enableDragAndDrop(manualDropZone, manualFileInputEl, handleFileManual);
 async function handleFile(e) {
   const file = e.target.files[0];
   if (!file) return;
+  exitEditMode();
   fieldsEl.style.display = 'none';
   document.getElementById('cropPanel').style.display = 'none';
   allRegisterBtns.forEach(b => b.style.display = 'none');
@@ -856,32 +929,41 @@ async function onTypeChange() {
 
 async function handleRegisterClick() {
   const gasUrl = getCfg('gas');
-  const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
   const setCode = document.getElementById('activeSet').value;
   const type = document.getElementById('f_type').value;
   const slot = document.getElementById('f_slot').value;
 
-  if (!ghUser || !ghRepo || !ghPat) { alert('先に「初期設定」でGitHubの情報を入力してください'); return; }
   if (!setCode) { alert('①で弾を選択してください'); return; }
   if (!slot) { alert('配置スロット番号が選択されていません。①で収録枚数が正しく設定されているか確認してください'); return; }
 
   allRegisterBtns.forEach(b => b.disabled = true);
-  setStatus('カード画像をGitHubにアップロード中...');
-
-  const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const safeId = `${setCode}_${type}_${uniqueId}`.replace(/[^a-zA-Z0-9\-_]/g, '_');
-  const path = `cards/${safeId}.png`;
-  const croppedBase64 = cropImageToDataUrl(currentImg, currentCropBox).split(',')[1];
 
   try {
-    try {
-      await uploadToGithub(ghUser, ghRepo, ghPat, path, croppedBase64);
-    } catch (err) {
-      throw new Error('【画像アップロード段階】' + err.message);
-    }
-    const imageUrl = `https://raw.githubusercontent.com/${ghUser}/${ghRepo}/main/${path}`;
+    let imageUrl;
 
-    setStatus('スプレッドシートに登録中...');
+    if (editingCard) {
+      // 編集モード：画像は変更せず既存のものを使い回す
+      imageUrl = editingCard.imageUrl;
+      setStatus('スプレッドシートを更新中...');
+    } else {
+      const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
+      if (!ghUser || !ghRepo || !ghPat) { alert('先に「初期設定」でGitHubの情報を入力してください'); allRegisterBtns.forEach(b => b.disabled = false); return; }
+
+      setStatus('カード画像をGitHubにアップロード中...');
+      const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const safeId = `${setCode}_${type}_${uniqueId}`.replace(/[^a-zA-Z0-9\-_]/g, '_');
+      const path = `cards/${safeId}.png`;
+      const croppedBase64 = cropImageToDataUrl(currentImg, currentCropBox).split(',')[1];
+
+      try {
+        await uploadToGithub(ghUser, ghRepo, ghPat, path, croppedBase64);
+      } catch (err) {
+        throw new Error('【画像アップロード段階】' + err.message);
+      }
+      imageUrl = `https://raw.githubusercontent.com/${ghUser}/${ghRepo}/main/${path}`;
+      setStatus('スプレッドシートに登録中...');
+    }
+
     try {
       const gasBody = JSON.stringify({
         action: 'addCard',
@@ -901,7 +983,8 @@ async function handleRegisterClick() {
         ratingJson: getRatingJson(),
         ratingComment: document.getElementById('rate_comment').value,
         imageUrl,
-        status: '公開中'
+        status: editingCard ? editingCard.status : '公開中',
+        featured: editingCard ? editingCard.featured : undefined
       });
 
       let gasRes;
@@ -916,18 +999,23 @@ async function handleRegisterClick() {
       const gasJson = await gasRes.json().catch(() => ({}));
       if (gasJson.error) throw new Error(gasJson.error);
     } catch (err) {
-      throw new Error('【スプレッドシート登録段階】' + err.message + '（画像はGitHubに保存済みです）');
+      throw new Error(editingCard ? '【更新段階】' + err.message : '【スプレッドシート登録段階】' + err.message + '（画像はGitHubに保存済みです）');
     }
 
-    const doneMsg = '登録完了: ' + document.getElementById('f_name').value;
+    const doneMsg = (editingCard ? '更新完了: ' : '登録完了: ') + document.getElementById('f_name').value;
     setStatus(doneMsg);
     alert(doneMsg);
     fieldsEl.style.display = 'none';
     document.getElementById('cropPanel').style.display = 'none';
     allRegisterBtns.forEach(b => b.style.display = 'none');
+    const wasEditing = !!editingCard;
+    exitEditMode();
     await refreshCardTable();
+    if (wasEditing && document.getElementById('galleryPanel').style.display !== 'none') {
+      await renderGallery();
+    }
   } catch (err) {
-    const errMsg = '登録エラー: ' + err.message;
+    const errMsg = (editingCard ? '更新エラー: ' : '登録エラー: ') + err.message;
     setStatus(errMsg);
     alert(errMsg);
   } finally {
@@ -1109,7 +1197,150 @@ async function uploadToGithub(user, repo, pat, path, base64Content) {
   }
 }
 
-document.getElementById('activeSet').addEventListener('change', () => { refreshCardTable(); onTypeChange(); });
+document.getElementById('activeSet').addEventListener('change', () => {
+  refreshCardTable();
+  onTypeChange();
+  if (document.getElementById('galleryPanel').style.display !== 'none') renderGallery();
+});
+
+// ===== 一覧画面表示（ギャラリー）＆ クリック編集 =====
+document.getElementById('galleryToggleBtn').addEventListener('click', async () => {
+  const panel = document.getElementById('galleryPanel');
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? 'block' : 'none';
+  if (show) await renderGallery();
+});
+
+async function renderGallery() {
+  const gasUrl = getCfg('gas');
+  const setCode = document.getElementById('activeSet').value;
+  const gridEl = document.getElementById('galleryGrid');
+  if (!gasUrl || !setCode) { gridEl.innerHTML = '<div class="hint">①で弾を選択してください</div>'; return; }
+
+  gridEl.innerHTML = '<div class="hint">読み込み中...</div>';
+  const res = await fetch(gasUrl + `?action=list&setCode=${encodeURIComponent(setCode)}`);
+  const cards = await res.json();
+  const order = { '新規': 0, '再録': 1, 'パラレル': 2 };
+  cards.sort((a, b) => (order[a.type] - order[b.type]) || (Number(a.slot) - Number(b.slot)));
+
+  if (!cards.length) {
+    gridEl.innerHTML = '<div class="hint">この弾にはまだカードが登録されていません</div>';
+    return;
+  }
+
+  gridEl.innerHTML = cards.map((c, i) => `
+    <div class="galleryCard" data-index="${i}">
+      ${c.featured === 'TRUE' ? '<span class="gcFeatured">📌</span>' : ''}
+      <img src="${c.imageUrl}" alt="${escapeAttr(c.cardName)}" loading="lazy">
+      <div class="gcBody">
+        ${c.cardType ? `<div class="gcTag">${escapeAttr(c.cardType)}</div>` : ''}
+        <div class="gcName">${escapeAttr(c.cardName)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  gridEl.querySelectorAll('.galleryCard').forEach(el => {
+    el.addEventListener('click', () => startEditCard(cards[Number(el.dataset.index)]));
+  });
+}
+
+function startEditCard(card) {
+  editingCard = card;
+
+  // 画像はポップアップ左側に表示（既存のものをそのまま使用、切り抜きツールは非表示）
+  document.getElementById('editModalImg').src = card.imageUrl;
+  document.getElementById('editModalImg').alt = card.cardName;
+  document.getElementById('editModalHeading').textContent = `編集: ${card.cardName}（${card.type} / 枠${card.slot}）`;
+  document.getElementById('previewWrap').innerHTML = '';
+  document.getElementById('cropPanel').style.display = 'none';
+
+  document.getElementById('activeSet').value = card.setCode;
+  document.getElementById('f_type').value = card.type;
+  document.getElementById('f_slot').value = card.slot;
+  document.getElementById('f_setcode').value = card.setCode;
+  document.getElementById('f_num').value = card.cardNumber || '';
+  document.getElementById('f_rarity').value = card.rarity || '';
+  document.getElementById('f_orignum').value = card.originalNumber || '';
+  document.getElementById('f_tag').value = card.cardType || '';
+  document.getElementById('f_tags').value = card.tags || '';
+  document.getElementById('f_name').value = card.cardName || '';
+  document.getElementById('f_attr').value = card.attribute || '';
+  document.getElementById('f_hp').value = card.hp || '';
+  document.getElementById('f_stage').value = card.stage || '';
+  document.getElementById('f_baton').value = card.batonTouchCost || '';
+
+  let arts = [], skills = [];
+  try { arts = JSON.parse(card.artsJson || '[]'); } catch (e) {}
+  try { skills = JSON.parse(card.skillsJson || '[]'); } catch (e) {}
+  setArtsRows(arts);
+  setSkillRows(skills);
+
+  resetRatingFields();
+  try {
+    const rating = JSON.parse(card.ratingJson || '{}');
+    ['hp', 'power', 'speed', 'stamina', 'luck', 'potential'].forEach(k => {
+      const el = document.getElementById('rate_' + k);
+      if (el && rating[k] !== undefined) el.value = rating[k];
+    });
+  } catch (e) {}
+  document.getElementById('rate_comment').value = card.ratingComment || '';
+
+  updateOriginalNumberVisibility();
+  updateHolomenVisibility();
+
+  fieldsEl.style.display = 'block';
+  allRegisterBtns.forEach(b => { b.style.display = 'block'; b.textContent = 'この内容で更新する'; });
+  setStatus('カードを編集中です。内容を変更して「この内容で更新する」を押してください。');
+
+  openEditModal();
+}
+
+// ===== 編集ポップアップの開閉（②アップロードパネルをポップアップ内に一時移動する） =====
+let panelUploadHome = { parent: null, next: null };
+
+function openEditModal() {
+  const panel = document.querySelector('.panelUpload');
+  panelUploadHome.parent = panel.parentElement;
+  panelUploadHome.next = panel.nextElementSibling;
+  document.getElementById('editModalFieldsMount').appendChild(panel);
+
+  // ポップアップ内では画像アップロード用の要素は不要なので隠す
+  document.getElementById('uploadPanelTitle').style.display = 'none';
+  document.getElementById('dropZone').style.display = 'none';
+  document.getElementById('manualUploadWrap').style.display = 'none';
+  document.getElementById('manualDropZone').style.display = 'none';
+
+  document.getElementById('editModalOverlay').classList.add('open');
+}
+
+function closeEditModal() {
+  const panel = document.querySelector('.panelUpload');
+  if (panelUploadHome.parent) {
+    panelUploadHome.parent.insertBefore(panel, panelUploadHome.next);
+  }
+  document.getElementById('uploadPanelTitle').style.display = '';
+  document.getElementById('dropZone').style.display = '';
+  document.getElementById('manualUploadWrap').style.display = '';
+
+  document.getElementById('editModalOverlay').classList.remove('open');
+}
+
+function exitEditMode() {
+  editingCard = null;
+  allRegisterBtns.forEach(b => { b.textContent = 'この内容で登録する'; });
+  closeEditModal();
+}
+
+document.getElementById('editModalCloseBtn').addEventListener('click', () => {
+  exitEditMode();
+  fieldsEl.style.display = 'none';
+  document.getElementById('cropPanel').style.display = 'none';
+  setStatus('編集をキャンセルしました。');
+});
+document.getElementById('editModalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'editModalOverlay') document.getElementById('editModalCloseBtn').click();
+});
+
 init();
 </script>
 </body>
