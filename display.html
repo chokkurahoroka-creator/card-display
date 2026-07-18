@@ -216,7 +216,13 @@
   .artsBlock {
     border-top: 1px dashed rgba(212,175,106,0.25); margin-top: 12px; padding-top: 10px;
   }
-  .artsBlock .artsName { font-size: 26px; font-weight: bold; color: #f0e6d2; }
+  .artsBlock .artsName {
+    display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: bold; color: #f0e6d2;
+  }
+  .artsYellIcons { flex-shrink: 0; min-width: 0; }
+  .artsNameText { flex: 1; text-align: center; }
+  .artsDamageGroup { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; text-align: right; }
+  .artsDamageText { font-size: 26px; font-weight: bold; color: #f0e6d2; }
   .artsBlock .artsMeta { font-size: 13px; color: #9aa5c0; margin: 2px 0; }
   .artsBlock .artsEffect { font-size: 26px; line-height: 1.6; white-space: pre-wrap; margin-top: 6px; }
 
@@ -230,10 +236,10 @@
     margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px dashed rgba(212,175,106,0.2);
   }
   .skillBlock:last-child { border-bottom: none; }
-  .skillBannerRow { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+  .skillBannerRow { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
   .skillBannerImg { height: 40px; width: auto; max-width: 220px; object-fit: contain; display: block; flex-shrink: 0; }
-  .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; }
-  .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; }
+  .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: right; }
+  .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; text-align: right; }
 
   .extraBox {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -245,11 +251,11 @@
 
   .specialSkillBox { padding: 3px; border-radius: 12px; margin-bottom: 8px; }
   .specialSkillInner {
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
     background: #10182a; border-radius: 9px; padding: 10px 16px;
   }
   .specialSkillLabel { font-size: 20px; font-weight: bold; color: #fff; flex-shrink: 0; }
-  .specialSkillName { font-size: 20px; font-weight: bold; color: #f0e6d2; }
+  .specialSkillName { font-size: 20px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: right; }
   .modalAbility.skillContentLarge { font-size: 26px; }
   .ratingSection {
     display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
@@ -326,6 +332,7 @@
     .modalInfo .modalMeta, .artsBlock .artsMeta { font-size: 12px; }
     .modalInfo .modalAbility, .artsBlock .artsEffect { font-size: 12px; }
     .artsBlock .artsName { font-size: 13px; }
+    .artsDamageText { font-size: 13px; }
     .modalDownloadBtn {
       position: absolute; top: 14px; left: 14px; bottom: auto; right: auto;
       width: 34px; height: 34px; padding: 0; border-radius: 50%;
@@ -1017,7 +1024,7 @@ function skillBlockHtml(skill) {
   return `<div class="skillBlock">${tagHtml}${titleHtml}${textHtml}</div>`;
 }
 
-const RATING_LABELS = { hp: 'HP', power: 'パワー', speed: 'スピード', stamina: '持久力', luck: '運', potential: '将来性' };
+const RATING_LABELS = { hp: 'HP', power: '基本パワー', speed: '最大パワー', stamina: '継戦力', luck: '安定力', potential: '将来性' };
 const RATING_KEYS = ['hp', 'power', 'speed', 'stamina', 'luck', 'potential'];
 
 function buildRadarChartSvg(rating) {
@@ -1080,7 +1087,11 @@ function openModal(c) {
           : '';
         return `
           <div class="artsBlock">
-            <div class="artsName">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;margin-right:8px;">${yellIcons}</span>` : ''}${escapeHtml(a.name || '')}${a.damage ? `　${escapeHtml(a.damage)}` : ''}${specialInline}</div>
+            <div class="artsName">
+              <span class="artsYellIcons">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;">${yellIcons}</span>` : ''}</span>
+              <span class="artsNameText">${escapeHtml(a.name || 'アーツ')}</span>
+              <span class="artsDamageGroup">${a.damage ? `<span class="artsDamageText">${escapeHtml(a.damage)}</span>` : ''}${specialInline}</span>
+            </div>
             ${effectText ? `<div class="artsEffect">${escapeHtml(effectText)}</div>` : ''}
           </div>`;
       }).join('');

@@ -21,7 +21,6 @@
   .layout { display: flex; flex-direction: column; gap: 0; }
   .panelSet { order: 1; }
   .panelUpload { order: 2; }
-  .panelList { order: 3; }
   .panelCrop { order: 4; }
   @media (min-width: 1100px) {
     .layout {
@@ -29,8 +28,7 @@
       gap: 24px; align-items: start;
       max-width: 1500px; margin: 0 auto;
     }
-    .panelSet { grid-column: 1; grid-row: 1; order: initial; margin-bottom: 0; }
-    .panelList { grid-column: 1; grid-row: 2; order: initial; margin-bottom: 0; }
+    .panelSet { grid-column: 1; grid-row: 1 / span 2; order: initial; margin-bottom: 0; }
     .panelUpload { grid-column: 2; grid-row: 1 / span 2; order: initial; margin-bottom: 0; }
     .panelCrop { grid-column: 3; grid-row: 1 / span 2; order: initial; margin-bottom: 0; position: sticky; top: 20px; }
   }
@@ -109,10 +107,13 @@
   }
   .galleryCard .gcName { font-size: 12px; font-weight: bold; color: var(--text); }
   .galleryCard .gcFeatured {
-    position: absolute; top: 5px; right: 5px; font-size: 13px;
-    background: rgba(10,14,24,0.6); border-radius: 50%; width: 22px; height: 22px;
+    position: absolute; top: 5px; right: 5px; font-size: 13px; z-index: 2;
+    background: rgba(10,14,24,0.6); border: 1px solid rgba(212,175,106,0.3); border-radius: 50%;
+    width: 24px; height: 24px; cursor: pointer; opacity: 0.45;
     display: flex; align-items: center; justify-content: center;
   }
+  .galleryCard .gcFeatured.active { opacity: 1; background: var(--gold); border-color: var(--gold); }
+  .galleryCard .gcFeatured:hover { opacity: 0.8; }
 
   .editModalOverlay {
     display: none; position: fixed; inset: 0; background: rgba(5,8,14,0.85);
@@ -121,15 +122,25 @@
   .editModalOverlay.open { display: flex; }
   .editModalBox {
     background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
-    border-radius: 16px; max-width: 1100px; width: 100%; max-height: 92vh; overflow-y: auto;
-    display: flex; gap: 24px; padding: 28px; position: relative; flex-wrap: wrap;
+    border-radius: 16px; max-width: 1200px; width: 100%; max-height: 92vh; overflow-y: auto;
+    display: flex; align-items: center; gap: 24px; padding: 28px; position: relative; flex-wrap: wrap;
   }
   .editModalImg {
-    width: 320px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain;
+    width: 400px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain;
     background: #10182a; border-radius: 12px; flex-shrink: 0; border: 1px solid rgba(212,175,106,0.25);
+    align-self: center;
   }
   .editModalFieldsSlot { flex: 1; min-width: 280px; }
-  .editModalHeading { font-size: 18px; font-weight: bold; color: var(--gold); margin-bottom: 12px; }
+  .editModalHeadingRow {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .editModalHeading { font-size: 18px; font-weight: bold; color: var(--gold); margin-bottom: 0; }
+  .editModalDeleteBtn {
+    background: none; border: 1px solid rgba(229,57,53,0.5); color: #e57373;
+    border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; flex-shrink: 0;
+  }
+  .editModalDeleteBtn:hover { background: rgba(229,57,53,0.12); border-color: #e57373; }
   .editModalFieldsSlot .panelUpload { background: none; border: none; padding: 0; margin: 0; }
   .modalCloseBtn {
     position: absolute; top: 14px; right: 16px; z-index: 3;
@@ -191,17 +202,6 @@
       <tbody></tbody>
     </table>
   </div>
-</div>
-
-<!-- ===== 登録済みカード一覧 ===== -->
-<div class="panel panelList">
-  <h2>③ 登録済みカード一覧</h2>
-  <button type="button" class="secondary" id="galleryToggleBtn" style="margin-bottom:10px;">📋 一覧画面表示（クリックで編集）</button>
-  <div class="hint">枠No（配置スロット番号）はここで直接編集できます</div>
-  <table id="cardTable">
-    <thead><tr><th>区分</th><th>枠No</th><th>カード名</th><th>番号</th><th>注目</th><th></th></tr></thead>
-    <tbody></tbody>
-  </table>
 </div>
 
 <!-- ===== アップロード ===== -->
@@ -291,12 +291,12 @@
       <summary>評価パラメータ（レーダーチャート表示用）</summary>
       <div class="row">
         <div class="field"><label>HP</label><input type="number" id="rate_hp" min="1" max="5" placeholder="1〜5"></div>
-        <div class="field"><label>パワー</label><input type="number" id="rate_power" min="1" max="5" placeholder="1〜5"></div>
-        <div class="field"><label>スピード</label><input type="number" id="rate_speed" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>基本パワー</label><input type="number" id="rate_power" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>最大パワー</label><input type="number" id="rate_speed" min="1" max="5" placeholder="1〜5"></div>
       </div>
       <div class="row">
-        <div class="field"><label>持久力</label><input type="number" id="rate_stamina" min="1" max="5" placeholder="1〜5"></div>
-        <div class="field"><label>運</label><input type="number" id="rate_luck" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>継戦力</label><input type="number" id="rate_stamina" min="1" max="5" placeholder="1〜5"></div>
+        <div class="field"><label>安定力</label><input type="number" id="rate_luck" min="1" max="5" placeholder="1〜5"></div>
         <div class="field"><label>将来性</label><input type="number" id="rate_potential" min="1" max="5" placeholder="1〜5"></div>
       </div>
       <div class="field">
@@ -328,7 +328,7 @@
 </div><!-- /layout -->
 
 <!-- ===== 一覧画面表示（表示ページ風ギャラリー、クリックで編集） ===== -->
-<div class="panel galleryPanel" id="galleryPanel" style="display:none;">
+<div class="panel galleryPanel" id="galleryPanel">
   <h2>一覧画面表示 <span class="hint" style="display:inline;">（カードをクリックするとポップアップで編集できます）</span></h2>
   <div id="galleryGrid" class="galleryGrid"></div>
 </div>
@@ -339,7 +339,10 @@
     <button type="button" id="editModalCloseBtn" class="modalCloseBtn">×</button>
     <img id="editModalImg" class="editModalImg" alt="">
     <div class="editModalFieldsSlot">
-      <div id="editModalHeading" class="editModalHeading"></div>
+      <div class="editModalHeadingRow">
+        <div id="editModalHeading" class="editModalHeading"></div>
+        <button type="button" id="editModalDeleteBtn" class="editModalDeleteBtn">🗑 このカードを削除</button>
+      </div>
       <div id="editModalFieldsMount"></div>
     </div>
   </div>
@@ -385,7 +388,7 @@ async function init() {
   const gasUrl = getCfg('gas');
   if (!gasUrl) return;
   await refreshSets();
-  await refreshCardTable();
+  await renderGallery();
 }
 
 // ===== 弾(sets)管理 =====
@@ -405,7 +408,7 @@ async function refreshSets() {
   const prevValue = sel.value;
   sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
   if (prevValue && sets.some(s => s.setCode === prevValue)) sel.value = prevValue;
-  sel.addEventListener('change', refreshCardTable, { once: false });
+  sel.addEventListener('change', renderGallery, { once: false });
 
   renderSetStatusTable();
 }
@@ -466,7 +469,7 @@ document.getElementById('saveSetBtn').addEventListener('click', async () => {
   await fetch(gasUrl, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });
   await refreshSets();
   document.getElementById('activeSet').value = body.setCode;
-  await refreshCardTable();
+  await renderGallery();
   await onTypeChange();
   alert('弾を保存しました');
 });
@@ -945,6 +948,15 @@ async function handleRegisterClick() {
       // 編集モード：画像は変更せず既存のものを使い回す
       imageUrl = editingCard.imageUrl;
       setStatus('スプレッドシートを更新中...');
+
+      // 区分または枠番号が変更されていたら、古い行を削除してから新しい内容で登録し直す
+      if (editingCard.type !== type || String(editingCard.slot) !== String(slot)) {
+        await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'deleteCard', setCode: editingCard.setCode, type: editingCard.type, slot: editingCard.slot })
+        });
+      }
     } else {
       const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
       if (!ghUser || !ghRepo || !ghPat) { alert('先に「初期設定」でGitHubの情報を入力してください'); allRegisterBtns.forEach(b => b.disabled = false); return; }
@@ -1010,10 +1022,7 @@ async function handleRegisterClick() {
     allRegisterBtns.forEach(b => b.style.display = 'none');
     const wasEditing = !!editingCard;
     exitEditMode();
-    await refreshCardTable();
-    if (wasEditing && document.getElementById('galleryPanel').style.display !== 'none') {
-      await renderGallery();
-    }
+    await renderGallery();
   } catch (err) {
     const errMsg = (editingCard ? '更新エラー: ' : '登録エラー: ') + err.message;
     setStatus(errMsg);
@@ -1026,88 +1035,6 @@ registerBtn.addEventListener('click', handleRegisterClick);
 registerBtn2.addEventListener('click', handleRegisterClick);
 
 // ===== 登録済み一覧 =====
-async function refreshCardTable() {
-  const gasUrl = getCfg('gas');
-  const setCode = document.getElementById('activeSet').value;
-  if (!gasUrl || !setCode) return;
-
-  const res = await fetch(gasUrl + `?action=list&setCode=${encodeURIComponent(setCode)}`);
-  const cards = await res.json();
-  const order = { '新規':0, '再録':1, 'パラレル':2 };
-  cards.sort((a,b) => (order[a.type]-order[b.type]) || (Number(a.slot)-Number(b.slot)));
-
-  const tbody = document.querySelector('#cardTable tbody');
-  tbody.innerHTML = cards.map(c => `
-    <tr>
-      <td><span class="typeBadge type-${c.type}">${c.type}</span></td>
-      <td><input type="number" class="slotEdit" min="1" value="${c.slot}" data-type="${c.type}" data-slot="${c.slot}" style="width:56px;padding:4px;border-radius:4px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);"></td>
-      <td>${c.cardName}</td>
-      <td>${c.cardNumber || ''}</td>
-      <td><input type="checkbox" class="featuredCb" data-type="${c.type}" data-slot="${c.slot}" ${c.featured === 'TRUE' ? 'checked' : ''} title="注目カードに設定"></td>
-      <td><button type="button" class="deleteCardBtn" data-type="${c.type}" data-slot="${c.slot}" data-name="${escapeAttr(c.cardName)}" style="background:none;border:1px solid rgba(229,57,53,0.5);color:#e57373;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">削除</button></td>
-    </tr>
-  `).join('');
-
-  tbody.querySelectorAll('.featuredCb').forEach(cb => {
-    cb.addEventListener('change', async () => {
-      await fetch(gasUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'updateFeatured', setCode, type: cb.dataset.type, slot: cb.dataset.slot, featured: cb.checked })
-      });
-    });
-  });
-
-  tbody.querySelectorAll('.slotEdit').forEach(input => {
-    input.addEventListener('change', async () => {
-      const oldSlot = input.dataset.slot;
-      const newSlot = input.value;
-      if (!newSlot || newSlot === oldSlot) return;
-      const res = await fetch(gasUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'updateSlot', setCode, type: input.dataset.type, oldSlot, newSlot })
-      });
-      const json = await res.json().catch(() => ({}));
-      if (json.error) {
-        alert('枠番号の変更に失敗しました: ' + json.error);
-      }
-      await refreshCardTable();
-    });
-  });
-
-  tbody.querySelectorAll('.deleteCardBtn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm(`「${btn.dataset.name}」を削除しますか？この操作は取り消せません。`)) return;
-      btn.disabled = true;
-      btn.textContent = '削除中...';
-      try {
-        const res = await fetch(gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'deleteCard', setCode, type: btn.dataset.type, slot: btn.dataset.slot })
-        });
-        const json = await res.json().catch(() => ({}));
-        if (json.error) {
-          alert('削除に失敗しました: ' + json.error);
-          btn.disabled = false;
-          btn.textContent = '削除';
-          return;
-        }
-        // GitHub側の画像も削除を試みる（失敗しても致命的ではないので無視）
-        if (json.imageUrl) {
-          deleteGithubImageByUrl(json.imageUrl).catch(() => {});
-        }
-        await refreshCardTable();
-      } catch (err) {
-        alert('削除中にエラーが発生しました: ' + err.message);
-        btn.disabled = false;
-        btn.textContent = '削除';
-      }
-    });
-  });
-}
-
 // raw.githubusercontent.com のURLからpathを逆算してGitHub上の画像を削除
 async function deleteGithubImageByUrl(imageUrl) {
   const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
@@ -1198,18 +1125,12 @@ async function uploadToGithub(user, repo, pat, path, base64Content) {
 }
 
 document.getElementById('activeSet').addEventListener('change', () => {
-  refreshCardTable();
+  renderGallery();
   onTypeChange();
   if (document.getElementById('galleryPanel').style.display !== 'none') renderGallery();
 });
 
-// ===== 一覧画面表示（ギャラリー）＆ クリック編集 =====
-document.getElementById('galleryToggleBtn').addEventListener('click', async () => {
-  const panel = document.getElementById('galleryPanel');
-  const show = panel.style.display === 'none';
-  panel.style.display = show ? 'block' : 'none';
-  if (show) await renderGallery();
-});
+// ===== 一覧画面表示（ギャラリー、常時表示）＆ クリック編集 =====
 
 async function renderGallery() {
   const gasUrl = getCfg('gas');
@@ -1230,7 +1151,7 @@ async function renderGallery() {
 
   gridEl.innerHTML = cards.map((c, i) => `
     <div class="galleryCard" data-index="${i}">
-      ${c.featured === 'TRUE' ? '<span class="gcFeatured">📌</span>' : ''}
+      <button type="button" class="gcFeatured ${c.featured === 'TRUE' ? 'active' : ''}" data-index="${i}" title="注目カードに設定/解除">📌</button>
       <img src="${c.imageUrl}" alt="${escapeAttr(c.cardName)}" loading="lazy">
       <div class="gcBody">
         ${c.cardType ? `<div class="gcTag">${escapeAttr(c.cardType)}</div>` : ''}
@@ -1241,6 +1162,21 @@ async function renderGallery() {
 
   gridEl.querySelectorAll('.galleryCard').forEach(el => {
     el.addEventListener('click', () => startEditCard(cards[Number(el.dataset.index)]));
+  });
+
+  gridEl.querySelectorAll('.gcFeatured').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const c = cards[Number(btn.dataset.index)];
+      const newFeatured = c.featured === 'TRUE' ? 'FALSE' : 'TRUE';
+      btn.classList.toggle('active', newFeatured === 'TRUE');
+      c.featured = newFeatured;
+      await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'updateFeatured', setCode, type: c.type, slot: c.slot, featured: newFeatured === 'TRUE' })
+      });
+    });
   });
 }
 
@@ -1336,6 +1272,39 @@ document.getElementById('editModalCloseBtn').addEventListener('click', () => {
   fieldsEl.style.display = 'none';
   document.getElementById('cropPanel').style.display = 'none';
   setStatus('編集をキャンセルしました。');
+});
+document.getElementById('editModalDeleteBtn').addEventListener('click', async () => {
+  if (!editingCard) return;
+  if (!confirm(`「${editingCard.cardName}」を削除しますか？この操作は取り消せません。`)) return;
+  const gasUrl = getCfg('gas');
+  const btn = document.getElementById('editModalDeleteBtn');
+  btn.disabled = true;
+  btn.textContent = '削除中...';
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'deleteCard', setCode: editingCard.setCode, type: editingCard.type, slot: editingCard.slot })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (json.error) {
+      alert('削除に失敗しました: ' + json.error);
+      return;
+    }
+    if (json.imageUrl) {
+      deleteGithubImageByUrl(json.imageUrl).catch(() => {});
+    }
+    exitEditMode();
+    fieldsEl.style.display = 'none';
+    document.getElementById('cropPanel').style.display = 'none';
+    setStatus('削除しました。');
+    await renderGallery();
+  } catch (err) {
+    alert('削除中にエラーが発生しました: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🗑 このカードを削除';
+  }
 });
 document.getElementById('editModalOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'editModalOverlay') document.getElementById('editModalCloseBtn').click();
