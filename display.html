@@ -1080,7 +1080,7 @@ function openModal(c) {
           : '';
         return `
           <div class="artsBlock">
-            <div class="artsName">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;margin-right:8px;">${yellIcons}</span>` : ''}${escapeHtml(a.name || 'アーツ')}${a.damage ? `　${escapeHtml(a.damage)}` : ''}${specialInline}</div>
+            <div class="artsName">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;margin-right:8px;">${yellIcons}</span>` : ''}${escapeHtml(a.name || '')}${a.damage ? `　${escapeHtml(a.damage)}` : ''}${specialInline}</div>
             ${effectText ? `<div class="artsEffect">${escapeHtml(effectText)}</div>` : ''}
           </div>`;
       }).join('');
