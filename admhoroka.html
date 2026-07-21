@@ -122,7 +122,7 @@
   .editModalOverlay.open { display: flex; }
   .editModalBox {
     background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
-    border-radius: 16px; max-width: 1200px; width: 100%; max-height: 92vh; overflow-y: auto;
+    border-radius: 16px; max-width: 1200px; width: 100%; max-height: 92vh; overflow: hidden;
     display: flex; align-items: center; gap: 24px; padding: 28px; position: relative; flex-wrap: wrap;
   }
   .editModalImg {
@@ -130,10 +130,13 @@
     background: #10182a; border-radius: 12px; flex-shrink: 0; border: 1px solid rgba(212,175,106,0.25);
     align-self: center;
   }
-  .editModalFieldsSlot { flex: 1; min-width: 280px; }
+  .editModalFieldsSlot {
+    flex: 1; min-width: 280px; align-self: stretch;
+    max-height: calc(92vh - 56px); overflow-y: auto; padding-right: 6px;
+  }
   .editModalHeadingRow {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    flex-wrap: wrap; margin-bottom: 12px;
+    flex-wrap: wrap; margin-bottom: 12px; padding-right: 46px;
   }
   .editModalHeading { font-size: 18px; font-weight: bold; color: var(--gold); margin-bottom: 0; }
   .editModalDeleteBtn {
@@ -1131,6 +1134,47 @@ document.getElementById('activeSet').addEventListener('change', () => {
 });
 
 // ===== 一覧画面表示（ギャラリー、常時表示）＆ クリック編集 =====
+// 表示画面(display.html)と同じ並び替えルールを使用
+const ATTR_ORDER = ['白', '緑', '赤', '青', '紫', '黄', '無色'];
+const STAGE_ORDER = ['Debut', '1st', '2nd', 'Spot'];
+const SUPPORT_SUBTYPE_ORDER = ['イベント', 'アイテム', 'スタッフ', 'マスコット', 'ファン'];
+
+function stageOrderIndex(stage) {
+  const idx = STAGE_ORDER.indexOf(stage);
+  return idx === -1 ? STAGE_ORDER.length : idx;
+}
+function getSupportSubtypeIndex(cardType) {
+  const parts = (cardType || '').split('・');
+  const sub = parts.length > 1 ? parts[1] : '';
+  const idx = SUPPORT_SUBTYPE_ORDER.indexOf(sub);
+  return idx === -1 ? SUPPORT_SUBTYPE_ORDER.length : idx;
+}
+function byNameJa(a, b) {
+  return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
+}
+function sortRerunCards(cardsOfType) {
+  const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('ホロメン') !== -1);
+  const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
+  const otherCards = cardsOfType.filter(c => holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1);
+
+  holomenCards.sort((a, b) => {
+    const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
+    return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b) || (stageOrderIndex(a.stage) - stageOrderIndex(b.stage));
+  });
+  supportCards.sort((a, b) => {
+    const ai = getSupportSubtypeIndex(a.cardType); const bi = getSupportSubtypeIndex(b.cardType);
+    return (ai - bi) || byNameJa(a, b);
+  });
+  otherCards.sort(byNameJa);
+
+  return [...holomenCards, ...supportCards, ...otherCards];
+}
+function sortCardsForGallery(cards) {
+  const newCards = cards.filter(c => c.type === '新規').sort((a, b) => Number(a.slot) - Number(b.slot));
+  const rerunCards = sortRerunCards(cards.filter(c => c.type === '再録'));
+  const parallelCards = cards.filter(c => c.type === 'パラレル').sort((a, b) => Number(a.slot) - Number(b.slot));
+  return [...newCards, ...rerunCards, ...parallelCards];
+}
 
 async function renderGallery() {
   const gasUrl = getCfg('gas');
@@ -1140,9 +1184,8 @@ async function renderGallery() {
 
   gridEl.innerHTML = '<div class="hint">読み込み中...</div>';
   const res = await fetch(gasUrl + `?action=list&setCode=${encodeURIComponent(setCode)}`);
-  const cards = await res.json();
-  const order = { '新規': 0, '再録': 1, 'パラレル': 2 };
-  cards.sort((a, b) => (order[a.type] - order[b.type]) || (Number(a.slot) - Number(b.slot)));
+  let cards = await res.json();
+  cards = sortCardsForGallery(cards);
 
   if (!cards.length) {
     gridEl.innerHTML = '<div class="hint">この弾にはまだカードが登録されていません</div>';

@@ -185,6 +185,7 @@
   .modalInfo h3 { margin: 0 0 12px; font-size: 28px; color: var(--gold); }
   .modalInfo .modalMeta { font-size: 15px; color: #9aa5c0; margin-bottom: 6px; }
   .modalInfo .modalAbility { margin-top: 16px; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }
+  .numHighlight { font-weight: 900; color: var(--gold); }
   .modalTypeBadge {
     display: inline-block; font-size: 12px; font-weight: bold; color: #1a1305;
     background: var(--gold); padding: 3px 12px; border-radius: 10px; margin-bottom: 10px; margin-right: 6px;
@@ -228,8 +229,8 @@
 
   .modalBadgeRow { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
   .modalFavStar {
-    position: static; width: 30px; height: 30px; margin-left: auto;
-    background: rgba(255,255,255,0.08); font-size: 16px;
+    position: absolute; right: 150px; bottom: 20px; margin-left: 0;
+    width: 34px; height: 34px; background: rgba(255,255,255,0.08); font-size: 17px; top: auto;
   }
   .skillBlock {
     display: flex; flex-direction: column;
@@ -238,7 +239,7 @@
   .skillBlock:last-child { border-bottom: none; }
   .skillBannerRow { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
   .skillBannerImg { height: 40px; width: auto; max-width: 220px; object-fit: contain; display: block; flex-shrink: 0; }
-  .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: right; }
+  .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: center; -webkit-text-stroke: 0.6px #fff; paint-order: stroke fill; }
   .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; text-align: right; }
 
   .extraBox {
@@ -246,7 +247,7 @@
     border: 2px solid var(--gold); border-radius: 10px; padding: 10px 16px; margin-bottom: 8px;
     background: rgba(212,175,106,0.06);
   }
-  .extraLabel { font-size: 22px; font-weight: bold; color: var(--gold); flex-shrink: 0; }
+  .extraLabel { font-size: 22px; font-weight: bold; color: #d4af37; text-shadow: 0 0 6px rgba(212,175,55,0.4); flex-shrink: 0; }
   .extraContent { font-size: 17px; color: #f0e6d2; line-height: 1.5; white-space: pre-wrap; }
 
   .specialSkillBox { padding: 3px; border-radius: 12px; margin-bottom: 8px; }
@@ -255,7 +256,7 @@
     background: #10182a; border-radius: 9px; padding: 10px 16px;
   }
   .specialSkillLabel { font-size: 20px; font-weight: bold; color: #fff; flex-shrink: 0; }
-  .specialSkillName { font-size: 20px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: right; }
+  .specialSkillName { font-size: 20px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: center; }
   .modalAbility.skillContentLarge { font-size: 26px; }
   .ratingSection {
     display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
@@ -339,6 +340,9 @@
       display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 2;
     }
     .modalDownloadBtn .dlLabel { display: none; }
+    .modalFavStar {
+      position: static; width: 30px; height: 30px; margin-left: auto;
+    }
     .modalClose { top: 10px; right: 10px; width: 30px; height: 30px; font-size: 18px; }
 
     .modalNavBtn { width: 38px; height: 38px; font-size: 18px; }
@@ -514,6 +518,17 @@ function toggleFav(c) {
   });
 }
 
+// グループ切り替え時、現在表示中の全カードの星マークをactiveGroup基準で更新
+function refreshVisibleFavStars() {
+  document.querySelectorAll('.favStar[data-fullkey]').forEach(btn => {
+    const c = renderedCardsIndex[btn.dataset.fullkey];
+    if (!c) return;
+    const on = isFav(c, activeGroup);
+    btn.classList.toggle('active', on);
+    btn.textContent = on ? '★' : '☆';
+  });
+}
+
 function renderFavMenu() {
   const listEl = document.getElementById('favGroupList');
   const names = Object.keys(favGroups);
@@ -530,7 +545,11 @@ function renderFavMenu() {
   `).join('');
 
   listEl.querySelectorAll('.favGroupName').forEach(el => {
-    el.addEventListener('click', () => { activeGroup = el.dataset.group; renderFavMenu(); });
+    el.addEventListener('click', () => {
+      activeGroup = el.dataset.group;
+      renderFavMenu();
+      refreshVisibleFavStars();
+    });
   });
   listEl.querySelectorAll('.favShowBtn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -836,6 +855,12 @@ function renderSearchResults() {
 }
 
 const ATTR_ORDER = ['白', '緑', '赤', '青', '紫', '黄', '無色'];
+const STAGE_ORDER = ['Debut', '1st', '2nd', 'Spot'];
+
+function stageOrderIndex(stage) {
+  const idx = STAGE_ORDER.indexOf(stage);
+  return idx === -1 ? STAGE_ORDER.length : idx;
+}
 
 // 再録の並び替え順（各属性→サポート→その他）。navList構築側でも同じ順序を使う
 const SUPPORT_SUBTYPE_ORDER = ['イベント', 'アイテム', 'スタッフ', 'マスコット', 'ファン'];
@@ -858,7 +883,7 @@ function sortRerunCards(cardsOfType) {
 
   holomenCards.sort((a, b) => {
     const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
-    return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b);
+    return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b) || (stageOrderIndex(a.stage) - stageOrderIndex(b.stage));
   });
   supportCards.sort((a, b) => {
     const ai = getSupportSubtypeIndex(a.cardType); const bi = getSupportSubtypeIndex(b.cardType);
@@ -954,12 +979,20 @@ const YELL_ICON_MAP = { '白': 'white', '赤': 'red', '青': 'blue', '緑': 'gre
 const YELL_COLOR_CSS = { '赤': '#e53935', '白': '#f5f5f5', '青': '#2196f3', '緑': '#4caf50', '紫': '#7c4dff', '黄': '#ffca28', '無色': '#9e9e9e' };
 
 function yellIconHtml(color, count) {
-  const assetKey = YELL_ICON_MAP[color];
-  const imgSrc = assetKey ? CARD_ASSETS[assetKey] : null;
-  const inner = imgSrc
-    ? `<img src="${imgSrc}" alt="${escapeHtml(color)}">`
-    : `<span class="yellFallback" style="background:${YELL_COLOR_CSS[color] || '#888'}"></span>`;
-  return `<span class="yellIconWrap">${inner}${count > 1 ? `<span class="yellCount">×${count}</span>` : ''}</span>`;
+  const n = Math.max(1, Number(count) || 1);
+  return Array.from({ length: n }).map(() => {
+    const assetKey = YELL_ICON_MAP[color];
+    const imgSrc = assetKey ? CARD_ASSETS[assetKey] : null;
+    const inner = imgSrc
+      ? `<img src="${imgSrc}" alt="${escapeHtml(color)}">`
+      : `<span class="yellFallback" style="background:${YELL_COLOR_CSS[color] || '#888'}"></span>`;
+    return `<span class="yellIconWrap">${inner}</span>`;
+  }).join('');
+}
+
+// テキスト中の数字を太字で強調する（escape済みテキストに対して適用）
+function boldNumbers(escapedText) {
+  return escapedText.replace(/(\d+)/g, '<strong class="numHighlight">$1</strong>');
 }
 
 // バトンタッチのエールは無色アイコンをアーツと同じ見た目でまとめて表示
@@ -978,14 +1011,18 @@ const OSHI_SKILL_GRADIENTS = {
   '推しスキル': 'linear-gradient(90deg, #ec4899, #9d174d)'
 };
 
+// バナー付き固定スキルの技名の色（指定色＋白縁取り）
+const SKILL_TITLE_COLOR = { 'コラボエフェクト': '#e53935', 'ブルームエフェクト': '#2196f3', 'ギフト': '#4caf50' };
+
 function skillBlockHtml(skill) {
   const bannerKey = SKILL_BANNER_MAP[skill.skillType];
   const isLarge = skill.skillType !== 'エクストラ';
-  const textHtml = skill.text ? `<div class="modalAbility${isLarge ? ' skillContentLarge' : ''}">${escapeHtml((skill.text || '').replace(/\\n/g, '\n'))}</div>` : '';
+  const textHtml = skill.text ? `<div class="modalAbility${isLarge ? ' skillContentLarge' : ''}">${boldNumbers(escapeHtml((skill.text || '').replace(/\\n/g, '\n')))}</div>` : '';
 
   if (bannerKey) {
     // バナー画像のある固定スキル（ギフト/コラボエフェクト/ブルームエフェクト）：バナーと技名を横並びに
-    const titleHtml = skill.title ? `<span class="skillTitleInline">${escapeHtml(skill.title)}</span>` : '';
+    const titleColor = SKILL_TITLE_COLOR[skill.skillType] || '#f0e6d2';
+    const titleHtml = skill.title ? `<span class="skillTitleInline" style="color:${titleColor};">${escapeHtml(skill.title)}</span>` : '';
     return `<div class="skillBlock">
       <div class="skillBannerRow">
         <img class="skillBannerImg" src="${CARD_ASSETS[bannerKey]}" alt="${escapeHtml(skill.skillType)}">
@@ -1000,7 +1037,7 @@ function skillBlockHtml(skill) {
     return `<div class="skillBlock">
       <div class="extraBox">
         <span class="extraLabel">エクストラ</span>
-        <span class="extraContent">${escapeHtml((skill.text || '').replace(/\\n/g, '\n'))}</span>
+        <span class="extraContent">${boldNumbers(escapeHtml((skill.text || '').replace(/\\n/g, '\n')))}</span>
       </div>
     </div>`;
   }
@@ -1078,6 +1115,7 @@ function openModal(c) {
   try {
     const arts = JSON.parse(c.artsJson || '[]');
     if (Array.isArray(arts) && arts.length) {
+      const isSupportCard = (c.cardType || '').indexOf('サポート') !== -1;
       artsHtml = arts.map(a => {
         const yellIcons = (a.yellCost || []).map(y => yellIconHtml(y.color, y.count)).join('');
         const effectText = (a.effectText || '').replace(/\\n/g, '\n');
@@ -1085,14 +1123,15 @@ function openModal(c) {
         const specialInline = a.specialAttackColor
           ? `<span class="specialAtkInline">${yellIconHtml(a.specialAttackColor, 1)}${a.specialAttackDamage ? `<span class="specialAtkDamage" style="color:${specialColorCss};">${escapeHtml(a.specialAttackDamage)}</span>` : ''}</span>`
           : '';
+        const nameHtml = isSupportCard ? '' : `<span class="artsNameText">${escapeHtml(a.name || 'アーツ')}</span>`;
         return `
           <div class="artsBlock">
             <div class="artsName">
               <span class="artsYellIcons">${yellIcons ? `<span class="yellRow" style="display:inline-flex;vertical-align:middle;">${yellIcons}</span>` : ''}</span>
-              <span class="artsNameText">${escapeHtml(a.name || 'アーツ')}</span>
-              <span class="artsDamageGroup">${a.damage ? `<span class="artsDamageText">${escapeHtml(a.damage)}</span>` : ''}${specialInline}</span>
+              ${nameHtml}
+              <span class="artsDamageGroup">${a.damage ? `<span class="artsDamageText">${boldNumbers(escapeHtml(a.damage))}</span>` : ''}${specialInline}</span>
             </div>
-            ${effectText ? `<div class="artsEffect">${escapeHtml(effectText)}</div>` : ''}
+            ${effectText ? `<div class="artsEffect">${boldNumbers(escapeHtml(effectText))}</div>` : ''}
           </div>`;
       }).join('');
     }
