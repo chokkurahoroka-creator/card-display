@@ -801,6 +801,11 @@ function setArtsRows(arr) {
 
 document.getElementById('addArtsBtn').addEventListener('click', () => addArtsRow({}));
 
+// Google Sheets側の書式（テキスト'1'/チェックボックスtrue/文字列'TRUE'など）の違いを吸収して判定する
+function isFlagTrue(v) {
+  return v === '1' || v === 1 || v === true || v === 'TRUE' || v === 'true';
+}
+
 const SKILL_TYPES = ['ー', 'コラボエフェクト', 'ブルームエフェクト', 'ギフト', 'エクストラ', '推しスキル', 'SP推しスキル', '推しステージスキル'];
 
 function addSkillRow(skill) {
@@ -988,7 +993,7 @@ async function applySyncFromLinkedCard(idx) {
     document.getElementById('f_hp').value = src.hp || '';
     document.getElementById('f_stage').value = src.stage || '';
     document.getElementById('f_baton').value = src.batonTouchCost || '';
-    document.getElementById('f_limited').checked = (src.isLimited === '1' || src.isLimited === true);
+    document.getElementById('f_limited').checked = isFlagTrue(src.isLimited);
 
     let arts = [], skills = [];
     try { arts = JSON.parse(src.artsJson || '[]'); } catch (e) {}
@@ -1727,7 +1732,7 @@ async function startEditCard(card) {
   document.getElementById('f_hp').value = card.hp || '';
   document.getElementById('f_stage').value = card.stage || '';
   document.getElementById('f_baton').value = card.batonTouchCost || '';
-  document.getElementById('f_limited').checked = (card.isLimited === '1' || card.isLimited === true);
+  document.getElementById('f_limited').checked = isFlagTrue(card.isLimited);
 
   let arts = [], skills = [];
   try { arts = JSON.parse(card.artsJson || '[]'); } catch (e) {}

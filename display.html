@@ -1009,6 +1009,11 @@ function boldNumbers(escapedText) {
   return escapedText.replace(/(\d+)/g, '<strong class="numHighlight">$1</strong>');
 }
 
+// Google Sheets側の書式（テキスト'1'/チェックボックスtrue/文字列'TRUE'など）の違いを吸収して判定する
+function isFlagTrue(v) {
+  return v === '1' || v === 1 || v === true || v === 'TRUE' || v === 'true';
+}
+
 // バトンタッチのエールは無色アイコンをアーツと同じ見た目でまとめて表示
 function batonHtml(cost) {
   if (cost === undefined || cost === null || cost === '') return '';
@@ -1200,8 +1205,7 @@ function openModal(c) {
   const favActive = activeGroup && isFav(c, activeGroup);
 
   // サポートカードの「LIMITED」チェックがONの場合、赤いバナーで固定文言を表示
-  const isSupportLimited = String(c.cardType || '').indexOf('サポート') !== -1
-    && (c.isLimited === '1' || c.isLimited === true || c.isLimited === 1);
+  const isSupportLimited = String(c.cardType || '').indexOf('サポート') !== -1 && isFlagTrue(c.isLimited);
   const limitedBannerHtml = isSupportLimited
     ? `<div class="skillBlock"><div class="limitedBanner"><span class="limitedBannerText">LIMITED：ターンに1枚しか使えない。</span></div></div>`
     : '';
