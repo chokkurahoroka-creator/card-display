@@ -221,7 +221,7 @@
     display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: bold; color: #f0e6d2;
   }
   .artsYellIcons { flex-shrink: 0; min-width: 0; }
-  .artsNameText { flex: 1; text-align: center; }
+  .artsNameText { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; min-width: 0; }
   .artsDamageGroup { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; text-align: right; }
   .artsDamageText { font-size: 26px; font-weight: bold; color: #f0e6d2; }
   .artsBlock .artsMeta { font-size: 13px; color: #9aa5c0; margin: 2px 0; }
@@ -239,8 +239,8 @@
   .skillBlock:last-child { border-bottom: none; }
   .skillBannerRow { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
   .skillBannerImg { height: 40px; width: auto; max-width: 220px; object-fit: contain; display: block; flex-shrink: 0; }
-  .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: center; -webkit-text-stroke: 0.6px #fff; paint-order: stroke fill; }
-  .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; text-align: right; }
+  .skillTitleInline { font-size: 26px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: center; -webkit-text-stroke: 0.6px #fff; paint-order: stroke fill; white-space: nowrap; overflow: hidden; min-width: 0; }
+  .skillTitle { font-size: 15px; font-weight: bold; color: #f0e6d2; margin-bottom: 4px; text-align: right; white-space: nowrap; overflow: hidden; }
 
   .extraBox {
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -256,8 +256,20 @@
     background: #10182a; border-radius: 9px; padding: 10px 16px;
   }
   .specialSkillLabel { font-size: 20px; font-weight: bold; color: #fff; flex-shrink: 0; }
-  .specialSkillName { font-size: 20px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: center; }
+  .specialSkillName { font-size: 20px; font-weight: bold; color: #f0e6d2; flex: 1; text-align: center; white-space: nowrap; overflow: hidden; min-width: 0; }
   .modalAbility.skillContentLarge { font-size: 26px; }
+
+  .limitedBanner {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    background: linear-gradient(180deg, #7a1414, #4a0a0a);
+    border-top: 2px solid #e05252; border-bottom: 2px solid #e05252;
+    border-radius: 4px; padding: 9px 16px; margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  }
+  .limitedBannerText {
+    color: #fff; font-weight: bold; font-size: 17px; letter-spacing: 0.02em;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
   .ratingSection {
     display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
     margin-top: 20px; padding-top: 16px; border-top: 1px dashed rgba(212,175,106,0.25);
@@ -356,6 +368,7 @@
     .skillBlock .tag { order: 0; flex-shrink: 0; }
     .extraLabel { font-size: 16px; }
     .extraContent { font-size: 13px; }
+    .limitedBannerText { font-size: 13px; }
     .specialSkillLabel, .specialSkillName { font-size: 14px; }
     .yellIconWrap { width: 20px; height: 20px; }
     .specialAtkDamage { font-size: 20px; line-height: 20px; }
@@ -800,8 +813,8 @@ function render() {
     renderArea('パラレル', lastSetInfo.totalParallel || 0, offsetParallel);
 
     const newCards = lastCards.filter(c => c.type === '新規').sort((a, b) => Number(a.slot) - Number(b.slot));
-    const rerunCards = sortRerunCards(lastCards.filter(c => c.type === '再録'));
-    const parallelCards = lastCards.filter(c => c.type === 'パラレル').sort((a, b) => Number(a.slot) - Number(b.slot));
+    const rerunCards = sortByCategory(lastCards.filter(c => c.type === '再録'));
+    const parallelCards = sortByCategory(lastCards.filter(c => c.type === 'パラレル'));
     navList = [...newCards, ...rerunCards, ...parallelCards];
   }
 }
@@ -876,7 +889,8 @@ function byNameJa(a, b) {
   return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
 }
 
-function sortRerunCards(cardsOfType) {
+// 再録・パラレル共通の並び替え順（各属性→サポート→その他）。navList構築側でも同じ順序を使う
+function sortByCategory(cardsOfType) {
   const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('ホロメン') !== -1);
   const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
   const otherCards = cardsOfType.filter(c => holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1);
@@ -899,9 +913,9 @@ function renderArea(type, total, offset) {
   document.getElementById('count-' + type).textContent = `${cardsOfType.length} / ${total} 公開`;
 
   let html = '';
-  if (type === '再録') {
-    // 再録は「各属性(ホロメン系)→サポート系→その他」の順に自動並び替え、末尾に残り枠(あまり番号)を表示
-    const orderedCards = sortRerunCards(cardsOfType);
+  if (type === '再録' || type === 'パラレル') {
+    // 再録・パラレルは「各属性(ホロメン系)→サポート系→その他」の順に自動並び替え、末尾に残り枠(あまり番号)を表示
+    const orderedCards = sortByCategory(cardsOfType);
     const usedSlots = new Set(cardsOfType.map(c => Number(c.slot)));
     const leftoverSlots = [];
     for (let s = 1; s <= total; s++) if (!usedSlots.has(s)) leftoverSlots.push(s);
@@ -1014,7 +1028,34 @@ const OSHI_SKILL_GRADIENTS = {
 // バナー付き固定スキルの技名の色（指定色＋白縁取り）
 const SKILL_TITLE_COLOR = { 'コラボエフェクト': '#e53935', 'ブルームエフェクト': '#2196f3', 'ギフト': '#4caf50' };
 
+// 固有スキル名／アーツ名が枠に収まりきらない場合、改行せず文字サイズを縮小して1行に収める
+function fitTextToOneLine(el) {
+  if (!el) return;
+  const baseSize = parseFloat(getComputedStyle(el).fontSize);
+  if (!baseSize) return;
+  const minSize = Math.max(10, baseSize * 0.45);
+  let size = baseSize;
+  let guard = 0;
+  while (el.scrollWidth > el.clientWidth + 1 && size > minSize && guard < 60) {
+    size -= 1;
+    el.style.fontSize = size + 'px';
+    guard++;
+  }
+}
+function autofitLongTitles(root) {
+  if (!root) return;
+  root.querySelectorAll('.specialSkillName, .skillTitleInline, .skillTitle, .artsNameText').forEach(fitTextToOneLine);
+}
+
 function skillBlockHtml(skill) {
+  if (skill.skillType === 'LIMITED') {
+    // 使用制限テキスト（LIMITED：〇〇）を赤いバナーで強調表示
+    const limitedText = (skill.text || skill.title || '').replace(/\\n/g, ' ');
+    return `<div class="skillBlock">
+      <div class="limitedBanner"><span class="limitedBannerText">LIMITED：${boldNumbers(escapeHtml(limitedText))}</span></div>
+    </div>`;
+  }
+
   const bannerKey = SKILL_BANNER_MAP[skill.skillType];
   const isLarge = skill.skillType !== 'エクストラ';
   const textHtml = skill.text ? `<div class="modalAbility${isLarge ? ' skillContentLarge' : ''}">${boldNumbers(escapeHtml((skill.text || '').replace(/\\n/g, '\n')))}</div>` : '';
@@ -1061,15 +1102,33 @@ function skillBlockHtml(skill) {
   return `<div class="skillBlock">${tagHtml}${titleHtml}${textHtml}</div>`;
 }
 
-const RATING_LABELS = { hp: 'HP', power: '基本パワー', speed: '最大パワー', stamina: '継戦力', luck: '安定力', potential: '将来性' };
+const RATING_LABELS_BY_TYPE = {
+  '推しホロメン': { hp: 'ライフ', power: 'SP・ステージ', speed: '推しスキル', stamina: '革新性', luck: '初心者お勧め度', potential: '将来性' },
+  'サポート':     { hp: 'コスト', power: 'パワー', speed: '汎用性', stamina: '革新性', luck: null, potential: '将来性' },
+  'ホロメン':     { hp: 'HP', power: '基本パワー', speed: '最大パワー', stamina: '継戦力', luck: '安定力', potential: '将来性' }
+};
 const RATING_KEYS = ['hp', 'power', 'speed', 'stamina', 'luck', 'potential'];
 
-function buildRadarChartSvg(rating) {
+function getRatingCategory(cardTypeStr) {
+  const t = cardTypeStr || '';
+  if (t.indexOf('推しホロメン') !== -1) return '推しホロメン';
+  if (t.indexOf('サポート') !== -1) return 'サポート';
+  return 'ホロメン'; // ホロメン／Buzzホロメンなど、それ以外は現行の項目セットを使用
+}
+
+// カードタイプに応じて、実際にレーダーチャートへ表示する項目（キー・ラベル）だけを返す
+function getActiveRatingItems(cardType) {
+  const labels = RATING_LABELS_BY_TYPE[getRatingCategory(cardType)] || RATING_LABELS_BY_TYPE['ホロメン'];
+  return RATING_KEYS.filter(k => labels[k] !== null).map(k => ({ key: k, label: labels[k] }));
+}
+
+function buildRadarChartSvg(rating, cardType) {
+  const items = getActiveRatingItems(cardType);
   const maxVal = 5;
   const size = 220;
   const center = size / 2;
   const radius = size / 2 - 38;
-  const angleStep = (Math.PI * 2) / RATING_KEYS.length;
+  const angleStep = (Math.PI * 2) / items.length;
 
   const pointAt = (frac, i) => {
     const angle = -Math.PI / 2 + i * angleStep;
@@ -1079,21 +1138,21 @@ function buildRadarChartSvg(rating) {
 
   let gridHtml = '';
   [0.25, 0.5, 0.75, 1].forEach(frac => {
-    const pts = RATING_KEYS.map((k, i) => pointAt(frac, i).join(',')).join(' ');
+    const pts = items.map((it, i) => pointAt(frac, i).join(',')).join(' ');
     gridHtml += `<polygon points="${pts}" fill="none" stroke="rgba(212,175,106,0.18)" stroke-width="1"/>`;
   });
 
   let axisHtml = '';
   let labelHtml = '';
-  RATING_KEYS.forEach((k, i) => {
+  items.forEach((it, i) => {
     const [x2, y2] = pointAt(1, i);
     axisHtml += `<line x1="${center}" y1="${center}" x2="${x2}" y2="${y2}" stroke="rgba(212,175,106,0.22)" stroke-width="1"/>`;
     const [lx, ly] = pointAt(1.22, i);
-    labelHtml += `<text x="${lx}" y="${ly}" font-size="12" fill="#c9d1e0" text-anchor="middle" dominant-baseline="middle">${RATING_LABELS[k]}</text>`;
+    labelHtml += `<text x="${lx}" y="${ly}" font-size="12" fill="#c9d1e0" text-anchor="middle" dominant-baseline="middle">${it.label}</text>`;
   });
 
-  const dataPts = RATING_KEYS.map((k, i) => {
-    const val = Math.min(maxVal, Math.max(0, Number(rating[k]) || 0));
+  const dataPts = items.map((it, i) => {
+    const val = Math.min(maxVal, Math.max(0, Number(rating[it.key]) || 0));
     return pointAt(val / maxVal, i).join(',');
   }).join(' ');
 
@@ -1151,11 +1210,12 @@ function openModal(c) {
   let ratingHtml = '';
   try {
     const rating = JSON.parse(c.ratingJson || '{}');
-    const hasRating = RATING_KEYS.some(k => rating[k] !== '' && rating[k] !== undefined && rating[k] !== null);
+    const activeItems = getActiveRatingItems(c.cardType);
+    const hasRating = activeItems.some(it => rating[it.key] !== '' && rating[it.key] !== undefined && rating[it.key] !== null);
     if (hasRating || c.ratingComment) {
       ratingHtml = `
         <div class="ratingSection">
-          ${hasRating ? `<div class="ratingChart">${buildRadarChartSvg(rating)}</div>` : ''}
+          ${hasRating ? `<div class="ratingChart">${buildRadarChartSvg(rating, c.cardType)}</div>` : ''}
           ${c.ratingComment ? `<div class="ratingComment"><div class="ratingCommentLabel">評価コメント</div><div class="ratingCommentText">${escapeHtml(c.ratingComment)}</div></div>` : ''}
         </div>`;
     }
@@ -1173,8 +1233,10 @@ function openModal(c) {
     ${artsHtml}
     ${batonHtml(c.batonTouchCost)}
     ${ratingHtml}
+    <div id="relatedCardsSection"></div>
   `;
   document.getElementById('modalOverlay').classList.add('open');
+  autofitLongTitles(document.getElementById('modalInfo'));
 
   document.querySelectorAll('.modalFavStar').forEach(btn => {
     btn.addEventListener('click', () => toggleFav(c));
@@ -1183,6 +1245,120 @@ function openModal(c) {
   const hasNav = navList.length > 1 && navIndex !== -1;
   document.getElementById('modalPrev').style.display = hasNav ? 'flex' : 'none';
   document.getElementById('modalNext').style.display = hasNav ? 'flex' : 'none';
+
+  loadRelatedCards(c);
+}
+
+// パラレル⇔元カードの相互リンクを取得してモーダル内に表示する
+const relatedCardsCache = {}; // linkedCardKey -> card（同一表示内での再検索を減らす）
+
+async function loadRelatedCards(c) {
+  const sectionEl = document.getElementById('relatedCardsSection');
+  if (!sectionEl) return;
+
+  const myKey = cardKey(c);
+  let related = [];
+  let needsFetch = false;
+
+  const myLinkKeys = String(c.linkedCardKey || '').split(',').map(s => s.trim()).filter(Boolean);
+  if ((c.type === 'パラレル' || c.type === '再録') && myLinkKeys.length) {
+    // パラレル/再録 → リンクされた元カード（複数可）。まず同じ弾のlastCardsから即座に探す
+    myLinkKeys.forEach(k => {
+      const found = lastCards.find(x => cardKey(x) === k);
+      if (found) related.push({ card: found, label: '元カード' });
+      else needsFetch = true; // 別弾のカードなどlastCardsに無い場合のみ後でfetch
+    });
+  } else {
+    // 元カード → 同じ弾の中でリンク元とするパラレル/再録カードを即座に探す
+    lastCards
+      .filter(cand => String(cand.linkedCardKey || '').split(',').map(s => s.trim()).includes(myKey))
+      .forEach(cand => related.push({ card: cand, label: cand.type === '再録' ? '再録' : 'パラレル' }));
+    needsFetch = true; // 別弾に同名カードがある場合もあるため、バックグラウンドで裏取りする
+  }
+
+  // 同じ弾の中で見つかった分は即座に描画（体感速度優先）
+  renderRelatedCardsSection(sectionEl, c, related);
+
+  if (!needsFetch) return;
+
+  // 別の弾をまたぐ関連カードの取得はバックグラウンドで行い、見つかり次第追記する
+  try {
+    let extra = [];
+    if ((c.type === 'パラレル' || c.type === '再録') && myLinkKeys.length) {
+      for (const k of myLinkKeys) {
+        if (related.some(r => cardKey(r.card) === k)) continue;
+        const orig = await fetchCardByKey(k);
+        if (orig) extra.push({ card: orig, label: '元カード' });
+      }
+    } else {
+      const candidates = await searchCardsByName(c.cardName);
+      candidates
+        .filter(cand => String(cand.linkedCardKey || '').split(',').map(s => s.trim()).includes(myKey))
+        .forEach(cand => extra.push({ card: cand, label: cand.type === '再録' ? '再録' : 'パラレル' }));
+    }
+    if (!extra.length) return;
+
+    // モーダル表示中に別カードへ移動していた場合は反映しない
+    if (!document.getElementById('modalOverlay').classList.contains('open')) return;
+    if (document.getElementById('modalImg').src !== c.imageUrl) return;
+
+    related = related.concat(extra);
+    renderRelatedCardsSection(sectionEl, c, related);
+  } catch (e) { /* 追加取得に失敗しても既に表示済みの分は残す */ }
+}
+
+function renderRelatedCardsSection(sectionEl, c, relatedRaw) {
+  // 同一カードが重複して入る可能性があるため除去
+  const seen = new Set();
+  const related = relatedRaw.filter(r => {
+    const k = cardKey(r.card);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  if (!related.length) { sectionEl.innerHTML = ''; return; }
+
+  sectionEl.innerHTML = `
+    <div class="relatedCardsWrap" style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(212,175,106,0.2);">
+      <div style="font-size:13px; color:#9aa5c0; margin-bottom:8px;">関連カード</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        ${related.map(r => `
+          <div class="relatedCardItem" data-key="${cardKey(r.card)}" style="cursor:pointer; text-align:center; width:90px;">
+            <img src="${r.card.imageUrl}" style="width:90px; aspect-ratio:5/7; object-fit:cover; border-radius:6px; border:1px solid rgba(212,175,106,0.3);">
+            <div style="font-size:11px; color:#d4af6a; margin-top:4px;">${escapeHtml(r.label)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  sectionEl.querySelectorAll('.relatedCardItem').forEach((el, i) => {
+    el.addEventListener('click', () => {
+      const target = related[i].card;
+      // navListに存在すればその位置に合わせ、無ければ単独表示として開く
+      const idx = navList.findIndex(x => x.type === target.type && String(x.slot) === String(target.slot) && x.setCode === target.setCode);
+      if (idx !== -1) { navIndex = idx; }
+      openModal(target);
+    });
+  });
+}
+
+async function fetchCardByKey(linkedCardKey) {
+  if (relatedCardsCache[linkedCardKey]) return relatedCardsCache[linkedCardKey];
+  const parts = String(linkedCardKey).split('__');
+  if (parts.length !== 3) return null;
+  const [setCode, type, slot] = parts;
+  const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+  const card = await res.json();
+  if (card) relatedCardsCache[linkedCardKey] = card;
+  return card;
+}
+
+async function searchCardsByName(name) {
+  const res = await fetch(GAS_URL + `?action=searchCards&q=${encodeURIComponent(name)}`);
+  const list = await res.json();
+  return Array.isArray(list) ? list : [];
 }
 
 function navigate(delta) {

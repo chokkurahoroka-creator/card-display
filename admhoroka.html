@@ -14,6 +14,38 @@
   h1 { font-size: 20px; margin-bottom: 4px; text-align: center; }
   h2 { font-size: 15px; margin: 0 0 12px; color: var(--gold); }
   .sub { color: #9aa5c0; font-size: 13px; margin-bottom: 20px; text-align: center; }
+
+  /* ===== 配信モードトグル（画面左上固定） ===== */
+  .streamModeWrap {
+    position: fixed; top: 16px; left: 16px; z-index: 1000;
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(15, 20, 32, 0.85); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,175,106,0.35); border-radius: 999px;
+    padding: 6px 14px 6px 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .streamModeWrap:hover { border-color: var(--gold); }
+  .streamModeSwitch { display: inline-flex; cursor: pointer; }
+  .streamModeSwitch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .streamModeTrack {
+    position: relative; width: 38px; height: 21px; border-radius: 999px;
+    background: rgba(240,230,210,0.15); border: 1px solid rgba(212,175,106,0.3);
+    transition: background 0.2s, border-color 0.2s; flex-shrink: 0;
+  }
+  .streamModeThumb {
+    position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%;
+    background: var(--text); transition: transform 0.2s, background 0.2s;
+  }
+  .streamModeSwitch input:checked + .streamModeTrack {
+    background: linear-gradient(135deg, var(--gold), #a97c3e); border-color: var(--gold);
+  }
+  .streamModeSwitch input:checked + .streamModeTrack .streamModeThumb {
+    transform: translateX(17px); background: #1a1305;
+  }
+  .streamModeLabel {
+    font-size: 12px; letter-spacing: 0.04em; color: var(--text); user-select: none;
+  }
+  .streamModeWrap:has(input:checked) .streamModeLabel { color: var(--gold); }
   .panel {
     background: var(--panel); border: 1px solid rgba(212,175,106,0.3);
     border-radius: 12px; padding: 20px; margin-bottom: 20px;
@@ -90,7 +122,20 @@
   .type-パラレル { background: #e37eb4; }
   .hint { font-size: 12px; color: #9aa5c0; margin-top: 4px; }
   .galleryPanel { max-width: 1500px; margin: 20px auto 0; }
+  .streamPackTitle {
+    font-size: 20px; font-weight: bold; text-align: center; color: var(--gold);
+    margin-bottom: 14px; letter-spacing: 0.02em;
+  }
   .galleryGrid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px;
+  }
+  .gallerySection { margin-bottom: 28px; }
+  .gallerySectionTitle {
+    font-size: 15px; color: var(--gold); border-bottom: 1px solid rgba(212,175,106,0.3);
+    padding-bottom: 6px; margin: 0 0 12px;
+  }
+  #galleryGrid.galleryGrid { display: block; }
+  .galleryGridInner {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px;
   }
   .galleryCard {
@@ -128,8 +173,9 @@
   .editModalImg {
     width: 400px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain;
     background: #10182a; border-radius: 12px; flex-shrink: 0; border: 1px solid rgba(212,175,106,0.25);
-    align-self: center;
+    align-self: center; cursor: zoom-in; transition: filter 0.15s;
   }
+  .editModalImg:hover { filter: brightness(1.08); }
   .editModalFieldsSlot {
     flex: 1; min-width: 280px; align-self: stretch;
     max-height: calc(92vh - 56px); overflow-y: auto; padding-right: 6px;
@@ -156,6 +202,59 @@
     .editModalBox { padding: 16px; gap: 14px; }
     .editModalImg { width: 100%; max-width: 260px; margin: 0 auto; }
   }
+  /* ===== 配信モードボタン下のカードリストリンクボタン ===== */
+  .cardListLinkBtn {
+    position: fixed; top: 66px; left: 16px; z-index: 1000;
+    width: 72px; height: 72px; border-radius: 50%; padding: 4px; box-sizing: border-box;
+    background: linear-gradient(135deg, #67e8f9, #22d3ee 45%, #0ea5e9 80%, #0369a1);
+    box-shadow: 0 6px 22px rgba(14,165,233,0.5), 0 0 0 1px rgba(125,211,252,0.4);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .cardListLinkBtn:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 8px 28px rgba(14,165,233,0.7), 0 0 0 1px rgba(186,230,253,0.6); }
+  .cardListLinkBtnInner {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: rgba(255,255,255,0.96);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .cardListLinkBtn img { width: 52px; height: 52px; object-fit: contain; }
+
+  /* ===== 評価パラメータ：インジケータ表示（サイバー風） ===== */
+  .ratingGrid { display: flex; flex-wrap: wrap; gap: 16px 20px; }
+  .rateField {
+    min-width: 148px; padding: 10px 12px 12px; border-radius: 8px;
+    background: linear-gradient(180deg, rgba(0,229,255,0.05), rgba(0,0,0,0));
+    border: 1px solid rgba(0,229,255,0.15);
+  }
+  .rateField .rateLabelRow {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .rateField label {
+    font-size: 11px; letter-spacing: 0.06em; color: #7dd3fc; text-transform: uppercase;
+    font-family: 'Courier New', monospace;
+  }
+  .rateValue {
+    font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold;
+    color: #00e5ff; min-width: 26px; text-align: center; padding: 1px 4px; border-radius: 3px;
+    background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.35);
+    text-shadow: 0 0 6px rgba(0,229,255,0.8);
+  }
+  .rateValue.empty { color: #4a5570; text-shadow: none; border-color: rgba(122,140,180,0.25); background: rgba(122,140,180,0.06); }
+  .ratingIndicator { display: flex; gap: 3px; }
+  .ratingSeg {
+    width: 20px; height: 26px; cursor: pointer;
+    background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.3);
+    clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  }
+  .ratingSeg:hover { border-color: #00e5ff; transform: translateY(-2px); }
+  .ratingSeg.active {
+    background: linear-gradient(180deg, #00e5ff, #0891b2);
+    border-color: #67e8f9;
+    box-shadow: 0 0 8px rgba(0,229,255,0.9), 0 0 2px rgba(255,255,255,0.6) inset;
+  }
+  .ratingIndicatorDisabled { opacity: 0.45; pointer-events: none; }
+
   .cropAdjustWrap { margin-top: 14px; }
   #cropStage {
     position: relative; width: 100%; max-width: 100%; margin-top: 8px;
@@ -174,10 +273,22 @@
 </head>
 <body>
 
-<h1>ホロカ 新カード情報 管理画面</h1>
-<div class="sub">公式Xの告知画像をアップロードすると、AIが自動でカード情報を読み取ります</div>
+<h1 id="pageTitle">ホロカ 新カード情報 管理画面</h1>
+<div class="sub" id="pageSub">公式Xの告知画像をアップロードすると、AIが自動でカード情報を読み取ります</div>
 
-<div class="layout">
+<div class="streamModeWrap" id="streamModeWrap" title="配信モード（入力画面を非表示にしてカード一覧のみ表示）">
+  <label class="streamModeSwitch">
+    <input type="checkbox" id="streamModeToggle">
+    <span class="streamModeTrack"><span class="streamModeThumb"></span></span>
+  </label>
+  <span class="streamModeLabel">配信モード</span>
+</div>
+
+<a class="cardListLinkBtn" id="cardListLinkBtn" href="https://hololive-official-cardgame.com/cardlist/?keyword=&amp;attribute%5B0%5D=all&amp;expansion_name=&amp;card_kind%5B0%5D=all&amp;rare%5B0%5D=all&amp;bloom_level%5B0%5D=all&amp;parallel%5B0%5D=normal" target="_blank" rel="noopener" title="公式カードリストを開く">
+  <span class="cardListLinkBtnInner"><img src="https://hololive-official-cardgame.com/wp-content/themes/tcg/assets/img/global/logo.svg" alt="公式カードリスト"></span>
+</a>
+
+<div class="layout" id="inputLayout">
 
 <!-- ===== 弾（セット）設定 ===== -->
 <div class="panel panelSet">
@@ -234,41 +345,49 @@
       </select>
     </div>
 
-    <div class="row">
-      <div class="field"><label>セットコード（読取）</label><input id="f_setcode"></div>
-      <div class="field"><label>カード番号（末尾の数字のみ）</label><input id="f_num"></div>
-    </div>
-    <div class="row">
-      <div class="field"><label>レア度（C/U/R/RR/SRなど）</label><input id="f_rarity"></div>
-      <div class="field" id="originalNumberWrap" style="display:none;"><label>初期収録番号（再録元の番号）</label><input id="f_orignum" placeholder="例: hBP01-050"></div>
-    </div>
-    <div class="row">
-      <div class="field"><label>カードタイプ</label><input id="f_tag"></div>
-      <div class="field"><label>タグ（#1D #1D3期生 など）</label><input id="f_tags"></div>
-    </div>
-    <div class="row">
-      <div class="field"><label>カード名</label><input id="f_name"></div>
-      <div class="field"><label>属性</label><input id="f_attr"></div>
-    </div>
-    <div class="field" id="slotFieldWrap">
-      <label id="slotLabel">配置スロット番号（手入力）</label>
-      <input type="number" id="f_slot" min="1" placeholder="例: 11">
-      <div class="hint" id="slotHint"></div>
-    </div>
-
-    <div id="holomenFields" style="display:none; border-top:1px dashed rgba(212,175,106,0.3); margin-top:14px; padding-top:14px;">
+    <details class="field" id="basicDetails" style="margin-top:14px;" open>
+      <summary>基本データ</summary>
       <div class="row">
-        <div class="field">
-          <label>HP</label>
-          <input type="number" id="f_hp" min="0" placeholder="例: 110">
-        </div>
-        <div class="field">
-          <label>進化レベル</label>
-          <select id="f_stage">
-            <option value="">-</option>
-            <option value="Debut">Debut</option>
-            <option value="1st">1st</option>
-            <option value="2nd">2nd</option>
+        <div class="field"><label>セットコード（読取）</label><input id="f_setcode"></div>
+        <div class="field"><label>カード番号（末尾の数字のみ）</label><input id="f_num"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>レア度（C/U/R/RR/SRなど）</label><input id="f_rarity"></div>
+      </div>
+      <div class="field" id="linkedCardWrap" style="display:none;">
+        <label>関連カード（元カード／パラレル・再録違いなど）</label>
+        <input id="f_linkSearch" placeholder="カード名で検索（2文字以上）" autocomplete="off">
+        <div id="linkSearchResults" style="display:none; max-height:220px; overflow-y:auto; margin-top:6px; border:1px solid rgba(212,175,106,0.3); border-radius:6px; background:#10182a;"></div>
+        <div id="linkSelectedList" style="margin-top:8px; display:flex; flex-direction:column; gap:6px;"></div>
+        <div class="hint">パラレル/再録の元になったカードをカード名で検索して選んでください。複数選択できます（未選択でも登録できます）。「元カードと同一」を設定すると、以後その元カードを更新するたびに、この項目（カード名・属性・HP・進化レベル・バトンタッチ・アーツ・固有スキル・評価）が自動で追従します</div>
+      </div>
+      <div class="row">
+        <div class="field"><label>カードタイプ</label><input id="f_tag"></div>
+        <div class="field"><label>タグ（#1D #1D3期生 など）</label><input id="f_tags"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>カード名</label><input id="f_name"></div>
+        <div class="field"><label>属性</label><input id="f_attr"></div>
+      </div>
+      <div class="field" id="slotFieldWrap">
+        <label id="slotLabel">配置スロット番号（手入力）</label>
+        <input type="number" id="f_slot" min="1" placeholder="例: 11">
+        <div class="hint" id="slotHint"></div>
+      </div>
+
+      <div id="holomenFields" style="display:none; border-top:1px dashed rgba(212,175,106,0.3); margin-top:14px; padding-top:14px;">
+        <div class="row">
+          <div class="field">
+            <label>HP</label>
+            <input type="number" id="f_hp" min="0" placeholder="例: 110">
+          </div>
+          <div class="field">
+            <label>進化レベル</label>
+            <select id="f_stage">
+              <option value="">-</option>
+              <option value="Debut">Debut</option>
+              <option value="1st">1st</option>
+              <option value="2nd">2nd</option>
             <option value="Spot">Spot</option>
           </select>
         </div>
@@ -277,32 +396,55 @@
           <input type="number" id="f_baton" min="0" placeholder="例: 1">
         </div>
       </div>
-      <details class="field" open>
+      <details class="field" id="skillsDetails" open>
         <summary>固有スキル一覧（複数可）</summary>
         <div id="skillsRows"></div>
         <button type="button" class="secondary" id="addSkillBtn">＋ 固有スキルを追加</button>
       </details>
     </div>
+    </details>
 
-    <details class="field" style="margin-top:14px;" open>
+    <details class="field" id="artsDetails" style="margin-top:14px;" open>
       <summary>アーツ・効果テキスト一覧（サポートカードはエールなしの1件として登録）</summary>
       <div id="artsRows"></div>
       <button type="button" class="secondary" id="addArtsBtn">＋ アーツ／効果を追加</button>
     </details>
 
-    <details class="field" style="margin-top:14px;" open>
+    <details class="field" id="ratingDetails" style="margin-top:14px;" open>
       <summary>評価パラメータ（レーダーチャート表示用）</summary>
-      <div class="row">
-        <div class="field"><label>HP</label><input type="number" id="rate_hp" min="1" max="5" placeholder="1〜5"></div>
-        <div class="field"><label>基本パワー</label><input type="number" id="rate_power" min="1" max="5" placeholder="1〜5"></div>
-        <div class="field"><label>最大パワー</label><input type="number" id="rate_speed" min="1" max="5" placeholder="1〜5"></div>
+      <div class="ratingGrid">
+        <div class="rateField" id="rateField_hp">
+          <div class="rateLabelRow"><label id="rateLabel_hp">HP</label><span class="rateValue empty" id="rateValue_hp">-</span></div>
+          <div class="ratingIndicator" id="ratingIndicator_hp"></div>
+          <input type="hidden" id="rate_hp">
+        </div>
+        <div class="rateField" id="rateField_power">
+          <div class="rateLabelRow"><label id="rateLabel_power">基本パワー</label><span class="rateValue empty" id="rateValue_power">-</span></div>
+          <div class="ratingIndicator" id="ratingIndicator_power"></div>
+          <input type="hidden" id="rate_power">
+        </div>
+        <div class="rateField" id="rateField_speed">
+          <div class="rateLabelRow"><label id="rateLabel_speed">最大パワー</label><span class="rateValue empty" id="rateValue_speed">-</span></div>
+          <div class="ratingIndicator" id="ratingIndicator_speed"></div>
+          <input type="hidden" id="rate_speed">
+        </div>
+        <div class="rateField" id="rateField_stamina">
+          <div class="rateLabelRow"><label id="rateLabel_stamina">継戦力</label><span class="rateValue empty" id="rateValue_stamina">-</span></div>
+          <div class="ratingIndicator" id="ratingIndicator_stamina"></div>
+          <input type="hidden" id="rate_stamina">
+        </div>
+        <div class="rateField" id="rateField_luck">
+          <div class="rateLabelRow"><label id="rateLabel_luck">安定力</label><span class="rateValue empty" id="rateValue_luck">-</span></div>
+          <div class="ratingIndicator" id="ratingIndicator_luck"></div>
+          <input type="hidden" id="rate_luck">
+        </div>
+        <div class="rateField" id="rateField_potential">
+          <div class="rateLabelRow"><label id="rateLabel_potential">将来性</label><span class="rateValue empty" id="rateValue_potential">-</span></div>
+          <div class="ratingIndicator" id="ratingIndicator_potential"></div>
+          <input type="hidden" id="rate_potential">
+        </div>
       </div>
-      <div class="row">
-        <div class="field"><label>継戦力</label><input type="number" id="rate_stamina" min="1" max="5" placeholder="1〜5"></div>
-        <div class="field"><label>安定力</label><input type="number" id="rate_luck" min="1" max="5" placeholder="1〜5"></div>
-        <div class="field"><label>将来性</label><input type="number" id="rate_potential" min="1" max="5" placeholder="1〜5"></div>
-      </div>
-      <div class="field">
+      <div class="field" style="margin-top:12px;">
         <label>評価コメント</label>
         <textarea id="rate_comment" rows="2" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:13px;"></textarea>
       </div>
@@ -332,6 +474,7 @@
 
 <!-- ===== 一覧画面表示（表示ページ風ギャラリー、クリックで編集） ===== -->
 <div class="panel galleryPanel" id="galleryPanel">
+  <div id="streamPackTitle" class="streamPackTitle" style="display:none;"></div>
   <h2>一覧画面表示 <span class="hint" style="display:inline;">（カードをクリックするとポップアップで編集できます）</span></h2>
   <div id="galleryGrid" class="galleryGrid"></div>
 </div>
@@ -352,7 +495,7 @@
 </div>
 
 
-<details class="configBox">
+<details class="configBox" id="configBox">
   <summary>初期設定（初回のみ入力）</summary>
   <label style="font-size:12px;color:#9aa5c0;">GAS Web App URL</label>
   <input id="cfg_gas" placeholder="https://script.google.com/macros/s/xxxx/exec">
@@ -386,6 +529,42 @@ let sets = [];
 let currentImg = null;
 let currentCropBox = null;
 let editingCard = null; // 編集中のカード（ギャラリーから選択時にセット）
+
+// ===== 配信モード（入力画面の表示/非表示） =====
+const streamModeToggle = document.getElementById('streamModeToggle');
+const inputLayoutEl = document.getElementById('inputLayout');
+const pageTitleEl = document.getElementById('pageTitle');
+const pageSubEl = document.getElementById('pageSub');
+const configBoxEl = document.getElementById('configBox');
+function applyStreamMode() {
+  const hide = streamModeToggle.checked ? 'none' : '';
+  inputLayoutEl.style.display = hide;
+  pageTitleEl.style.display = hide;
+  pageSubEl.style.display = hide;
+  configBoxEl.style.display = hide;
+  updateStreamPackTitle();
+}
+
+// 配信モード中、一覧画面の上部にタイトルと同サイズで収録パック名を表示する
+function updateStreamPackTitle() {
+  const el = document.getElementById('streamPackTitle');
+  if (!el) return;
+  if (!streamModeToggle.checked) { el.style.display = 'none'; return; }
+  const setCode = document.getElementById('activeSet').value;
+  const cur = sets.find(s => s.setCode === setCode);
+  if (cur) {
+    el.textContent = `${cur.setCode}（${cur.setName}）`;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+streamModeToggle.checked = localStorage.getItem('streamMode') === 'true';
+applyStreamMode();
+streamModeToggle.addEventListener('change', () => {
+  localStorage.setItem('streamMode', streamModeToggle.checked ? 'true' : 'false');
+  applyStreamMode();
+});
 
 async function init() {
   const gasUrl = getCfg('gas');
@@ -607,7 +786,7 @@ function setArtsRows(arr) {
 
 document.getElementById('addArtsBtn').addEventListener('click', () => addArtsRow({}));
 
-const SKILL_TYPES = ['ー', 'コラボエフェクト', 'ブルームエフェクト', 'ギフト', 'エクストラ', '推しスキル', 'SP推しスキル', '推しステージスキル'];
+const SKILL_TYPES = ['ー', 'コラボエフェクト', 'ブルームエフェクト', 'ギフト', 'エクストラ', '推しスキル', 'SP推しスキル', '推しステージスキル', 'LIMITED'];
 
 function addSkillRow(skill) {
   skill = skill || {};
@@ -650,22 +829,87 @@ function setSkillRows(arr) {
 
 document.getElementById('addSkillBtn').addEventListener('click', () => addSkillRow({}));
 
-function resetRatingFields() {
-  ['rate_hp', 'rate_power', 'rate_speed', 'rate_stamina', 'rate_luck', 'rate_potential'].forEach(id => {
-    document.getElementById(id).value = '';
+const RATE_KEYS = ['hp', 'power', 'speed', 'stamina', 'luck', 'potential'];
+
+// ===== 評価パラメータ：カードタイプごとの項目名・使用項目 =====
+const RATING_LABELS = {
+  '推しホロメン': { hp: 'ライフ', power: 'SP・ステージ', speed: '推しスキル', stamina: '革新性', luck: '初心者お勧め度', potential: '将来性' },
+  'サポート':     { hp: 'コスト', power: 'パワー', speed: '汎用性', stamina: '革新性', luck: null, potential: '将来性' },
+  'ホロメン':     { hp: 'HP', power: '基本パワー', speed: '最大パワー', stamina: '継戦力', luck: '安定力', potential: '将来性' }
+};
+
+function getRatingCategory(cardTypeStr) {
+  const t = cardTypeStr || '';
+  if (t.indexOf('推しホロメン') !== -1) return '推しホロメン';
+  if (t.indexOf('サポート') !== -1) return 'サポート';
+  return 'ホロメン'; // ホロメン／Buzzホロメンなど、それ以外は現行の項目名を使用
+}
+
+function updateRatingLabels() {
+  const labels = RATING_LABELS[getRatingCategory(document.getElementById('f_tag').value)] || RATING_LABELS['ホロメン'];
+  RATE_KEYS.forEach(k => {
+    const wrapEl = document.getElementById('rateField_' + k);
+    const labelEl = document.getElementById('rateLabel_' + k);
+    if (!wrapEl) return;
+    if (labels[k] === null) {
+      wrapEl.style.display = 'none';
+    } else {
+      wrapEl.style.display = '';
+      if (labelEl) labelEl.textContent = labels[k];
+    }
   });
+}
+
+// ===== 評価パラメータ：インジケータ（1〜5をクリックで選択） =====
+function initRatingIndicators() {
+  RATE_KEYS.forEach(key => {
+    const container = document.getElementById('ratingIndicator_' + key);
+    if (!container) return;
+    container.innerHTML = '';
+    for (let v = 1; v <= 5; v++) {
+      const seg = document.createElement('span');
+      seg.className = 'ratingSeg';
+      seg.dataset.value = String(v);
+      seg.addEventListener('click', () => {
+        const input = document.getElementById('rate_' + key);
+        if (!input || input.disabled) return;
+        input.value = (input.value === String(v)) ? '' : String(v); // 同じ値を再クリックで解除
+        renderRatingIndicator(key);
+      });
+      container.appendChild(seg);
+    }
+  });
+}
+
+function renderRatingIndicator(key) {
+  const input = document.getElementById('rate_' + key);
+  const container = document.getElementById('ratingIndicator_' + key);
+  const valueEl = document.getElementById('rateValue_' + key);
+  if (!input || !container) return;
+  const val = Number(input.value) || 0;
+  container.classList.toggle('ratingIndicatorDisabled', !!input.disabled);
+  Array.from(container.children).forEach(seg => {
+    seg.classList.toggle('active', Number(seg.dataset.value) <= val);
+  });
+  if (valueEl) {
+    valueEl.textContent = val > 0 ? String(val) : '-';
+    valueEl.classList.toggle('empty', val <= 0);
+  }
+}
+
+function renderAllRatingIndicators() {
+  RATE_KEYS.forEach(renderRatingIndicator);
+}
+
+function resetRatingFields() {
+  RATE_KEYS.forEach(k => { document.getElementById('rate_' + k).value = ''; });
   document.getElementById('rate_comment').value = '';
+  renderAllRatingIndicators();
 }
 
 function getRatingJson() {
-  const rating = {
-    hp: document.getElementById('rate_hp').value,
-    power: document.getElementById('rate_power').value,
-    speed: document.getElementById('rate_speed').value,
-    stamina: document.getElementById('rate_stamina').value,
-    luck: document.getElementById('rate_luck').value,
-    potential: document.getElementById('rate_potential').value
-  };
+  const rating = {};
+  RATE_KEYS.forEach(k => { rating[k] = document.getElementById('rate_' + k).value; });
   const hasAny = Object.values(rating).some(v => v !== '');
   return hasAny ? JSON.stringify(rating) : '';
 }
@@ -673,28 +917,204 @@ function getRatingJson() {
 function updateHolomenVisibility() {
   const isHolomen = (document.getElementById('f_tag').value || '').indexOf('ホロメン') !== -1;
   document.getElementById('holomenFields').style.display = isHolomen ? 'block' : 'none';
+  updateRatingLabels();
 }
 document.getElementById('f_tag').addEventListener('input', updateHolomenVisibility);
+initRatingIndicators();
 
-function updateOriginalNumberVisibility() {
-  const isRerun = document.getElementById('f_type').value === '再録';
-  document.getElementById('originalNumberWrap').style.display = isRerun ? 'block' : 'none';
+// ===== 関連カードリンク（パラレル/再録の元カード、複数選択可） =====
+let linkedCards = []; // [{ setCode, type, slot, cardName, imageUrl }, ...] 選択中の関連カード一覧
+let syncSourceIdx = -1; // 「元カードと同一」がONになっている linkedCards のインデックス（-1は未設定）
 
-  if (isRerun) {
-    const orignumEl = document.getElementById('f_orignum');
-    // まだオリジナル番号が空なら、読み取ったセットコード+番号を自動転記する
-    if (!orignumEl.value) {
-      const readSetCode = document.getElementById('f_setcode').value;
-      const readNum = document.getElementById('f_num').value;
-      if (readSetCode && readNum) {
-        orignumEl.value = `${readSetCode}-${readNum}`;
-        // 収録パック番号は選択中の弾を参照するため、読み取った番号欄はクリアして手入力に委ねる
-        document.getElementById('f_num').value = '';
-      }
-    }
+function updateLinkedCardVisibility() {
+  const t = document.getElementById('f_type').value;
+  const show = (t === 'パラレル' || t === '再録');
+  document.getElementById('linkedCardWrap').style.display = show ? 'block' : 'none';
+}
+document.getElementById('f_type').addEventListener('change', updateLinkedCardVisibility);
+
+function clearLinkedCards() {
+  linkedCards = [];
+  syncSourceIdx = -1;
+  setSyncFieldsDisabled(false);
+  renderLinkedCardsList();
+  document.getElementById('linkSearchResults').style.display = 'none';
+}
+
+// 「元カードと同一」ONの間、値の手入力を防ぐために対象フィールドをdisabled/enabledにする
+function setSyncFieldsDisabled(disabled) {
+  ['f_name', 'f_attr', 'f_hp', 'f_stage', 'f_baton',
+   'rate_hp', 'rate_power', 'rate_speed', 'rate_stamina', 'rate_luck', 'rate_potential', 'rate_comment']
+    .forEach(id => { document.getElementById(id).disabled = disabled; });
+  document.getElementById('addArtsBtn').disabled = disabled;
+  document.getElementById('addSkillBtn').disabled = disabled;
+  document.querySelectorAll('#artsRows input, #artsRows select, #artsRows textarea, #artsRows button').forEach(el => el.disabled = disabled);
+  document.querySelectorAll('#skillsRows input, #skillsRows select, #skillsRows textarea, #skillsRows button').forEach(el => el.disabled = disabled);
+  renderAllRatingIndicators();
+}
+
+// 指定した関連カードの詳細（GAS getCard）を取得し、カード名・属性・HP・ステージ・バトンタッチコスト・アーツ・スキル・評価をフォームへコピーする
+async function applySyncFromLinkedCard(idx) {
+  const target = linkedCards[idx];
+  const gasUrl = getCfg('gas');
+  if (!gasUrl || !target) return;
+  setStatus('元カードのステータスを取得中...');
+  try {
+    const res = await fetch(gasUrl + `?action=getCard&setCode=${encodeURIComponent(target.setCode)}&type=${encodeURIComponent(target.type)}&slot=${encodeURIComponent(target.slot)}`);
+    const src = await res.json();
+    if (!src) { setStatus('元カードの情報取得に失敗しました'); syncSourceIdx = -1; renderLinkedCardsList(); return; }
+
+    document.getElementById('f_name').value = src.cardName || '';
+    document.getElementById('f_attr').value = src.attribute || '';
+    document.getElementById('f_hp').value = src.hp || '';
+    document.getElementById('f_stage').value = src.stage || '';
+    document.getElementById('f_baton').value = src.batonTouchCost || '';
+
+    let arts = [], skills = [];
+    try { arts = JSON.parse(src.artsJson || '[]'); } catch (e) {}
+    try { skills = JSON.parse(src.skillsJson || '[]'); } catch (e) {}
+    setArtsRows(arts);
+    setSkillRows(skills);
+
+    resetRatingFields();
+    try {
+      const rating = JSON.parse(src.ratingJson || '{}');
+      RATE_KEYS.forEach(k => {
+        const el = document.getElementById('rate_' + k);
+        if (el && rating[k] !== undefined) el.value = rating[k];
+      });
+      renderAllRatingIndicators();
+    } catch (e) {}
+    document.getElementById('rate_comment').value = src.ratingComment || '';
+
+    setSyncFieldsDisabled(true);
+    setStatus('元カードのステータスを反映しました');
+  } catch (err) {
+    setStatus('元カードのステータス取得エラー: ' + err.message);
+    syncSourceIdx = -1;
+    renderLinkedCardsList();
   }
 }
-document.getElementById('f_type').addEventListener('change', updateOriginalNumberVisibility);
+
+function renderLinkedCardsList() {
+  const listEl = document.getElementById('linkSelectedList');
+  if (!linkedCards.length) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = linkedCards.map((card, i) => `
+    <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid rgba(212,175,106,0.4); border-radius:6px; background:rgba(212,175,106,0.08);">
+      <img class="linkSelectedThumb" data-idx="${i}" src="${card.imageUrl || ''}" style="width:48px; aspect-ratio:5/7; object-fit:cover; border-radius:4px; cursor:zoom-in;">
+      <span style="flex:1; font-size:13px;">${card.cardName}（${card.setCode} / ${card.type} 枠${card.slot}）</span>
+      <button type="button" class="secondary linkSyncBtn ${syncSourceIdx === i ? 'active' : ''}" data-idx="${i}" style="padding:4px 10px; font-size:12px; ${syncSourceIdx === i ? 'background:var(--gold); color:#1a1305; border-color:var(--gold);' : ''}">元カードと同一</button>
+      <button type="button" class="secondary linkRemoveBtn" data-idx="${i}" style="padding:4px 10px; font-size:12px;">解除</button>
+    </div>
+  `).join('');
+  listEl.querySelectorAll('.linkSelectedThumb').forEach(img => {
+    img.addEventListener('click', () => showLinkPreview(linkedCards[Number(img.dataset.idx)].imageUrl));
+  });
+  listEl.querySelectorAll('.linkSyncBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.idx);
+      if (syncSourceIdx === idx) {
+        // 既にON→OFFにする（コピー済みの値はそのまま編集可能に残す）
+        syncSourceIdx = -1;
+        setSyncFieldsDisabled(false);
+        renderLinkedCardsList();
+      } else {
+        // 他のカードでONだった場合は排他的に切り替え
+        syncSourceIdx = idx;
+        renderLinkedCardsList();
+        applySyncFromLinkedCard(idx);
+      }
+    });
+  });
+  listEl.querySelectorAll('.linkRemoveBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.idx);
+      if (syncSourceIdx === idx) {
+        syncSourceIdx = -1;
+        setSyncFieldsDisabled(false);
+      } else if (syncSourceIdx > idx) {
+        syncSourceIdx -= 1; // 前方の要素が消えるのでインデックスをずらす
+      }
+      linkedCards.splice(idx, 1);
+      renderLinkedCardsList();
+    });
+  });
+}
+
+function addLinkedCard(card) {
+  const cardK = `${card.setCode}__${card.type}__${card.slot}`;
+  if (linkedCards.some(c => `${c.setCode}__${c.type}__${c.slot}` === cardK)) return; // 重複防止
+  linkedCards.push(card);
+  document.getElementById('f_linkSearch').value = '';
+  document.getElementById('linkSearchResults').style.display = 'none';
+  renderLinkedCardsList();
+}
+
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('linkedCardWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('linkSearchResults').style.display = 'none';
+  }
+});
+
+// 編集モードで既存のlinkedCardKey（"setCode__type__slot"形式、複数はカンマ区切り）から関連カード情報を取得して表示
+async function loadLinkedCardsByKeys(linkedCardKeyStr) {
+  const keys = String(linkedCardKeyStr).split(',').map(s => s.trim()).filter(Boolean);
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) return;
+  for (const key of keys) {
+    const parts = key.split('__');
+    if (parts.length !== 3) continue;
+    const [lSetCode, lType, lSlot] = parts;
+    try {
+      const res = await fetch(gasUrl + `?action=getCard&setCode=${encodeURIComponent(lSetCode)}&type=${encodeURIComponent(lType)}&slot=${encodeURIComponent(lSlot)}`);
+      const card = await res.json();
+      if (card) addLinkedCard(card);
+    } catch (err) { /* 取得失敗時はスキップ */ }
+  }
+}
+
+let linkSearchTimer = null;
+document.getElementById('f_linkSearch').addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(linkSearchTimer);
+  const resultsEl = document.getElementById('linkSearchResults');
+  if (q.length < 2) { resultsEl.style.display = 'none'; return; }
+  linkSearchTimer = setTimeout(async () => {
+    const gasUrl = getCfg('gas');
+    if (!gasUrl) return;
+    try {
+      const res = await fetch(gasUrl + `?action=searchCards&q=${encodeURIComponent(q)}`);
+      const list = await res.json();
+      if (!Array.isArray(list) || !list.length) {
+        resultsEl.innerHTML = `<div style="padding:8px 10px; font-size:13px; color:#9aa5c0;">該当なし</div>`;
+        resultsEl.style.display = 'block';
+        return;
+      }
+      resultsEl.innerHTML = list.map((c, i) => `
+        <div class="linkResultItem" data-idx="${i}" style="display:flex; align-items:center; gap:10px; padding:8px 10px; cursor:pointer; border-bottom:1px solid rgba(212,175,106,0.12);">
+          <img class="linkResultThumb" data-idx="${i}" src="${c.imageUrl || ''}" style="width:56px; aspect-ratio:5/7; object-fit:cover; border-radius:4px; flex-shrink:0; cursor:zoom-in;">
+          <span style="font-size:13px;">${c.cardName}（${c.setCode} / ${c.type} 枠${c.slot}・${c.rarity || ''}）</span>
+        </div>
+      `).join('');
+      resultsEl.style.display = 'block';
+      resultsEl.querySelectorAll('.linkResultItem').forEach(el => {
+        el.addEventListener('mouseenter', () => el.style.background = 'rgba(212,175,106,0.12)');
+        el.addEventListener('mouseleave', () => el.style.background = '');
+        el.addEventListener('click', () => addLinkedCard(list[Number(el.dataset.idx)]));
+      });
+      resultsEl.querySelectorAll('.linkResultThumb').forEach(img => {
+        img.addEventListener('click', (e) => {
+          e.stopPropagation(); // 行クリック（カード選択）に伝播させない
+          showLinkPreview(list[Number(img.dataset.idx)].imageUrl);
+        });
+      });
+    } catch (err) {
+      resultsEl.innerHTML = `<div style="padding:8px 10px; font-size:13px; color:#e37e7e;">検索エラー: ${err.message}</div>`;
+      resultsEl.style.display = 'block';
+    }
+  }, 300);
+});
 
 
 // ===== 切り抜き位置調整（ドラッグ&リサイズ） =====
@@ -786,7 +1206,6 @@ async function handleFileManual(e) {
   document.getElementById('f_setcode').value = '';
   document.getElementById('f_num').value = '';
   document.getElementById('f_rarity').value = '';
-  document.getElementById('f_orignum').value = '';
   document.getElementById('f_tag').value = '';
   document.getElementById('f_tags').value = '';
   document.getElementById('f_name').value = '';
@@ -806,7 +1225,8 @@ async function handleFileManual(e) {
   document.getElementById('cropPreview').innerHTML = `<img src="${croppedDataUrl}">`;
 
   document.getElementById('f_type').value = '新規';
-  updateOriginalNumberVisibility();
+  clearLinkedCards();
+  updateLinkedCardVisibility();
   fieldsEl.style.display = 'block';
   document.getElementById('cropPanel').style.display = 'block';
   allRegisterBtns.forEach(b => b.style.display = 'block');
@@ -856,7 +1276,6 @@ async function handleFile(e) {
     document.getElementById('f_setcode').value = data.setCode || '';
     document.getElementById('f_num').value = data.cardNumber || '';
     document.getElementById('f_rarity').value = data.rarity || '';
-    document.getElementById('f_orignum').value = '';
     document.getElementById('f_tag').value = data.cardType || '';
     document.getElementById('f_tags').value = data.tags || '';
     document.getElementById('f_name').value = data.cardName || '';
@@ -887,7 +1306,8 @@ async function handleFile(e) {
     }
 
     document.getElementById('f_type').value = '新規';
-    updateOriginalNumberVisibility();
+    clearLinkedCards();
+    updateLinkedCardVisibility();
     fieldsEl.style.display = 'block';
     document.getElementById('cropPanel').style.display = 'block';
     allRegisterBtns.forEach(b => b.style.display = 'block');
@@ -989,7 +1409,7 @@ async function handleRegisterClick() {
         attribute: document.getElementById('f_attr').value,
         rarity: document.getElementById('f_rarity').value,
         cardNumber: document.getElementById('f_num').value,
-        originalNumber: type === '再録' ? document.getElementById('f_orignum').value : '',
+        originalNumber: '',
         hp: document.getElementById('f_hp').value,
         stage: document.getElementById('f_stage').value,
         batonTouchCost: document.getElementById('f_baton').value,
@@ -997,6 +1417,8 @@ async function handleRegisterClick() {
         skillsJson: JSON.stringify(getSkillRows()),
         ratingJson: getRatingJson(),
         ratingComment: document.getElementById('rate_comment').value,
+        linkedCardKey: (type === 'パラレル' || type === '再録') ? linkedCards.map(c => `${c.setCode}__${c.type}__${c.slot}`).join(',') : '',
+        syncSourceKey: (syncSourceIdx !== -1 && linkedCards[syncSourceIdx]) ? `${linkedCards[syncSourceIdx].setCode}__${linkedCards[syncSourceIdx].type}__${linkedCards[syncSourceIdx].slot}` : '',
         imageUrl,
         status: editingCard ? editingCard.status : '公開中',
         featured: editingCard ? editingCard.featured : undefined
@@ -1152,65 +1574,104 @@ function getSupportSubtypeIndex(cardType) {
 function byNameJa(a, b) {
   return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
 }
-function sortRerunCards(cardsOfType) {
-  const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('ホロメン') !== -1);
-  const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
-  const otherCards = cardsOfType.filter(c => holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1);
 
-  holomenCards.sort((a, b) => {
+// カードを「推しホロメン」「ホロメン」「サポート」「その他」の4カテゴリに分類し、各カテゴリ内をソートする
+// 戻り値は [{ label, cards }, ...]（該当カードが無いカテゴリは含めない）
+function categorizeCards(cardsOfType) {
+  const oshiCards = cardsOfType.filter(c => (c.cardType || '').indexOf('推しホロメン') !== -1);
+  const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('推しホロメン') === -1 && (c.cardType || '').indexOf('ホロメン') !== -1);
+  const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
+  const otherCards = cardsOfType.filter(c =>
+    oshiCards.indexOf(c) === -1 && holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1
+  );
+
+  const byAttrThenName = (a, b) => {
     const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
     return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b) || (stageOrderIndex(a.stage) - stageOrderIndex(b.stage));
-  });
+  };
+  oshiCards.sort(byAttrThenName);
+  holomenCards.sort(byAttrThenName);
   supportCards.sort((a, b) => {
     const ai = getSupportSubtypeIndex(a.cardType); const bi = getSupportSubtypeIndex(b.cardType);
     return (ai - bi) || byNameJa(a, b);
   });
   otherCards.sort(byNameJa);
 
-  return [...holomenCards, ...supportCards, ...otherCards];
+  const groups = [
+    { label: '推しホロメン', cards: oshiCards },
+    { label: 'ホロメン', cards: holomenCards },
+    { label: 'サポート', cards: supportCards },
+    { label: 'その他', cards: otherCards },
+  ];
+  return groups.filter(g => g.cards.length > 0);
 }
-function sortCardsForGallery(cards) {
-  const newCards = cards.filter(c => c.type === '新規').sort((a, b) => Number(a.slot) - Number(b.slot));
-  const rerunCards = sortRerunCards(cards.filter(c => c.type === '再録'));
-  const parallelCards = cards.filter(c => c.type === 'パラレル').sort((a, b) => Number(a.slot) - Number(b.slot));
-  return [...newCards, ...rerunCards, ...parallelCards];
+// 新規/再録/パラレルそれぞれを「推しホロメン/ホロメン/サポート/その他」に分類したセクション構成を返す
+// 戻り値: [{ typeLabel, label, cards }, ...]
+function buildGallerySections(cards) {
+  const sections = [];
+  [
+    { type: '新規', typeLabel: '新規' },
+    { type: '再録', typeLabel: '再録' },
+    { type: 'パラレル', typeLabel: 'パラレル' },
+  ].forEach(({ type, typeLabel }) => {
+    const cardsOfType = cards.filter(c => c.type === type);
+    const groups = categorizeCards(cardsOfType);
+    groups.forEach(g => sections.push({ typeLabel, label: g.label, cards: g.cards }));
+  });
+  return sections;
 }
 
 async function renderGallery() {
   const gasUrl = getCfg('gas');
   const setCode = document.getElementById('activeSet').value;
   const gridEl = document.getElementById('galleryGrid');
+  updateStreamPackTitle();
   if (!gasUrl || !setCode) { gridEl.innerHTML = '<div class="hint">①で弾を選択してください</div>'; return; }
 
   gridEl.innerHTML = '<div class="hint">読み込み中...</div>';
   const res = await fetch(gasUrl + `?action=list&setCode=${encodeURIComponent(setCode)}`);
   let cards = await res.json();
-  cards = sortCardsForGallery(cards);
 
   if (!cards.length) {
     gridEl.innerHTML = '<div class="hint">この弾にはまだカードが登録されていません</div>';
     return;
   }
 
-  gridEl.innerHTML = cards.map((c, i) => `
-    <div class="galleryCard" data-index="${i}">
-      <button type="button" class="gcFeatured ${c.featured === 'TRUE' ? 'active' : ''}" data-index="${i}" title="注目カードに設定/解除">📌</button>
-      <img src="${c.imageUrl}" alt="${escapeAttr(c.cardName)}" loading="lazy">
-      <div class="gcBody">
-        ${c.cardType ? `<div class="gcTag">${escapeAttr(c.cardType)}</div>` : ''}
-        <div class="gcName">${escapeAttr(c.cardName)}</div>
+  const sections = buildGallerySections(cards);
+  let cardCounter = 0;
+
+  gridEl.innerHTML = sections.map(sec => `
+    <div class="gallerySection">
+      <h3 class="gallerySectionTitle">${escapeAttr(sec.typeLabel)}・${escapeAttr(sec.label)}</h3>
+      <div class="galleryGrid galleryGridInner">
+        ${sec.cards.map(c => {
+          const idx = cardCounter++;
+          return `
+            <div class="galleryCard" data-index="${idx}">
+              <button type="button" class="gcFeatured ${c.featured === 'TRUE' ? 'active' : ''}" data-index="${idx}" title="注目カードに設定/解除">📌</button>
+              <img src="${c.imageUrl}" alt="${escapeAttr(c.cardName)}" loading="lazy">
+              <div class="gcBody">
+                ${c.cardType ? `<div class="gcTag">${escapeAttr(c.cardType)}</div>` : ''}
+                <div class="gcName">${escapeAttr(c.cardName)}</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     </div>
   `).join('');
 
+  // セクションをまたいだ通し番号でフラットな配列を作り、data-indexから引けるようにする
+  const flatCards = sections.flatMap(sec => sec.cards);
+
   gridEl.querySelectorAll('.galleryCard').forEach(el => {
-    el.addEventListener('click', () => startEditCard(cards[Number(el.dataset.index)]));
+    el.addEventListener('click', () => startEditCard(flatCards[Number(el.dataset.index)]));
   });
 
   gridEl.querySelectorAll('.gcFeatured').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const c = cards[Number(btn.dataset.index)];
+      const c = flatCards[Number(btn.dataset.index)];
       const newFeatured = c.featured === 'TRUE' ? 'FALSE' : 'TRUE';
       btn.classList.toggle('active', newFeatured === 'TRUE');
       c.featured = newFeatured;
@@ -1223,7 +1684,7 @@ async function renderGallery() {
   });
 }
 
-function startEditCard(card) {
+async function startEditCard(card) {
   editingCard = card;
 
   // 画像はポップアップ左側に表示（既存のものをそのまま使用、切り抜きツールは非表示）
@@ -1239,7 +1700,6 @@ function startEditCard(card) {
   document.getElementById('f_setcode').value = card.setCode;
   document.getElementById('f_num').value = card.cardNumber || '';
   document.getElementById('f_rarity').value = card.rarity || '';
-  document.getElementById('f_orignum').value = card.originalNumber || '';
   document.getElementById('f_tag').value = card.cardType || '';
   document.getElementById('f_tags').value = card.tags || '';
   document.getElementById('f_name').value = card.cardName || '';
@@ -1257,21 +1717,49 @@ function startEditCard(card) {
   resetRatingFields();
   try {
     const rating = JSON.parse(card.ratingJson || '{}');
-    ['hp', 'power', 'speed', 'stamina', 'luck', 'potential'].forEach(k => {
+    RATE_KEYS.forEach(k => {
       const el = document.getElementById('rate_' + k);
       if (el && rating[k] !== undefined) el.value = rating[k];
     });
+    renderAllRatingIndicators();
   } catch (e) {}
   document.getElementById('rate_comment').value = card.ratingComment || '';
 
-  updateOriginalNumberVisibility();
   updateHolomenVisibility();
+  updateLinkedCardVisibility();
+  clearLinkedCards();
+  if ((card.type === 'パラレル' || card.type === '再録') && card.linkedCardKey) {
+    await loadLinkedCardsByKeys(card.linkedCardKey);
+  }
+  // このカードが「元カードと同一」として同期されている場合、対象をハイライトしフィールドをロックする
+  // （値自体は既にこのカードのデータとして保存済みのため再取得はしない）
+  if (card.syncSourceKey) {
+    const srcIdx = linkedCards.findIndex(c => `${c.setCode}__${c.type}__${c.slot}` === card.syncSourceKey);
+    if (srcIdx !== -1) {
+      syncSourceIdx = srcIdx;
+      setSyncFieldsDisabled(true);
+      renderLinkedCardsList();
+    }
+  }
 
   fieldsEl.style.display = 'block';
   allRegisterBtns.forEach(b => { b.style.display = 'block'; b.textContent = 'この内容で更新する'; });
   setStatus('カードを編集中です。内容を変更して「この内容で更新する」を押してください。');
 
+  applyStreamModeDetailsCollapse();
   openEditModal();
+}
+
+// ===== 配信モード中に一覧からカードを開いた際、評価パラメータ以外のトグルを閉じる =====
+function applyStreamModeDetailsCollapse() {
+  const otherDetailIds = ['basicDetails', 'skillsDetails', 'artsDetails'];
+  if (streamModeToggle.checked) {
+    otherDetailIds.forEach(id => { const el = document.getElementById(id); if (el) el.open = false; });
+    const ratingEl = document.getElementById('ratingDetails');
+    if (ratingEl) ratingEl.open = true;
+  } else {
+    otherDetailIds.forEach(id => { const el = document.getElementById(id); if (el) el.open = true; });
+  }
 }
 
 // ===== 編集ポップアップの開閉（②アップロードパネルをポップアップ内に一時移動する） =====
@@ -1351,6 +1839,27 @@ document.getElementById('editModalDeleteBtn').addEventListener('click', async ()
 });
 document.getElementById('editModalOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'editModalOverlay') document.getElementById('editModalCloseBtn').click();
+});
+
+// ===== 関連カード検索結果の画像拡大プレビュー =====
+function showLinkPreview(imageUrl) {
+  if (!imageUrl) return;
+  let overlay = document.getElementById('linkPreviewOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'linkPreviewOverlay';
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:2000; display:flex; align-items:center; justify-content:center; cursor:zoom-out; padding:20px; box-sizing:border-box;';
+    overlay.innerHTML = `<img id="linkPreviewImg" style="max-width:96vw; max-height:96vh; width:auto; height:auto; border-radius:14px; box-shadow:0 20px 70px rgba(0,0,0,0.8);">`;
+    overlay.addEventListener('click', () => overlay.style.display = 'none');
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('linkPreviewImg').src = imageUrl;
+  overlay.style.display = 'flex';
+}
+
+// カード編集ポップアップの画像をクリックで拡大表示
+document.getElementById('editModalImg').addEventListener('click', (e) => {
+  if (e.target.src) showLinkPreview(e.target.src);
 });
 
 init();
