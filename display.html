@@ -1048,14 +1048,6 @@ function autofitLongTitles(root) {
 }
 
 function skillBlockHtml(skill) {
-  if (skill.skillType === 'LIMITED') {
-    // 使用制限テキスト（LIMITED：〇〇）を赤いバナーで強調表示
-    const limitedText = (skill.text || skill.title || '').replace(/\\n/g, ' ');
-    return `<div class="skillBlock">
-      <div class="limitedBanner"><span class="limitedBannerText">LIMITED：${boldNumbers(escapeHtml(limitedText))}</span></div>
-    </div>`;
-  }
-
   const bannerKey = SKILL_BANNER_MAP[skill.skillType];
   const isLarge = skill.skillType !== 'エクストラ';
   const textHtml = skill.text ? `<div class="modalAbility${isLarge ? ' skillContentLarge' : ''}">${boldNumbers(escapeHtml((skill.text || '').replace(/\\n/g, '\n')))}</div>` : '';
@@ -1207,6 +1199,13 @@ function openModal(c) {
   const key = cardKey(c);
   const favActive = activeGroup && isFav(c, activeGroup);
 
+  // サポートカードの「LIMITED」チェックがONの場合、赤いバナーで固定文言を表示
+  const isSupportLimited = String(c.cardType || '').indexOf('サポート') !== -1
+    && (c.isLimited === '1' || c.isLimited === true || c.isLimited === 1);
+  const limitedBannerHtml = isSupportLimited
+    ? `<div class="skillBlock"><div class="limitedBanner"><span class="limitedBannerText">LIMITED：ターンに1枚しか使えない。</span></div></div>`
+    : '';
+
   let ratingHtml = '';
   try {
     const rating = JSON.parse(c.ratingJson || '{}');
@@ -1229,6 +1228,7 @@ function openModal(c) {
       <button class="favStar modalFavStar ${favActive ? 'active' : ''}" data-fullkey="${key}" title="お気に入りに追加/削除">${favActive ? '★' : '☆'}</button>
     </div>
     <h3>${escapeHtml(c.cardName)}</h3>
+    ${limitedBannerHtml}
     ${skillsHtml}
     ${artsHtml}
     ${batonHtml(c.batonTouchCost)}
@@ -1264,15 +1264,16 @@ async function loadRelatedCards(c) {
   if ((c.type === 'パラレル' || c.type === '再録') && myLinkKeys.length) {
     // パラレル/再録 → リンクされた元カード（複数可）。まず同じ弾のlastCardsから即座に探す
     myLinkKeys.forEach(k => {
+      const label = (c.syncSourceKey && c.syncSourceKey === k) ? '元カード' : '関連カード';
       const found = lastCards.find(x => cardKey(x) === k);
-      if (found) related.push({ card: found, label: '元カード' });
+      if (found) related.push({ card: found, label });
       else needsFetch = true; // 別弾のカードなどlastCardsに無い場合のみ後でfetch
     });
   } else {
     // 元カード → 同じ弾の中でリンク元とするパラレル/再録カードを即座に探す
     lastCards
       .filter(cand => String(cand.linkedCardKey || '').split(',').map(s => s.trim()).includes(myKey))
-      .forEach(cand => related.push({ card: cand, label: cand.type === '再録' ? '再録' : 'パラレル' }));
+      .forEach(cand => related.push({ card: cand, label: '関連カード' }));
     needsFetch = true; // 別弾に同名カードがある場合もあるため、バックグラウンドで裏取りする
   }
 
@@ -1288,13 +1289,13 @@ async function loadRelatedCards(c) {
       for (const k of myLinkKeys) {
         if (related.some(r => cardKey(r.card) === k)) continue;
         const orig = await fetchCardByKey(k);
-        if (orig) extra.push({ card: orig, label: '元カード' });
+        if (orig) extra.push({ card: orig, label: (c.syncSourceKey && c.syncSourceKey === k) ? '元カード' : '関連カード' });
       }
     } else {
       const candidates = await searchCardsByName(c.cardName);
       candidates
         .filter(cand => String(cand.linkedCardKey || '').split(',').map(s => s.trim()).includes(myKey))
-        .forEach(cand => extra.push({ card: cand, label: cand.type === '再録' ? '再録' : 'パラレル' }));
+        .forEach(cand => extra.push({ card: cand, label: '関連カード' }));
     }
     if (!extra.length) return;
 

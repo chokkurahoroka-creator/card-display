@@ -201,6 +201,7 @@
   @media (max-width: 640px) {
     .editModalBox { padding: 16px; gap: 14px; }
     .editModalImg { width: 100%; max-width: 260px; margin: 0 auto; }
+    .ratingGrid { grid-template-columns: repeat(2, 1fr); }
   }
   /* ===== 配信モードボタン下のカードリストリンクボタン ===== */
   .cardListLinkBtn {
@@ -220,9 +221,10 @@
   .cardListLinkBtn img { width: 52px; height: 52px; object-fit: contain; }
 
   /* ===== 評価パラメータ：インジケータ表示（サイバー風） ===== */
-  .ratingGrid { display: flex; flex-wrap: wrap; gap: 16px 20px; }
+  #ratingDetails { max-width: none; width: 100%; }
+  .ratingGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 20px; width: 100%; }
   .rateField {
-    min-width: 148px; padding: 10px 12px 12px; border-radius: 8px;
+    min-width: 0; padding: 10px 12px 12px; border-radius: 8px;
     background: linear-gradient(180deg, rgba(0,229,255,0.05), rgba(0,0,0,0));
     border: 1px solid rgba(0,229,255,0.15);
   }
@@ -402,6 +404,13 @@
         <button type="button" class="secondary" id="addSkillBtn">＋ 固有スキルを追加</button>
       </details>
     </div>
+
+    <div id="supportFields" style="display:none; border-top:1px dashed rgba(212,175,106,0.3); margin-top:14px; padding-top:14px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px;">
+        <input type="checkbox" id="f_limited" style="width:18px; height:18px;">
+        <span>LIMITED（ターンに1枚しか使えない）を表示画面にバナー表示する</span>
+      </label>
+    </div>
     </details>
 
     <details class="field" id="artsDetails" style="margin-top:14px;" open>
@@ -526,6 +535,12 @@ document.getElementById('saveCfgBtn').addEventListener('click', () => {
 loadCfg();
 
 let sets = [];
+
+// setCodeから弾名（パック名）を取得する
+function getSetName(setCode) {
+  const s = sets.find(x => x.setCode === setCode);
+  return s ? s.setName : '';
+}
 let currentImg = null;
 let currentCropBox = null;
 let editingCard = null; // 編集中のカード（ギャラリーから選択時にセット）
@@ -786,7 +801,7 @@ function setArtsRows(arr) {
 
 document.getElementById('addArtsBtn').addEventListener('click', () => addArtsRow({}));
 
-const SKILL_TYPES = ['ー', 'コラボエフェクト', 'ブルームエフェクト', 'ギフト', 'エクストラ', '推しスキル', 'SP推しスキル', '推しステージスキル', 'LIMITED'];
+const SKILL_TYPES = ['ー', 'コラボエフェクト', 'ブルームエフェクト', 'ギフト', 'エクストラ', '推しスキル', 'SP推しスキル', '推しステージスキル'];
 
 function addSkillRow(skill) {
   skill = skill || {};
@@ -915,8 +930,12 @@ function getRatingJson() {
 }
 
 function updateHolomenVisibility() {
-  const isHolomen = (document.getElementById('f_tag').value || '').indexOf('ホロメン') !== -1;
+  const tagVal = document.getElementById('f_tag').value || '';
+  const isHolomen = tagVal.indexOf('ホロメン') !== -1;
+  const isSupport = tagVal.indexOf('サポート') !== -1;
   document.getElementById('holomenFields').style.display = isHolomen ? 'block' : 'none';
+  const supportFieldsEl = document.getElementById('supportFields');
+  if (supportFieldsEl) supportFieldsEl.style.display = isSupport ? 'block' : 'none';
   updateRatingLabels();
 }
 document.getElementById('f_tag').addEventListener('input', updateHolomenVisibility);
@@ -943,7 +962,7 @@ function clearLinkedCards() {
 
 // 「元カードと同一」ONの間、値の手入力を防ぐために対象フィールドをdisabled/enabledにする
 function setSyncFieldsDisabled(disabled) {
-  ['f_name', 'f_attr', 'f_hp', 'f_stage', 'f_baton',
+  ['f_name', 'f_attr', 'f_hp', 'f_stage', 'f_baton', 'f_limited',
    'rate_hp', 'rate_power', 'rate_speed', 'rate_stamina', 'rate_luck', 'rate_potential', 'rate_comment']
     .forEach(id => { document.getElementById(id).disabled = disabled; });
   document.getElementById('addArtsBtn').disabled = disabled;
@@ -969,6 +988,7 @@ async function applySyncFromLinkedCard(idx) {
     document.getElementById('f_hp').value = src.hp || '';
     document.getElementById('f_stage').value = src.stage || '';
     document.getElementById('f_baton').value = src.batonTouchCost || '';
+    document.getElementById('f_limited').checked = (src.isLimited === '1' || src.isLimited === true);
 
     let arts = [], skills = [];
     try { arts = JSON.parse(src.artsJson || '[]'); } catch (e) {}
@@ -1001,14 +1021,14 @@ function renderLinkedCardsList() {
   if (!linkedCards.length) { listEl.innerHTML = ''; return; }
   listEl.innerHTML = linkedCards.map((card, i) => `
     <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid rgba(212,175,106,0.4); border-radius:6px; background:rgba(212,175,106,0.08);">
-      <img class="linkSelectedThumb" data-idx="${i}" src="${card.imageUrl || ''}" style="width:48px; aspect-ratio:5/7; object-fit:cover; border-radius:4px; cursor:zoom-in;">
-      <span style="flex:1; font-size:13px;">${card.cardName}（${card.setCode} / ${card.type} 枠${card.slot}）</span>
+      <img class="linkSelectedThumb" data-idx="${i}" src="${card.imageUrl || ''}" style="width:48px; aspect-ratio:5/7; object-fit:cover; border-radius:4px;">
+      <span style="flex:1; font-size:13px;">${card.cardName}（${card.setCode}${getSetName(card.setCode) ? ' ' + getSetName(card.setCode) : ''} / ${card.type} 枠${card.slot}）</span>
       <button type="button" class="secondary linkSyncBtn ${syncSourceIdx === i ? 'active' : ''}" data-idx="${i}" style="padding:4px 10px; font-size:12px; ${syncSourceIdx === i ? 'background:var(--gold); color:#1a1305; border-color:var(--gold);' : ''}">元カードと同一</button>
       <button type="button" class="secondary linkRemoveBtn" data-idx="${i}" style="padding:4px 10px; font-size:12px;">解除</button>
     </div>
   `).join('');
   listEl.querySelectorAll('.linkSelectedThumb').forEach(img => {
-    img.addEventListener('click', () => showLinkPreview(linkedCards[Number(img.dataset.idx)].imageUrl));
+    attachHoverPreview(img, linkedCards[Number(img.dataset.idx)].imageUrl);
   });
   listEl.querySelectorAll('.linkSyncBtn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1047,6 +1067,7 @@ function addLinkedCard(card) {
   linkedCards.push(card);
   document.getElementById('f_linkSearch').value = '';
   document.getElementById('linkSearchResults').style.display = 'none';
+  hideHoverPreview();
   renderLinkedCardsList();
 }
 
@@ -1093,8 +1114,8 @@ document.getElementById('f_linkSearch').addEventListener('input', (e) => {
       }
       resultsEl.innerHTML = list.map((c, i) => `
         <div class="linkResultItem" data-idx="${i}" style="display:flex; align-items:center; gap:10px; padding:8px 10px; cursor:pointer; border-bottom:1px solid rgba(212,175,106,0.12);">
-          <img class="linkResultThumb" data-idx="${i}" src="${c.imageUrl || ''}" style="width:56px; aspect-ratio:5/7; object-fit:cover; border-radius:4px; flex-shrink:0; cursor:zoom-in;">
-          <span style="font-size:13px;">${c.cardName}（${c.setCode} / ${c.type} 枠${c.slot}・${c.rarity || ''}）</span>
+          <img class="linkResultThumb" data-idx="${i}" src="${c.imageUrl || ''}" style="width:56px; aspect-ratio:5/7; object-fit:cover; border-radius:4px; flex-shrink:0;">
+          <span style="font-size:13px;">${c.cardName}（${c.setCode}${getSetName(c.setCode) ? ' ' + getSetName(c.setCode) : ''} / ${c.type} 枠${c.slot}・${c.rarity || ''}）</span>
         </div>
       `).join('');
       resultsEl.style.display = 'block';
@@ -1104,10 +1125,7 @@ document.getElementById('f_linkSearch').addEventListener('input', (e) => {
         el.addEventListener('click', () => addLinkedCard(list[Number(el.dataset.idx)]));
       });
       resultsEl.querySelectorAll('.linkResultThumb').forEach(img => {
-        img.addEventListener('click', (e) => {
-          e.stopPropagation(); // 行クリック（カード選択）に伝播させない
-          showLinkPreview(list[Number(img.dataset.idx)].imageUrl);
-        });
+        attachHoverPreview(img, list[Number(img.dataset.idx)].imageUrl);
       });
     } catch (err) {
       resultsEl.innerHTML = `<div style="padding:8px 10px; font-size:13px; color:#e37e7e;">検索エラー: ${err.message}</div>`;
@@ -1213,7 +1231,7 @@ async function handleFileManual(e) {
   document.getElementById('f_hp').value = '';
   document.getElementById('f_stage').value = '';
   document.getElementById('f_baton').value = '';
-  setArtsRows([]);
+  document.getElementById('f_limited').checked = false;
   setSkillRows([]);
   resetRatingFields();
   updateHolomenVisibility();
@@ -1283,6 +1301,7 @@ async function handleFile(e) {
     document.getElementById('f_hp').value = data.hp || '';
     document.getElementById('f_stage').value = data.stage || '';
     document.getElementById('f_baton').value = data.batonTouchCost || '';
+    document.getElementById('f_limited').checked = false;
     setArtsRows(data.arts || []);
     setSkillRows(data.skills || []);
     resetRatingFields();
@@ -1413,6 +1432,7 @@ async function handleRegisterClick() {
         hp: document.getElementById('f_hp').value,
         stage: document.getElementById('f_stage').value,
         batonTouchCost: document.getElementById('f_baton').value,
+        isLimited: document.getElementById('f_limited').checked ? '1' : '',
         artsJson: JSON.stringify(getArtsRows()),
         skillsJson: JSON.stringify(getSkillRows()),
         ratingJson: getRatingJson(),
@@ -1707,6 +1727,7 @@ async function startEditCard(card) {
   document.getElementById('f_hp').value = card.hp || '';
   document.getElementById('f_stage').value = card.stage || '';
   document.getElementById('f_baton').value = card.batonTouchCost || '';
+  document.getElementById('f_limited').checked = (card.isLimited === '1' || card.isLimited === true);
 
   let arts = [], skills = [];
   try { arts = JSON.parse(card.artsJson || '[]'); } catch (e) {}
@@ -1842,6 +1863,44 @@ document.getElementById('editModalOverlay').addEventListener('click', (e) => {
 });
 
 // ===== 関連カード検索結果の画像拡大プレビュー =====
+// ===== 検索結果・選択済み関連カードのサムネイルを「ホバー」で拡大表示 =====
+function showHoverPreview(imageUrl, x, y) {
+  let el = document.getElementById('hoverImgPreview');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'hoverImgPreview';
+    el.style.cssText = 'position:fixed; z-index:3000; pointer-events:none; display:none; border-radius:10px; overflow:hidden; box-shadow:0 12px 34px rgba(0,0,0,0.65); border:1px solid rgba(212,175,106,0.5); background:#10182a;';
+    el.innerHTML = '<img id="hoverImgPreviewImg" style="display:block; width:240px; aspect-ratio:5/7; object-fit:cover;">';
+    document.body.appendChild(el);
+  }
+  document.getElementById('hoverImgPreviewImg').src = imageUrl;
+  el.style.display = 'block';
+  positionHoverPreview(x, y);
+}
+function positionHoverPreview(x, y) {
+  const el = document.getElementById('hoverImgPreview');
+  if (!el) return;
+  const margin = 18;
+  const boxW = 242, boxH = 340;
+  let left = x + margin;
+  let top = y + margin;
+  if (left + boxW > window.innerWidth) left = x - boxW - margin;
+  if (top + boxH > window.innerHeight) top = window.innerHeight - boxH - margin;
+  if (top < 0) top = margin;
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+}
+function hideHoverPreview() {
+  const el = document.getElementById('hoverImgPreview');
+  if (el) el.style.display = 'none';
+}
+function attachHoverPreview(img, imageUrl) {
+  if (!imageUrl) return;
+  img.addEventListener('mouseenter', (e) => showHoverPreview(imageUrl, e.clientX, e.clientY));
+  img.addEventListener('mousemove', (e) => positionHoverPreview(e.clientX, e.clientY));
+  img.addEventListener('mouseleave', hideHoverPreview);
+}
+
 function showLinkPreview(imageUrl) {
   if (!imageUrl) return;
   let overlay = document.getElementById('linkPreviewOverlay');
