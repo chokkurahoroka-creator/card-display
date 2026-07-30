@@ -279,7 +279,7 @@
   .shootingStar {
     position: absolute; top: -10%; left: 110%;
     width: 130px; height: 2px; border-radius: 2px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(212,175,106,0.5), rgba(212,175,106,0));
+    background: linear-gradient(90deg, rgba(212,175,106,0), rgba(212,175,106,0.5), rgba(255,255,255,0.95));
     box-shadow: 0 0 6px 1px rgba(255,255,255,0.5);
     transform: rotate(145deg); opacity: 0;
     animation: shootingStarMove linear infinite;
@@ -379,6 +379,10 @@
     <div class="hint">未選択のまま保存すると、既存のパック画像がそのまま維持されます</div>
   </div>
   <button class="secondary" id="saveSetBtn">この弾を保存</button>
+  <div style="display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap;">
+    <span id="setEditingBadge" class="hint" style="display:none; color:var(--gold);"></span>
+    <button type="button" class="secondary" id="setEditCancelBtn" style="display:none; margin-top:0; padding:4px 10px; font-size:12px;">新規作成に戻る</button>
+  </div>
   <div class="field" style="margin-top:14px;">
     <label>登録先の弾を選択</label>
     <select id="activeSet"></select>
@@ -388,7 +392,7 @@
     <label>弾ごとの公開ステータス・デフォルト表示</label>
     <div class="hint">「公開終了」にチェックすると表示ページから一括で消えます。「デフォルト表示」は表示ページを開いた時に最初に表示される弾です（1つだけ選べます）</div>
     <table id="setStatusTable">
-      <thead><tr><th>画像</th><th>弾コード</th><th>名称</th><th>公開終了</th><th>デフォルト表示</th></tr></thead>
+      <thead><tr><th>画像</th><th>弾コード</th><th>名称</th><th>公開終了</th><th>デフォルト表示</th><th>操作</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
