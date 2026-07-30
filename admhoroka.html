@@ -271,9 +271,75 @@
     position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px;
     background: var(--gold); border-radius: 3px; cursor: nwse-resize;
   }
+
+  /* ===== ページ全体の背景に流れる流れ星 ===== */
+  .shootingStarsField {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  }
+  .shootingStar {
+    position: absolute; top: -10%; left: 110%;
+    width: 130px; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.95), rgba(212,175,106,0.5), rgba(212,175,106,0));
+    box-shadow: 0 0 6px 1px rgba(255,255,255,0.5);
+    transform: rotate(145deg); opacity: 0;
+    animation: shootingStarMove linear infinite;
+  }
+  @keyframes shootingStarMove {
+    0%   { transform: translate(0, 0) rotate(145deg); opacity: 0; }
+    4%   { opacity: 1; }
+    16%  { opacity: 1; }
+    24%  { transform: translate(-1000px, 620px) rotate(145deg); opacity: 0; }
+    100% { transform: translate(-1000px, 620px) rotate(145deg); opacity: 0; }
+  }
+  .shootingStar:nth-child(1) { top: 4%;  left: 30%; animation-duration: 7s;  animation-delay: 0s; }
+  .shootingStar:nth-child(2) { top: 14%; left: 75%; animation-duration: 9s;  animation-delay: 2.4s; }
+  .shootingStar:nth-child(3) { top: -2%; left: 55%; animation-duration: 6.5s; animation-delay: 5s; }
+  .shootingStar:nth-child(4) { top: 22%; left: 92%; animation-duration: 10s; animation-delay: 1.2s; }
+  .shootingStar:nth-child(5) { top: 8%;  left: 15%; animation-duration: 8.2s; animation-delay: 7.5s; }
+  .shootingStar:nth-child(6) { top: 30%; left: 45%; animation-duration: 11s; animation-delay: 3.8s; }
+  @media (prefers-reduced-motion: reduce) {
+    .shootingStarsField { display: none; }
+  }
+
+  /* ===== パック画像アイコン付きの弾選択ドロップダウン ===== */
+  .iconSelectHiddenNative { display: none !important; }
+  .iconSelectDropdown { position: relative; width: 100%; }
+  .iconSelectBtn {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: #10182a; border: 1px solid rgba(212,175,106,0.3); border-radius: 6px;
+    color: var(--text); font-size: 14px; padding: 8px 10px; cursor: pointer; text-align: left;
+  }
+  .iconSelectImg {
+    width: 24px; height: 24px; border-radius: 5px; object-fit: cover; flex-shrink: 0;
+    background: #10182a; border: 1px solid rgba(212,175,106,0.35);
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+  }
+  .iconSelectBtnText { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .iconSelectCaret { flex-shrink: 0; color: #9aa5c0; font-size: 10px; }
+  .iconSelectList {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 50;
+    width: 100%; max-height: 320px; overflow-y: auto;
+    background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
+    border-radius: 10px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .iconSelectItem {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px;
+    cursor: pointer; font-size: 13px;
+  }
+  .iconSelectItem:hover { background: rgba(212,175,106,0.12); }
+  .iconSelectItem.active { background: rgba(212,175,106,0.2); color: var(--gold); }
 </style>
 </head>
 <body>
+
+<div class="shootingStarsField" aria-hidden="true">
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+</div>
 
 <h1 id="pageTitle">ホロカ 新カード情報 管理画面</h1>
 <div class="sub" id="pageSub">公式Xの告知画像をアップロードすると、AIが自動でカード情報を読み取ります</div>
@@ -304,6 +370,14 @@
     <div class="field"><label>再録 収録枚数</label><input id="set_rerun" type="number" min="0"></div>
     <div class="field"><label>パラレル 収録枚数</label><input id="set_parallel" type="number" min="0"></div>
   </div>
+  <div class="field" style="margin-top:10px;">
+    <label>パック画像（一覧画面・管理画面のシリーズ選択にアイコンとして表示されます）</label>
+    <div class="row" style="align-items:center; flex-wrap:nowrap;">
+      <img id="set_pack_image_preview" alt="" style="display:none; width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(212,175,106,0.4); flex-shrink:0;">
+      <input type="file" id="set_pack_image" accept="image/*" style="display:block; width:auto; flex:1;">
+    </div>
+    <div class="hint">未選択のまま保存すると、既存のパック画像がそのまま維持されます</div>
+  </div>
   <button class="secondary" id="saveSetBtn">この弾を保存</button>
   <div class="field" style="margin-top:14px;">
     <label>登録先の弾を選択</label>
@@ -314,7 +388,7 @@
     <label>弾ごとの公開ステータス・デフォルト表示</label>
     <div class="hint">「公開終了」にチェックすると表示ページから一括で消えます。「デフォルト表示」は表示ページを開いた時に最初に表示される弾です（1つだけ選べます）</div>
     <table id="setStatusTable">
-      <thead><tr><th>弾コード</th><th>名称</th><th>公開終了</th><th>デフォルト表示</th></tr></thead>
+      <thead><tr><th>画像</th><th>弾コード</th><th>名称</th><th>公開終了</th><th>デフォルト表示</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
