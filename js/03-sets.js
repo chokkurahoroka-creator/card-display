@@ -160,7 +160,7 @@ function renderSetStatusTable() {
   const tbody = document.querySelector('#setStatusTable tbody');
   tbody.innerHTML = sets.map(s => `
     <tr>
-      <td>${s.packImageUrl ? `<img src="${s.packImageUrl}" alt="" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid rgba(212,175,106,0.35);">` : '<span style="opacity:0.4;">📦</span>'}</td>
+      <td>${s.packImageUrl ? `<img src="${s.packImageUrl}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid rgba(212,175,106,0.35);">` : '<span style="opacity:0.4;font-size:28px;">📦</span>'}</td>
       <td>${s.setCode}</td>
       <td>${s.setName}</td>
       <td><input type="checkbox" class="setStatusCb" data-setcode="${s.setCode}" ${s.status === '公開終了' ? 'checked' : ''}></td>
