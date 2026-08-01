@@ -25,8 +25,9 @@ async function loadRelatedCards(c) {
     needsFetch = true; // 別弾に同名カードがある場合もあるため、バックグラウンドで裏取りする
   }
 
-  // 同じ弾の中で見つかった分は即座に描画（体感速度優先）
-  renderRelatedCardsSection(sectionEl, c, related);
+  // 同じ弾の中で見つかった分は即座に描画（体感速度優先）。
+  // 追加取得がある場合はローディング表示も併せて出す
+  renderRelatedCardsSection(sectionEl, c, related, needsFetch);
 
   if (!needsFetch) return;
 
@@ -45,18 +46,23 @@ async function loadRelatedCards(c) {
         .filter(cand => String(cand.linkedCardKey || '').split(',').map(s => s.trim()).includes(myKey))
         .forEach(cand => extra.push({ card: cand, label: '関連カード' }));
     }
-    if (!extra.length) return;
 
     // モーダル表示中に別カードへ移動していた場合は反映しない
     if (!document.getElementById('modalOverlay').classList.contains('open')) return;
     if (document.getElementById('modalImg').src !== c.imageUrl) return;
 
-    related = related.concat(extra);
-    renderRelatedCardsSection(sectionEl, c, related);
-  } catch (e) { /* 追加取得に失敗しても既に表示済みの分は残す */ }
+    if (extra.length) related = related.concat(extra);
+    // 読み込み完了。ローディング表示を消して確定内容を描画（該当なしなら関連カード欄自体を消す）
+    renderRelatedCardsSection(sectionEl, c, related, false);
+  } catch (e) {
+    // 追加取得に失敗してもローディング表示だけは消す
+    if (document.getElementById('modalOverlay').classList.contains('open') && document.getElementById('modalImg').src === c.imageUrl) {
+      renderRelatedCardsSection(sectionEl, c, related, false);
+    }
+  }
 }
 
-function renderRelatedCardsSection(sectionEl, c, relatedRaw) {
+function renderRelatedCardsSection(sectionEl, c, relatedRaw, loading) {
   // 同一カードが重複して入る可能性があるため除去
   const seen = new Set();
   const related = relatedRaw.filter(r => {
@@ -66,11 +72,14 @@ function renderRelatedCardsSection(sectionEl, c, relatedRaw) {
     return true;
   });
 
-  if (!related.length) { sectionEl.innerHTML = ''; return; }
+  if (!related.length && !loading) { sectionEl.innerHTML = ''; return; }
 
   sectionEl.innerHTML = `
     <div class="relatedCardsWrap" style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(212,175,106,0.2);">
-      <div style="font-size:13px; color:#9aa5c0; margin-bottom:8px;">関連カード</div>
+      <div style="font-size:13px; color:#9aa5c0; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+        <span>関連カード</span>
+        ${loading ? '<span class="relatedLoadingSpinner" role="status" aria-label="読み込み中"></span>' : ''}
+      </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         ${related.map(r => `
           <div class="relatedCardItem" data-key="${cardKey(r.card)}" style="cursor:pointer; text-align:center; width:90px;">
@@ -78,6 +87,14 @@ function renderRelatedCardsSection(sectionEl, c, relatedRaw) {
             <div style="font-size:11px; color:#d4af6a; margin-top:4px;">${escapeHtml(r.label)}</div>
           </div>
         `).join('')}
+        ${loading ? `
+          <div style="text-align:center; width:90px;">
+            <div class="relatedCardSkeleton" aria-hidden="true">
+              <span class="relatedLoadingSpinner"></span>
+            </div>
+            <div style="font-size:11px; color:#9aa5c0; margin-top:4px;">読み込み中…</div>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;

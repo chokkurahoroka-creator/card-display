@@ -1,3 +1,61 @@
+// ===== パック画像アイコン付きの弾選択ドロップダウン =====
+// 既存の<select>はそのまま(value/change)を使い続け、見た目だけをアイコン付きの
+// カスタムリストに差し替える。他の箇所からsel.valueを直接変更した場合は
+// このrenderIconSelectOptions()を再度呼べば表示が追従する。
+function renderIconSelectOptions(sel, list, iconMap) {
+  const wrapId = sel.id + 'IconDropdown';
+  let wrap = document.getElementById(wrapId);
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = wrapId;
+    wrap.className = 'iconSelectDropdown';
+    sel.insertAdjacentElement('afterend', wrap);
+    sel.classList.add('iconSelectHiddenNative');
+  }
+  const iconHtml = (code) => (iconMap && iconMap[code])
+    ? `<img class="iconSelectImg" src="${iconMap[code]}" alt="" onerror="this.outerHTML='&lt;span class=&quot;iconSelectImg&quot;&gt;📦&lt;/span&gt;'">`
+    : `<span class="iconSelectImg">📦</span>`;
+  const current = list.find(s => s.setCode === sel.value);
+
+  wrap.innerHTML = `
+    <button type="button" class="iconSelectBtn">
+      ${current ? iconHtml(current.setCode) : ''}
+      <span class="iconSelectBtnText">${current ? `${escapeHtml(current.setCode)}（${escapeHtml(current.setName)}）` : '選択してください'}</span>
+      <span class="iconSelectCaret">▾</span>
+    </button>
+    <div class="iconSelectList" style="display:none;">
+      ${list.map(s => `
+        <div class="iconSelectItem${s.setCode === sel.value ? ' active' : ''}" data-code="${escapeHtml(s.setCode)}">
+          ${iconHtml(s.setCode)}
+          <span>${escapeHtml(s.setCode)}（${escapeHtml(s.setName)}）</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  const btn = wrap.querySelector('.iconSelectBtn');
+  const listEl = wrap.querySelector('.iconSelectList');
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = listEl.style.display !== 'none';
+    document.querySelectorAll('.iconSelectList').forEach(l => l.style.display = 'none');
+    listEl.style.display = isOpen ? 'none' : 'block';
+  });
+  listEl.querySelectorAll('.iconSelectItem').forEach(item => {
+    item.addEventListener('click', () => {
+      if (sel.value !== item.dataset.code) {
+        sel.value = item.dataset.code;
+        sel.dispatchEvent(new Event('change'));
+      }
+      listEl.style.display = 'none';
+      renderIconSelectOptions(sel, list, iconMap);
+    });
+  });
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.iconSelectList').forEach(l => l.style.display = 'none');
+});
+
 function relocateSearchBar() {
   const searchWrapEl = document.getElementById('searchWrapEl');
   const topBar = document.getElementById('topBar');
@@ -44,6 +102,9 @@ async function init() {
     }
     sel.value = currentSetCode;
   }
+
+  const packIconMap = Object.fromEntries(sets.map(s => [s.setCode, s.packImageUrl]));
+  renderIconSelectOptions(sel, sets, packIconMap);
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     favViewGroup = null;
