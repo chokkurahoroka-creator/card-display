@@ -61,11 +61,14 @@ function openModal(c) {
     }
   } catch (e) { /* ignore */ }
 
+  const isSupportCardType = String(c.cardType || '').indexOf('サポート') !== -1;
+
   document.getElementById('modalInfo').innerHTML = `
     <div class="modalBadgeRow">
       ${c.type ? `<span class="modalTypeBadge">${escapeHtml(c.type)}</span>` : ''}
       ${c.rarity ? `<span class="modalTypeBadge" style="background:#7ec8e3;">${escapeHtml(c.rarity)}</span>` : ''}
       ${c.cardType ? `<span class="modalTypeBadge" style="background:#a3a3a3;">${escapeHtml(c.cardType)}</span>` : ''}
+      ${(!isSupportCardType && c.stage) ? `<span class="modalTypeBadge" style="background:#9d7cf2;">${escapeHtml(c.stage)}</span>` : ''}
       <button class="favStar modalFavStar ${favActive ? 'active' : ''}" data-fullkey="${key}" title="お気に入りに追加/削除">${favActive ? '★' : '☆'}</button>
     </div>
     <h3>${escapeHtml(c.cardName)}</h3>

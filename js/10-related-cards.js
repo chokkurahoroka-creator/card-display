@@ -26,8 +26,9 @@ async function loadRelatedCards(c) {
   }
 
   // 同じ弾の中で見つかった分は即座に描画（体感速度優先）。
-  // 追加取得がある場合はローディング表示も併せて出す
-  renderRelatedCardsSection(sectionEl, c, related, needsFetch);
+  // 追加取得がある場合でも、時点で1件も見つかっていなければ「関連カードが無い可能性が高い」ため
+  // ローディング表示は出さず、静かに裏取りだけ行う（見つかった時だけ描画する）
+  renderRelatedCardsSection(sectionEl, c, related, needsFetch && related.length > 0);
 
   if (!needsFetch) return;
 
