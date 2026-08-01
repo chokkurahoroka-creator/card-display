@@ -25,10 +25,13 @@ async function loadRelatedCards(c) {
     needsFetch = true; // 別弾に同名カードがある場合もあるため、バックグラウンドで裏取りする
   }
 
-  // 同じ弾の中で見つかった分は即座に描画（体感速度優先）。
-  // 追加取得がある場合でも、時点で1件も見つかっていなければ「関連カードが無い可能性が高い」ため
-  // ローディング表示は出さず、静かに裏取りだけ行う（見つかった時だけ描画する）
-  renderRelatedCardsSection(sectionEl, c, related, needsFetch && related.length > 0);
+  // パラレル/再録が元カードのリンクを持つ場合は「関連カードが必ず存在する」ことが確定しているため、
+  // まだ元カード自体を取得できていなくても（fetch中）ローディングを表示し続ける。
+  // 一方、元カード視点での逆引き検索（else側）は関連カードが存在するかどうか自体が不確定なため、
+  // 既に1件以上見つかっている場合のみローディングを表示する（無関係カードでの無駄な表示を避ける）
+  const isLinkedCardType = (c.type === 'パラレル' || c.type === '再録') && myLinkKeys.length > 0;
+  const showLoading = needsFetch && (isLinkedCardType || related.length > 0);
+  renderRelatedCardsSection(sectionEl, c, related, showLoading);
 
   if (!needsFetch) return;
 
