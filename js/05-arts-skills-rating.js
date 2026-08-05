@@ -175,10 +175,17 @@ function initRatingIndicators() {
     container.innerHTML = '';
     for (let i = 1; i <= RATE_STEPS; i++) {
       const v = i * RATE_STEP_VALUE;
+      const isMajor = Number.isInteger(v); // 1.0, 2.0, 3.0, 4.0, 5.0 は主目盛り（数字ラベル付き）
       const seg = document.createElement('span');
-      seg.className = 'ratingSeg';
+      seg.className = 'ratingSeg' + (isMajor ? ' ratingTickMajor' : '');
       seg.dataset.value = String(v);
       seg.title = String(v);
+      if (isMajor) {
+        const labelEl = document.createElement('span');
+        labelEl.className = 'ratingTickLabel';
+        labelEl.textContent = String(v);
+        seg.appendChild(labelEl);
+      }
       seg.addEventListener('click', () => {
         const input = document.getElementById('rate_' + key);
         if (!input || input.disabled) return;
