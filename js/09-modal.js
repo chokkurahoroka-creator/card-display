@@ -52,11 +52,23 @@ function openModal(c) {
     const rating = JSON.parse(c.ratingJson || '{}');
     const activeItems = getActiveRatingItems(c.cardType);
     const hasRating = activeItems.some(it => rating[it.key] !== '' && rating[it.key] !== undefined && rating[it.key] !== null);
-    if (hasRating || c.ratingComment) {
+    if (hasRating) {
+      const summary = computeRatingSummaryFromValues(rating, c.cardType);
       ratingHtml = `
         <div class="ratingSection">
-          ${hasRating ? `<div class="ratingChart">${buildRadarChartSvg(rating, c.cardType)}</div>` : ''}
-          ${c.ratingComment ? `<div class="ratingComment"><div class="ratingCommentLabel">評価コメント</div><div class="ratingCommentText">${escapeHtml(c.ratingComment)}</div></div>` : ''}
+          <div class="ratingChart">${buildRadarChartSvg(rating, c.cardType)}</div>
+          <div class="ratingScoreBox">
+            <div class="ratingScoreRow"><span class="ratingScoreLabel">合計</span><span class="ratingScoreValue">${summary.sum} / ${summary.maxSum}</span></div>
+            <div class="ratingScoreRow"><span class="ratingScoreLabel">平均</span><span class="ratingScoreValue">${summary.avg.toFixed(1)}</span></div>
+            <div class="ratingScoreRow ratingScoreMain"><span class="ratingScoreLabel">評価点</span><span class="ratingScoreValue">${summary.score10.toFixed(1)}<small> / 10</small></span></div>
+            ${c.ratingComment ? `<div class="ratingCommentText">${escapeHtml(c.ratingComment)}</div>` : ''}
+          </div>
+        </div>`;
+    } else if (c.ratingComment) {
+      // 数値評価が無く、コメントのみ登録されている（過去データなど）場合はコメントだけ表示
+      ratingHtml = `
+        <div class="ratingSection">
+          <div class="ratingComment"><div class="ratingCommentLabel">評価コメント</div><div class="ratingCommentText">${escapeHtml(c.ratingComment)}</div></div>
         </div>`;
     }
   } catch (e) { /* ignore */ }

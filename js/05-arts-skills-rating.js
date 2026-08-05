@@ -163,20 +163,26 @@ function updateRatingLabels() {
   });
 }
 
-// ===== 評価パラメータ：インジケータ（1〜5をクリックで選択） =====
+// ===== 評価パラメータ：インジケータ（0.5刻み、1.0〜5.0の10段階をクリックで選択） =====
+// バーは段階が上がるほど背が高くなり、大きさの違いで直感的に水準が分かるようにしている
+const RATE_STEPS = 10;
+const RATE_STEP_VALUE = 0.5;
+
 function initRatingIndicators() {
   RATE_KEYS.forEach(key => {
     const container = document.getElementById('ratingIndicator_' + key);
     if (!container) return;
     container.innerHTML = '';
-    for (let v = 1; v <= 5; v++) {
+    for (let i = 1; i <= RATE_STEPS; i++) {
+      const v = i * RATE_STEP_VALUE;
       const seg = document.createElement('span');
       seg.className = 'ratingSeg';
       seg.dataset.value = String(v);
+      seg.title = String(v);
       seg.addEventListener('click', () => {
         const input = document.getElementById('rate_' + key);
         if (!input || input.disabled) return;
-        input.value = (input.value === String(v)) ? '' : String(v); // 同じ値を再クリックで解除
+        input.value = (Number(input.value) === v) ? '' : String(v); // 同じ値を再クリックで解除
         renderRatingIndicator(key);
       });
       container.appendChild(seg);
@@ -192,12 +198,13 @@ function renderRatingIndicator(key) {
   const val = Number(input.value) || 0;
   container.classList.toggle('ratingIndicatorDisabled', !!input.disabled);
   Array.from(container.children).forEach(seg => {
-    seg.classList.toggle('active', Number(seg.dataset.value) <= val);
+    seg.classList.toggle('active', Number(seg.dataset.value) <= val + 0.001); // 浮動小数の誤差対策
   });
   if (valueEl) {
     valueEl.textContent = val > 0 ? String(val) : '-';
     valueEl.classList.toggle('empty', val <= 0);
   }
+  updateRatingSummary();
 }
 
 function renderAllRatingIndicators() {
@@ -217,6 +224,43 @@ function getRatingJson() {
   return hasAny ? JSON.stringify(rating) : '';
 }
 
+// 項目数がカードタイプによって異なる（推しホロメン/ホロメンは6項目、サポートは5項目）ため、
+// 合計・平均に加えて「10段階の相対評価点」（平均点(5点満点)を2倍して10点満点に換算）も算出する
+function computeRatingSummary(cardTypeStr) {
+  const labels = RATING_LABELS[getRatingCategory(cardTypeStr)] || RATING_LABELS['ホロメン'];
+  const activeKeys = RATE_KEYS.filter(k => labels[k] !== null);
+  let sum = 0, enteredCount = 0;
+  activeKeys.forEach(k => {
+    const el = document.getElementById('rate_' + k);
+    if (el && el.value !== '') {
+      const v = Number(el.value);
+      if (!isNaN(v)) { sum += v; enteredCount++; }
+    }
+  });
+  const totalItems = activeKeys.length;
+  const maxSum = totalItems * 5;
+  const avg = enteredCount > 0 ? sum / enteredCount : 0;
+  const score10 = enteredCount > 0 ? (avg / 5) * 10 : 0;
+  return { sum, enteredCount, totalItems, maxSum, avg, score10 };
+}
+
+function updateRatingSummary() {
+  const totalEl = document.getElementById('ratingSummaryTotal');
+  const avgEl = document.getElementById('ratingSummaryAvg');
+  const score10El = document.getElementById('ratingSummaryScore10');
+  if (!totalEl || !avgEl || !score10El) return;
+  const summary = computeRatingSummary(document.getElementById('f_tag').value);
+  if (summary.enteredCount === 0) {
+    totalEl.textContent = '-';
+    avgEl.textContent = '-';
+    score10El.textContent = '-';
+    return;
+  }
+  totalEl.textContent = `${summary.sum} / ${summary.maxSum}`;
+  avgEl.textContent = summary.avg.toFixed(1);
+  score10El.textContent = `${summary.score10.toFixed(1)} / 10`;
+}
+
 function updateHolomenVisibility() {
   const tagVal = document.getElementById('f_tag').value || '';
   const isHolomen = tagVal.indexOf('ホロメン') !== -1;
@@ -225,6 +269,7 @@ function updateHolomenVisibility() {
   const supportFieldsEl = document.getElementById('supportFields');
   if (supportFieldsEl) supportFieldsEl.style.display = isSupport ? 'block' : 'none';
   updateRatingLabels();
+  updateRatingSummary();
 }
 document.getElementById('f_tag').addEventListener('input', updateHolomenVisibility);
 initRatingIndicators();
