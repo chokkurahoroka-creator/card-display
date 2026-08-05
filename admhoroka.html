@@ -242,13 +242,24 @@
     text-shadow: 0 0 6px rgba(0,229,255,0.8);
   }
   .rateValue.empty { color: #4a5570; text-shadow: none; border-color: rgba(122,140,180,0.25); background: rgba(122,140,180,0.06); }
-  .ratingIndicator { display: flex; gap: 3px; }
+  .ratingIndicator { display: flex; gap: 2px; align-items: flex-end; }
   .ratingSeg {
-    width: 20px; height: 26px; cursor: pointer;
+    width: 10px; cursor: pointer;
     background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.3);
     clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);
     transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
   }
+  /* 段階が上がるほど背を高くし、値の大きさを直感的に見せる（1.0〜5.0の10段階） */
+  .ratingSeg:nth-child(1)  { height: 11px; }
+  .ratingSeg:nth-child(2)  { height: 13px; }
+  .ratingSeg:nth-child(3)  { height: 15px; }
+  .ratingSeg:nth-child(4)  { height: 17px; }
+  .ratingSeg:nth-child(5)  { height: 19px; }
+  .ratingSeg:nth-child(6)  { height: 21px; }
+  .ratingSeg:nth-child(7)  { height: 23px; }
+  .ratingSeg:nth-child(8)  { height: 25px; }
+  .ratingSeg:nth-child(9)  { height: 27px; }
+  .ratingSeg:nth-child(10) { height: 29px; }
   .ratingSeg:hover { border-color: #00e5ff; transform: translateY(-2px); }
   .ratingSeg.active {
     background: linear-gradient(180deg, #00e5ff, #0891b2);
@@ -256,6 +267,21 @@
     box-shadow: 0 0 8px rgba(0,229,255,0.9), 0 0 2px rgba(255,255,255,0.6) inset;
   }
   .ratingIndicatorDisabled { opacity: 0.45; pointer-events: none; }
+
+  /* ===== 評価パラメータ：合計・平均・10段階相対評価点 ===== */
+  .ratingSummaryBox {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px;
+    border-top: 1px dashed rgba(0,229,255,0.2);
+  }
+  .ratingSummaryItem {
+    flex: 1; min-width: 110px; padding: 8px 12px; border-radius: 8px; text-align: center;
+    background: rgba(0,229,255,0.05); border: 1px solid rgba(0,229,255,0.2);
+    font-family: 'Courier New', monospace;
+  }
+  .ratingSummaryLabel { display: block; font-size: 11px; color: #7dd3fc; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .ratingSummaryValue { font-size: 16px; font-weight: bold; color: #00e5ff; text-shadow: 0 0 6px rgba(0,229,255,0.6); }
+  .ratingSummaryItem.ratingSummaryMain { background: rgba(0,229,255,0.12); border-color: rgba(0,229,255,0.5); }
+  .ratingSummaryItem.ratingSummaryMain .ratingSummaryValue { font-size: 19px; }
 
   .cropAdjustWrap { margin-top: 14px; }
   #cropStage {
@@ -529,6 +555,20 @@
           <div class="rateLabelRow"><label id="rateLabel_potential">将来性</label><span class="rateValue empty" id="rateValue_potential">-</span></div>
           <div class="ratingIndicator" id="ratingIndicator_potential"></div>
           <input type="hidden" id="rate_potential">
+        </div>
+      </div>
+      <div class="ratingSummaryBox">
+        <div class="ratingSummaryItem">
+          <span class="ratingSummaryLabel">合計</span>
+          <span class="ratingSummaryValue" id="ratingSummaryTotal">-</span>
+        </div>
+        <div class="ratingSummaryItem">
+          <span class="ratingSummaryLabel">平均</span>
+          <span class="ratingSummaryValue" id="ratingSummaryAvg">-</span>
+        </div>
+        <div class="ratingSummaryItem ratingSummaryMain">
+          <span class="ratingSummaryLabel">10段階評価（相対）</span>
+          <span class="ratingSummaryValue" id="ratingSummaryScore10">-</span>
         </div>
       </div>
       <div class="field" style="margin-top:12px;">
