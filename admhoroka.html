@@ -236,37 +236,41 @@
     font-family: 'Courier New', monospace;
   }
   .rateValue {
-    font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold;
-    color: #00e5ff; min-width: 26px; text-align: center; padding: 1px 4px; border-radius: 3px;
+    font-family: 'Courier New', monospace; font-size: 20px; font-weight: bold;
+    color: #00e5ff; min-width: 40px; text-align: center; padding: 2px 8px; border-radius: 4px;
     background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.35);
-    text-shadow: 0 0 6px rgba(0,229,255,0.8);
+    text-shadow: 0 0 8px rgba(0,229,255,0.8);
   }
   .rateValue.empty { color: #4a5570; text-shadow: none; border-color: rgba(122,140,180,0.25); background: rgba(122,140,180,0.06); }
-  .ratingIndicator { display: flex; gap: 2px; align-items: flex-end; }
+
+  /* ===== 評価メーター：定規のメモリ風デザイン（0.5刻み、1.0〜5.0の10段階） ===== */
+  .ratingIndicator {
+    display: flex; align-items: flex-end; gap: 5px; position: relative;
+    padding-top: 20px; padding-bottom: 8px; cursor: pointer;
+  }
+  .ratingIndicator::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 8px; height: 2px;
+    background: rgba(0,229,255,0.3);
+  }
   .ratingSeg {
-    width: 10px; cursor: pointer;
-    background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.3);
-    clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%);
-    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    width: 2px; height: 10px; cursor: pointer; position: relative; z-index: 1;
+    background: rgba(0,229,255,0.35);
+    transition: background 0.15s, box-shadow 0.15s, height 0.15s;
   }
-  /* 段階が上がるほど背を高くし、値の大きさを直感的に見せる（1.0〜5.0の10段階） */
-  .ratingSeg:nth-child(1)  { height: 11px; }
-  .ratingSeg:nth-child(2)  { height: 13px; }
-  .ratingSeg:nth-child(3)  { height: 15px; }
-  .ratingSeg:nth-child(4)  { height: 17px; }
-  .ratingSeg:nth-child(5)  { height: 19px; }
-  .ratingSeg:nth-child(6)  { height: 21px; }
-  .ratingSeg:nth-child(7)  { height: 23px; }
-  .ratingSeg:nth-child(8)  { height: 25px; }
-  .ratingSeg:nth-child(9)  { height: 27px; }
-  .ratingSeg:nth-child(10) { height: 29px; }
-  .ratingSeg:hover { border-color: #00e5ff; transform: translateY(-2px); }
+  .ratingSeg.ratingTickMajor { width: 3px; height: 20px; background: rgba(0,229,255,0.55); }
+  .ratingTickLabel {
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 11px; color: #7dd3fc; font-family: 'Courier New', monospace; font-weight: bold;
+  }
+  .ratingSeg:hover { background: #00e5ff; }
   .ratingSeg.active {
-    background: linear-gradient(180deg, #00e5ff, #0891b2);
-    border-color: #67e8f9;
-    box-shadow: 0 0 8px rgba(0,229,255,0.9), 0 0 2px rgba(255,255,255,0.6) inset;
+    background: #00e5ff;
+    box-shadow: 0 0 6px rgba(0,229,255,0.9);
   }
+  .ratingSeg.ratingTickMajor.active { box-shadow: 0 0 10px rgba(0,229,255,1); }
+  .ratingSeg.active .ratingTickLabel { color: #00e5ff; text-shadow: 0 0 6px rgba(0,229,255,0.8); }
   .ratingIndicatorDisabled { opacity: 0.45; pointer-events: none; }
+
 
   /* ===== 評価パラメータ：合計・平均・10段階相対評価点 ===== */
   .ratingSummaryBox {
@@ -325,6 +329,26 @@
   .shootingStar:nth-child(6) { top: 30%; left: 45%; animation-duration: 11s; animation-delay: 3.8s; }
   @media (prefers-reduced-motion: reduce) {
     .shootingStarsField { display: none; }
+  }
+
+  /* ===== ページ全体の擬似ズーム（CSSのzoomプロパティで実現） ===== */
+  .pageZoomWidget {
+    position: fixed; right: 16px; bottom: 16px; z-index: 200;
+    display: flex; align-items: center; gap: 4px;
+    background: linear-gradient(160deg, #1a2233, #10182a);
+    border: 1px solid rgba(212,175,106,0.4); border-radius: 999px;
+    padding: 6px 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+  .pageZoomWidget button {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(212,175,106,0.4);
+    background: rgba(212,175,106,0.08); color: var(--gold); font-size: 14px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .pageZoomWidget button:hover { background: rgba(212,175,106,0.2); }
+  #zoomLevelText { font-size: 12px; color: #f0e6d2; min-width: 34px; text-align: center; font-family: 'Courier New', monospace; }
+  #zoomResetBtn { font-size: 13px; }
+  @media (max-width: 640px) {
+    .pageZoomWidget { right: 10px; bottom: 10px; padding: 5px 8px; }
   }
 
   /* ===== パック画像アイコン付きの弾選択ドロップダウン ===== */
@@ -646,5 +670,6 @@
 <script src="js/09-gallery.js"></script>
 <script src="js/10-edit-popup.js"></script>
 <script src="js/11-hover-preview-boot.js"></script>
+<script src="js/12-page-zoom-admin.js"></script>
 </body>
 </html>
