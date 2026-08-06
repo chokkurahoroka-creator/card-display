@@ -243,26 +243,29 @@
   }
   .rateValue.empty { color: #4a5570; text-shadow: none; border-color: rgba(122,140,180,0.25); background: rgba(122,140,180,0.06); }
 
-  /* ===== 評価メーター：定規のメモリ風デザイン（0.5刻み、1.0〜5.0の10段階） ===== */
+  /* ===== 評価メーター：定規のメモリ風デザイン（0.5刻み、1.0〜5.0の10段階） =====
+     幅は項目(.rateField)いっぱいに広がるようにし、目盛りはクリックしやすいよう太めにしている */
   .ratingIndicator {
-    display: flex; align-items: flex-end; gap: 5px; position: relative;
-    padding-top: 20px; padding-bottom: 8px; cursor: pointer;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    width: 100%; position: relative; cursor: pointer;
+    padding-top: 20px; padding-bottom: 8px;
   }
   .ratingIndicator::after {
     content: ''; position: absolute; left: 0; right: 0; bottom: 8px; height: 2px;
     background: rgba(0,229,255,0.3);
   }
   .ratingSeg {
-    width: 2px; height: 10px; cursor: pointer; position: relative; z-index: 1;
+    width: 5px; height: 12px; cursor: pointer; position: relative; z-index: 1;
+    border-radius: 2px;
     background: rgba(0,229,255,0.35);
-    transition: background 0.15s, box-shadow 0.15s, height 0.15s;
+    transition: background 0.15s, box-shadow 0.15s, height 0.15s, transform 0.1s;
   }
-  .ratingSeg.ratingTickMajor { width: 3px; height: 20px; background: rgba(0,229,255,0.55); }
+  .ratingSeg.ratingTickMajor { width: 8px; height: 24px; background: rgba(0,229,255,0.55); }
   .ratingTickLabel {
     position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
     font-size: 11px; color: #7dd3fc; font-family: 'Courier New', monospace; font-weight: bold;
   }
-  .ratingSeg:hover { background: #00e5ff; }
+  .ratingSeg:hover { background: #00e5ff; transform: scaleX(1.3); }
   .ratingSeg.active {
     background: #00e5ff;
     box-shadow: 0 0 6px rgba(0,229,255,0.9);
