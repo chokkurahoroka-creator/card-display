@@ -176,6 +176,10 @@ async function init() {
   document.getElementById('modalPrev').addEventListener('click', () => navigate(-1));
   document.getElementById('modalNext').addEventListener('click', () => navigate(1));
   document.getElementById('modalDownload').addEventListener('click', downloadCurrentImage);
+  document.getElementById('modalImg').addEventListener('click', () => showImageZoom(document.getElementById('modalImg').src));
+  document.getElementById('imageZoomOverlay').addEventListener('click', () => {
+    document.getElementById('imageZoomOverlay').classList.remove('open');
+  });
   document.addEventListener('keydown', (e) => {
     if (!document.getElementById('modalOverlay').classList.contains('open')) return;
     if (e.key === 'ArrowLeft') navigate(-1);

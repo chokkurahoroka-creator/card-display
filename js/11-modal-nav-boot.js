@@ -32,6 +32,14 @@ function closeModal() {
   navIndex = -1;
 }
 
+// カード詳細モーダル内の画像をクリックした時、その画像だけをフルスクリーンで拡大表示する
+// （管理画面の編集ポップアップ画像クリック時の拡大表示と同じ挙動）
+function showImageZoom(imageUrl) {
+  if (!imageUrl) return;
+  document.getElementById('imageZoomImg').src = imageUrl;
+  document.getElementById('imageZoomOverlay').classList.add('open');
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }

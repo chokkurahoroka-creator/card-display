@@ -18,8 +18,9 @@ const STATS_SERIES = [
   { key: 'visit', label: 'サイト訪問', color: '#b28ce3' }
 ];
 
-// 日別の推移（詳細表示/お気に入り/ダウンロード/検索/サイト訪問）を折れ線グラフで表示する
-function buildDailyTrendChart(dailyTotals) {
+// 日別の推移を折れ線グラフで表示する。seriesリストを指定しない場合はSTATS_SERIES全件を使う
+function buildDailyTrendChart(dailyTotals, seriesList) {
+  const series = seriesList || STATS_SERIES;
   if (!dailyTotals.length) return '<div class="statsEmptyHint">この期間のデータはまだありません</div>';
 
   const width = Math.max(600, dailyTotals.length * 26);
@@ -27,7 +28,7 @@ function buildDailyTrendChart(dailyTotals) {
   const paddingLeft = 36, paddingBottom = 28, paddingTop = 14, paddingRight = 16;
   const chartW = width - paddingLeft - paddingRight;
   const chartH = height - paddingTop - paddingBottom;
-  const maxVal = Math.max(1, ...dailyTotals.map(d => Math.max(...STATS_SERIES.map(s => d[s.key] || 0))));
+  const maxVal = Math.max(1, ...dailyTotals.map(d => Math.max(...series.map(s => d[s.key] || 0))));
 
   const xAt = (i) => paddingLeft + (dailyTotals.length <= 1 ? chartW / 2 : (i / (dailyTotals.length - 1)) * chartW);
   const yAt = (v) => paddingTop + chartH - (v / maxVal) * chartH;
@@ -47,7 +48,7 @@ function buildDailyTrendChart(dailyTotals) {
     xLabelHtml += `<text x="${xAt(i)}" y="${height - paddingBottom + 16}" font-size="10" fill="#9aa5c0" text-anchor="middle">${d.date.slice(5)}</text>`;
   });
 
-  const seriesHtml = STATS_SERIES.map(s => {
+  const seriesHtml = series.map(s => {
     const points = dailyTotals.map((d, i) => `${xAt(i)},${yAt(d[s.key] || 0)}`).join(' ');
     const dots = dailyTotals.map((d, i) => `<circle cx="${xAt(i)}" cy="${yAt(d[s.key] || 0)}" r="2.5" fill="${s.color}"/>`).join('');
     return `<polyline points="${points}" fill="none" stroke="${s.color}" stroke-width="2"/>${dots}`;
@@ -176,6 +177,8 @@ async function loadStats() {
 
     const totals = {};
     STATS_SERIES.forEach(s => { totals[s.key] = dailyTotals.reduce((sum, d) => sum + (d[s.key] || 0), 0); });
+    const viewSeries = STATS_SERIES.filter(s => s.key === 'view');
+    const otherSeries = STATS_SERIES.filter(s => s.key !== 'view');
 
     contentEl.innerHTML = `
       <div class="statsSummaryRow">
@@ -183,10 +186,18 @@ async function loadStats() {
           <div class="statsSummaryCard"><div class="statsSummaryLabel">期間内・${escapeAttr(s.label)}</div><div class="statsSummaryValue">${totals[s.key]}</div></div>
         `).join('')}
       </div>
+
+      <h3 style="margin:0 0 10px;">詳細表示（クリック数）の推移</h3>
       <div class="statsChartLegend">
-        ${STATS_SERIES.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
+        ${viewSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
       </div>
-      <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals)}</div>
+      <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals, viewSeries)}</div>
+
+      <h3 style="margin:20px 0 10px;">その他の項目の推移</h3>
+      <div class="statsChartLegend">
+        ${otherSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
+      </div>
+      <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals, otherSeries)}</div>
 
       <div class="statsBreakdownRowWrap">
         <div class="statsBreakdownCol">
