@@ -122,6 +122,29 @@
   .type-パラレル { background: #e37eb4; }
   .hint { font-size: 12px; color: #9aa5c0; margin-top: 4px; }
   .galleryPanel { max-width: 1500px; margin: 20px auto 0; }
+  .statsPanel { max-width: 1500px; margin: 20px auto 0; }
+  .statsToolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .statsToolbar select {
+    padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(212,175,106,0.3);
+    background: #10182a; color: var(--text); font-size: 13px;
+  }
+  .statsSummaryRow { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .statsSummaryCard {
+    flex: 1; min-width: 140px; padding: 12px 16px; border-radius: 10px;
+    background: linear-gradient(160deg, rgba(212,175,106,0.08), rgba(0,0,0,0));
+    border: 1px solid rgba(212,175,106,0.25);
+  }
+  .statsSummaryLabel { font-size: 12px; color: #9aa5c0; margin-bottom: 4px; }
+  .statsSummaryValue { font-size: 24px; font-weight: bold; color: var(--gold); }
+  .statsChartWrap { margin-bottom: 24px; overflow-x: auto; }
+  .statsChartLegend { display: flex; gap: 16px; font-size: 12px; color: #9aa5c0; margin-bottom: 8px; }
+  .statsLegendDot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .statsRankingTable { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .statsRankingTable th, .statsRankingTable td { padding: 8px; border-bottom: 1px solid rgba(212,175,106,0.15); text-align: left; }
+  .statsRankingTable th { color: #9aa5c0; font-weight: normal; }
+  .statsRankThumb { width: 40px; height: 56px; object-fit: cover; border-radius: 4px; border: 1px solid rgba(212,175,106,0.3); vertical-align: middle; }
+  .statsRankNum { color: var(--gold); font-weight: bold; width: 28px; }
+  .statsEmptyHint { font-size: 13px; color: #9aa5c0; padding: 20px 0; text-align: center; }
   .streamPackTitle {
     font-size: 20px; font-weight: bold; text-align: center; color: var(--gold);
     margin-bottom: 14px; letter-spacing: 0.02em;
@@ -633,6 +656,26 @@
   <div id="galleryGrid" class="galleryGrid"></div>
 </div>
 
+<!-- ===== 閲覧・お気に入り統計 ===== -->
+<div class="panel statsPanel" id="statsPanel">
+  <h2>📊 閲覧・お気に入り統計 <span class="hint" style="display:inline;">（一覧画面での詳細表示・お気に入り登録を集計）</span></h2>
+  <div class="statsToolbar">
+    <select id="statsSetFilter">
+      <option value="">全弾合算</option>
+    </select>
+    <select id="statsDaysFilter">
+      <option value="30">直近30日</option>
+      <option value="90" selected>直近90日</option>
+      <option value="180">直近180日</option>
+      <option value="3650">全期間</option>
+    </select>
+    <button type="button" class="secondary" id="statsRefreshBtn" style="margin-top:0;">更新</button>
+  </div>
+  <div id="statsContent">
+    <div class="statsEmptyHint">「更新」を押すと統計を取得します</div>
+  </div>
+</div>
+
 <!-- ===== カード編集ポップアップ（表示画面の詳細ポップに近いUI） ===== -->
 <div id="editModalOverlay" class="editModalOverlay">
   <div class="editModalBox">
@@ -674,5 +717,6 @@
 <script src="js/10-edit-popup.js"></script>
 <script src="js/11-hover-preview-boot.js"></script>
 <script src="js/12-page-zoom-admin.js"></script>
+<script src="js/13-stats-admin.js"></script>
 </body>
 </html>
