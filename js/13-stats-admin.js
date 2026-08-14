@@ -1,4 +1,4 @@
-// ===== 閲覧・お気に入り統計 =====
+// ===== 閲覧・お気に入り・ダウンロード・検索・アクセス統計 =====
 // events シート（GAS側でlogEvent/getEventStatsを実装）を集計して表示する。
 // 弾一覧が更新されるたび（refreshSets内から）にフィルタの選択肢も更新される。
 function populateStatsSetFilter() {
@@ -10,7 +10,15 @@ function populateStatsSetFilter() {
   if (prev && sets.some(s => s.setCode === prev)) sel.value = prev;
 }
 
-// 日別の詳細表示数／お気に入り登録数を折れ線グラフで表示する
+const STATS_SERIES = [
+  { key: 'view', label: '詳細表示', color: '#7ec8e3' },
+  { key: 'favorite', label: 'お気に入り登録', color: '#e37eb4' },
+  { key: 'download', label: 'ダウンロード', color: '#8ce38f' },
+  { key: 'search', label: '検索', color: '#f0c36e' },
+  { key: 'visit', label: 'サイト訪問', color: '#b28ce3' }
+];
+
+// 日別の推移（詳細表示/お気に入り/ダウンロード/検索/サイト訪問）を折れ線グラフで表示する
 function buildDailyTrendChart(dailyTotals) {
   if (!dailyTotals.length) return '<div class="statsEmptyHint">この期間のデータはまだありません</div>';
 
@@ -19,13 +27,10 @@ function buildDailyTrendChart(dailyTotals) {
   const paddingLeft = 36, paddingBottom = 28, paddingTop = 14, paddingRight = 16;
   const chartW = width - paddingLeft - paddingRight;
   const chartH = height - paddingTop - paddingBottom;
-  const maxVal = Math.max(1, ...dailyTotals.map(d => Math.max(d.view, d.favorite)));
+  const maxVal = Math.max(1, ...dailyTotals.map(d => Math.max(...STATS_SERIES.map(s => d[s.key] || 0))));
 
   const xAt = (i) => paddingLeft + (dailyTotals.length <= 1 ? chartW / 2 : (i / (dailyTotals.length - 1)) * chartW);
   const yAt = (v) => paddingTop + chartH - (v / maxVal) * chartH;
-
-  const viewPoints = dailyTotals.map((d, i) => `${xAt(i)},${yAt(d.view)}`).join(' ');
-  const favPoints = dailyTotals.map((d, i) => `${xAt(i)},${yAt(d.favorite)}`).join(' ');
 
   let gridHtml = '';
   for (let g = 0; g <= 4; g++) {
@@ -42,28 +47,36 @@ function buildDailyTrendChart(dailyTotals) {
     xLabelHtml += `<text x="${xAt(i)}" y="${height - paddingBottom + 16}" font-size="10" fill="#9aa5c0" text-anchor="middle">${d.date.slice(5)}</text>`;
   });
 
+  const seriesHtml = STATS_SERIES.map(s => {
+    const points = dailyTotals.map((d, i) => `${xAt(i)},${yAt(d[s.key] || 0)}`).join(' ');
+    const dots = dailyTotals.map((d, i) => `<circle cx="${xAt(i)}" cy="${yAt(d[s.key] || 0)}" r="2.5" fill="${s.color}"/>`).join('');
+    return `<polyline points="${points}" fill="none" stroke="${s.color}" stroke-width="2"/>${dots}`;
+  }).join('');
+
   return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="min-width:${width}px; display:block;">
     ${gridHtml}
     ${xLabelHtml}
-    <polyline points="${viewPoints}" fill="none" stroke="#7ec8e3" stroke-width="2"/>
-    <polyline points="${favPoints}" fill="none" stroke="#e37eb4" stroke-width="2"/>
-    ${dailyTotals.map((d, i) => `<circle cx="${xAt(i)}" cy="${yAt(d.view)}" r="2.5" fill="#7ec8e3"/>`).join('')}
-    ${dailyTotals.map((d, i) => `<circle cx="${xAt(i)}" cy="${yAt(d.favorite)}" r="2.5" fill="#e37eb4"/>`).join('')}
+    ${seriesHtml}
   </svg>`;
 }
 
-// カードごとの内訳ランキング（閲覧＋お気に入りの合計が多い順、全期間で集計）
+function statsCardLabel(c) {
+  const setLabel = c.setCode + (getSetName(c.setCode) ? ' ' + getSetName(c.setCode) : ''); // パック番号の後ろにパック名も表示
+  return `${escapeAttr(c.cardName || '(不明)')} <span class="hint">（${escapeAttr(setLabel)} / ${escapeAttr(c.type)} 枠${escapeAttr(String(c.slot))}）</span>`;
+}
+
+// カードごとの内訳ランキング（閲覧＋お気に入りの合計が多い順、全期間で集計）。行クリックでそのカードへ遷移する
 function buildRankingTable(cardRanking) {
   if (!cardRanking.length) return '<div class="statsEmptyHint">まだデータがありません</div>';
   const top = cardRanking.slice(0, 30);
   return `
-    <table class="statsRankingTable">
+    <table class="statsRankingTable" data-kind="rank">
       <thead><tr><th>#</th><th>カード</th><th>閲覧</th><th>お気に入り</th><th>合計</th></tr></thead>
       <tbody>
         ${top.map((c, i) => `
-          <tr>
+          <tr class="statsRankRow" data-setcode="${escapeAttr(c.setCode)}" data-type="${escapeAttr(c.type)}" data-slot="${escapeAttr(String(c.slot))}">
             <td class="statsRankNum">${i + 1}</td>
-            <td>${escapeAttr(c.cardName || '(不明)')} <span class="hint">（${escapeAttr(c.setCode)} / ${escapeAttr(c.type)} 枠${escapeAttr(String(c.slot))}）</span></td>
+            <td>${statsCardLabel(c)}</td>
             <td>${c.view}</td>
             <td>${c.favorite}</td>
             <td><strong>${c.view + c.favorite}</strong></td>
@@ -72,6 +85,71 @@ function buildRankingTable(cardRanking) {
       </tbody>
     </table>
   `;
+}
+
+// ダウンロード数のみでのランキング（全期間・ダウンロードが1件以上あるカードのみ）。行クリックでそのカードへ遷移する
+function buildDownloadRankingTable(downloadRanking) {
+  if (!downloadRanking.length) return '<div class="statsEmptyHint">まだダウンロードの記録がありません</div>';
+  const top = downloadRanking.slice(0, 30);
+  return `
+    <table class="statsRankingTable" data-kind="download">
+      <thead><tr><th>#</th><th>カード</th><th>ダウンロード数</th></tr></thead>
+      <tbody>
+        ${top.map((c, i) => `
+          <tr class="statsRankRow" data-setcode="${escapeAttr(c.setCode)}" data-type="${escapeAttr(c.type)}" data-slot="${escapeAttr(String(c.slot))}">
+            <td class="statsRankNum">${i + 1}</td>
+            <td>${statsCardLabel(c)}</td>
+            <td><strong>${c.download}</strong></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// 端末・ブラウザの内訳を簡易な棒グラフ風リストで表示する
+function buildBreakdownList(breakdown) {
+  if (!breakdown.length) return '<div class="statsEmptyHint">データがありません</div>';
+  const total = breakdown.reduce((s, b) => s + b.count, 0) || 1;
+  return `
+    <div class="statsBreakdownList">
+      ${breakdown.map(b => `
+        <div class="statsBreakdownRow">
+          <span class="statsBreakdownLabel">${escapeAttr(b.label)}</span>
+          <div class="statsBreakdownBarWrap"><div class="statsBreakdownBar" style="width:${Math.round(b.count / total * 100)}%;"></div></div>
+          <span class="statsBreakdownCount">${b.count}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ランキング行クリックでそのカードへ遷移（弾が違えば切り替えてから編集ポップアップを開く）
+async function jumpToCardFromStats(setCode, type, slot) {
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) return;
+  const sel = document.getElementById('activeSet');
+  try {
+    if (sel.value !== setCode) {
+      sel.value = setCode;
+      renderIconSelectOptions(sel, sets, Object.fromEntries(sets.map(s => [s.setCode, s.packImageUrl])));
+      await renderGallery();
+    }
+    const res = await fetch(gasUrl + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+    const card = await res.json();
+    if (!card) { alert('該当のカードが見つかりませんでした（削除されている可能性があります）'); return; }
+    await startEditCard(card);
+  } catch (err) {
+    alert('カードの取得に失敗しました: ' + err.message);
+  }
+}
+
+function bindStatsRankingClicks(container) {
+  container.querySelectorAll('.statsRankRow').forEach(row => {
+    row.addEventListener('click', () => {
+      jumpToCardFromStats(row.dataset.setcode, row.dataset.type, row.dataset.slot);
+    });
+  });
 }
 
 async function loadStats() {
@@ -92,23 +170,45 @@ async function loadStats() {
 
     const dailyTotals = data.dailyTotals || [];
     const cardRanking = data.cardRanking || [];
-    const totalView = dailyTotals.reduce((s, d) => s + d.view, 0);
-    const totalFav = dailyTotals.reduce((s, d) => s + d.favorite, 0);
+    const downloadRanking = data.downloadRanking || [];
+    const deviceBreakdown = data.deviceBreakdown || [];
+    const browserBreakdown = data.browserBreakdown || [];
+
+    const totals = {};
+    STATS_SERIES.forEach(s => { totals[s.key] = dailyTotals.reduce((sum, d) => sum + (d[s.key] || 0), 0); });
 
     contentEl.innerHTML = `
       <div class="statsSummaryRow">
-        <div class="statsSummaryCard"><div class="statsSummaryLabel">期間内・詳細表示</div><div class="statsSummaryValue">${totalView}</div></div>
-        <div class="statsSummaryCard"><div class="statsSummaryLabel">期間内・お気に入り登録</div><div class="statsSummaryValue">${totalFav}</div></div>
-        <div class="statsSummaryCard"><div class="statsSummaryLabel">集計対象カード数（全期間）</div><div class="statsSummaryValue">${cardRanking.length}</div></div>
+        ${STATS_SERIES.map(s => `
+          <div class="statsSummaryCard"><div class="statsSummaryLabel">期間内・${escapeAttr(s.label)}</div><div class="statsSummaryValue">${totals[s.key]}</div></div>
+        `).join('')}
       </div>
       <div class="statsChartLegend">
-        <span><span class="statsLegendDot" style="background:#7ec8e3;"></span>詳細表示</span>
-        <span><span class="statsLegendDot" style="background:#e37eb4;"></span>お気に入り登録</span>
+        ${STATS_SERIES.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
       </div>
       <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals)}</div>
-      <h3 style="margin:0 0 10px;">人気カードランキング（全期間・上位30件）</h3>
+
+      <div class="statsBreakdownRowWrap">
+        <div class="statsBreakdownCol">
+          <h3 style="margin:0 0 10px;">端末別内訳（期間内）</h3>
+          ${buildBreakdownList(deviceBreakdown)}
+        </div>
+        <div class="statsBreakdownCol">
+          <h3 style="margin:0 0 10px;">ブラウザ別内訳（期間内）</h3>
+          ${buildBreakdownList(browserBreakdown)}
+        </div>
+      </div>
+
+      <h3 style="margin:20px 0 10px;">人気カードランキング（全期間・閲覧+お気に入り順・上位30件）</h3>
+      <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
       ${buildRankingTable(cardRanking)}
+
+      <h3 style="margin:20px 0 10px;">ダウンロードランキング（全期間・上位30件）</h3>
+      <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
+      ${buildDownloadRankingTable(downloadRanking)}
     `;
+
+    bindStatsRankingClicks(contentEl);
   } catch (err) {
     contentEl.innerHTML = `<div class="statsEmptyHint">取得エラー: ${escapeAttr(err.message)}</div>`;
   }

@@ -28,11 +28,31 @@ let favGroups = JSON.parse(localStorage.getItem('cardFavGroups') || '{}');
 let activeGroup = Object.keys(favGroups)[0] || null; // ★クリックで追加する対象グループ
 let favViewGroup = null; // 現在お気に入り表示モード中のグループ名（nullなら通常表示）
 
-// カード詳細の閲覧・お気に入り登録を裏側でGASに記録する（統計用）。
+// ===== 端末種別・ブラウザの簡易判定（統計用。個人を特定する情報ではない） =====
+function detectDeviceType() {
+  const ua = navigator.userAgent || '';
+  if (/iPad|Android(?!.*Mobile)|Tablet/i.test(ua)) return 'タブレット';
+  if (/Mobile|iPhone|iPod|Android/i.test(ua)) return 'スマホ';
+  return 'PC';
+}
+function detectBrowserName() {
+  const ua = navigator.userAgent || '';
+  if (/Edg\//.test(ua)) return 'Edge';
+  if (/OPR\//.test(ua) || /Opera/i.test(ua)) return 'Opera';
+  if (/CriOS/.test(ua)) return 'Chrome(iOS)';
+  if (/FxiOS/.test(ua)) return 'Firefox(iOS)';
+  if (/Chrome\//.test(ua) && !/Edg\//.test(ua)) return 'Chrome';
+  if (/Firefox\//.test(ua)) return 'Firefox';
+  if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) return 'Safari';
+  return 'その他';
+}
+
+// カード詳細の閲覧・お気に入り登録・ダウンロード・検索・サイト訪問を裏側でGASに記録する（統計用）。
 // 表示速度・操作感に影響させたくないので、結果を待たず（await しない）投げっぱなしにする。
-// 個人を特定できる情報（IP等）は送らず、「いつ・どのカードで・何が起きたか」だけを記録する。
-function logStatEvent(eventType, c) {
-  if (!c) return;
+// 個人を特定できる情報（IP等）は送らず、「いつ・何が・どの端末/ブラウザで起きたか」だけを記録する。
+// c: カードに紐づくイベント（view/favorite/download）の場合はカードオブジェクト、それ以外はnull
+// detail: search イベントの検索語句など、カード以外の補足情報
+function logStatEvent(eventType, c, detail) {
   try {
     fetch(GAS_URL, {
       method: 'POST',
@@ -40,10 +60,13 @@ function logStatEvent(eventType, c) {
       body: JSON.stringify({
         action: 'logEvent',
         eventType,
-        setCode: c.setCode || '',
-        type: c.type || '',
-        slot: c.slot || '',
-        cardName: c.cardName || ''
+        setCode: c ? (c.setCode || '') : '',
+        type: c ? (c.type || '') : '',
+        slot: c ? (c.slot || '') : '',
+        cardName: c ? (c.cardName || '') : '',
+        detail: detail || '',
+        device: detectDeviceType(),
+        browser: detectBrowserName()
       })
     }).catch(() => { /* 統計記録に失敗しても閲覧体験には影響させない */ });
   } catch (e) { /* fetch自体が使えない環境等でも無視 */ }

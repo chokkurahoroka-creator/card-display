@@ -7,6 +7,7 @@ function navigate(delta) {
 async function downloadCurrentImage() {
   if (navIndex === -1) return;
   const c = navList[navIndex];
+  logStatEvent('download', c); // 統計用：画像ダウンロードを記録
   try {
     const res = await fetch(c.imageUrl);
     const blob = await res.blob();

@@ -1,3 +1,5 @@
+let searchLogTimer = null; // 統計用：検索イベント記録のデバウンス
+
 // ===== パック画像アイコン付きの弾選択ドロップダウン =====
 // 既存の<select>はそのまま(value/change)を使い続け、見た目だけをアイコン付きの
 // カスタムリストに差し替える。他の箇所からsel.valueを直接変更した場合は
@@ -70,6 +72,7 @@ function relocateSearchBar() {
 window.addEventListener('resize', relocateSearchBar);
 
 async function init() {
+  logStatEvent('visit', null); // 統計用：サイトへのアクセスを記録
   relocateSearchBar();
   const [setsRes, defRes] = await Promise.all([
     fetch(GAS_URL + '?action=listSets'),
@@ -112,6 +115,12 @@ async function init() {
     document.getElementById('featuredFilterBtn').classList.remove('active');
     searchQuery = e.target.value.trim();
     render();
+
+    // 統計用：検索イベントを記録（1文字ごとに送ると多すぎるため、入力が落ち着いてから記録する）
+    clearTimeout(searchLogTimer);
+    if (searchQuery) {
+      searchLogTimer = setTimeout(() => logStatEvent('search', null, searchQuery), 800);
+    }
   });
 
   // お気に入りメニュー
