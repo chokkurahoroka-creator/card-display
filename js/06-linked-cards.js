@@ -19,7 +19,7 @@ function clearLinkedCards() {
 
 // 「元カードと同一」ONの間、値の手入力を防ぐために対象フィールドをdisabled/enabledにする
 function setSyncFieldsDisabled(disabled) {
-  ['f_name', 'f_attr', 'f_hp', 'f_stage', 'f_baton', 'f_limited',
+  ['f_tag', 'f_tags', 'f_name', 'f_attr', 'f_hp', 'f_stage', 'f_baton', 'f_limited',
    'rate_hp', 'rate_power', 'rate_speed', 'rate_stamina', 'rate_luck', 'rate_potential', 'rate_comment']
     .forEach(id => { document.getElementById(id).disabled = disabled; });
   document.getElementById('addArtsBtn').disabled = disabled;
@@ -29,7 +29,8 @@ function setSyncFieldsDisabled(disabled) {
   renderAllRatingIndicators();
 }
 
-// 指定した関連カードの詳細（GAS getCard）を取得し、カード名・属性・HP・ステージ・バトンタッチコスト・アーツ・スキル・評価をフォームへコピーする
+// 指定した関連カードの詳細（GAS getCard）を取得し、カードタイプ・タグ・カード名・属性・HP・ステージ・
+// バトンタッチコスト・アーツ・スキル・評価をフォームへコピーする
 async function applySyncFromLinkedCard(idx) {
   const target = linkedCards[idx];
   const gasUrl = getCfg('gas');
@@ -40,12 +41,15 @@ async function applySyncFromLinkedCard(idx) {
     const src = await res.json();
     if (!src) { setStatus('元カードの情報取得に失敗しました'); syncSourceIdx = -1; renderLinkedCardsList(); return; }
 
+    document.getElementById('f_tag').value = src.cardType || '';
+    document.getElementById('f_tags').value = src.tags || '';
     document.getElementById('f_name').value = src.cardName || '';
     document.getElementById('f_attr').value = src.attribute || '';
     document.getElementById('f_hp').value = src.hp || '';
     document.getElementById('f_stage').value = src.stage || '';
     document.getElementById('f_baton').value = src.batonTouchCost || '';
     document.getElementById('f_limited').checked = isFlagTrue(src.isLimited);
+    updateHolomenVisibility(); // f_tagを直接書き換えたので、ホロメン/サポート項目の表示や評価ラベルを手動で更新する
 
     let arts = [], skills = [];
     try { arts = JSON.parse(src.artsJson || '[]'); } catch (e) {}

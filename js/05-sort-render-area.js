@@ -20,23 +20,28 @@ function byNameJa(a, b) {
   return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
 }
 
-// 再録・パラレル共通の並び替え順（各属性→サポート→その他）。navList構築側でも同じ順序を使う
+// 再録・パラレル共通の並び替え順（推しホロメン→ホロメン→サポート→その他）。navList構築側でも同じ順序を使う
 function sortByCategory(cardsOfType) {
-  const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('ホロメン') !== -1);
+  const oshiCards = cardsOfType.filter(c => (c.cardType || '').indexOf('推しホロメン') !== -1);
+  const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('推しホロメン') === -1 && (c.cardType || '').indexOf('ホロメン') !== -1);
   const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
-  const otherCards = cardsOfType.filter(c => holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1);
+  const otherCards = cardsOfType.filter(c =>
+    oshiCards.indexOf(c) === -1 && holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1
+  );
 
-  holomenCards.sort((a, b) => {
+  const byAttrThenName = (a, b) => {
     const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
     return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b) || (stageOrderIndex(a.stage) - stageOrderIndex(b.stage));
-  });
+  };
+  oshiCards.sort(byAttrThenName);
+  holomenCards.sort(byAttrThenName);
   supportCards.sort((a, b) => {
     const ai = getSupportSubtypeIndex(a.cardType); const bi = getSupportSubtypeIndex(b.cardType);
     return (ai - bi) || byNameJa(a, b);
   });
   otherCards.sort(byNameJa);
 
-  return [...holomenCards, ...supportCards, ...otherCards];
+  return [...oshiCards, ...holomenCards, ...supportCards, ...otherCards];
 }
 
 function renderArea(type, total, offset) {
