@@ -153,6 +153,8 @@ async function refreshSets() {
   const packIconMap = Object.fromEntries(sets.map(s => [s.setCode, s.packImageUrl]));
   renderIconSelectOptions(sel, sets, packIconMap);
 
+  if (typeof populateStatsSetFilter === 'function') populateStatsSetFilter();
+
   renderSetStatusTable();
 }
 

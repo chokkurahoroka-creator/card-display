@@ -1,5 +1,6 @@
 function openModal(c) {
   navIndex = navList.findIndex(x => x.type === c.type && String(x.slot) === String(c.slot));
+  logStatEvent('view', c); // 統計用：詳細表示を開いた記録（表示体験には影響しない）
 
   document.getElementById('modalImg').src = c.imageUrl;
   document.getElementById('modalImg').alt = c.cardName;

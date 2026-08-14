@@ -28,3 +28,25 @@ let favGroups = JSON.parse(localStorage.getItem('cardFavGroups') || '{}');
 let activeGroup = Object.keys(favGroups)[0] || null; // ★クリックで追加する対象グループ
 let favViewGroup = null; // 現在お気に入り表示モード中のグループ名（nullなら通常表示）
 
+// カード詳細の閲覧・お気に入り登録を裏側でGASに記録する（統計用）。
+// 表示速度・操作感に影響させたくないので、結果を待たず（await しない）投げっぱなしにする。
+// 個人を特定できる情報（IP等）は送らず、「いつ・どのカードで・何が起きたか」だけを記録する。
+function logStatEvent(eventType, c) {
+  if (!c) return;
+  try {
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'logEvent',
+        eventType,
+        setCode: c.setCode || '',
+        type: c.type || '',
+        slot: c.slot || '',
+        cardName: c.cardName || ''
+      })
+    }).catch(() => { /* 統計記録に失敗しても閲覧体験には影響させない */ });
+  } catch (e) { /* fetch自体が使えない環境等でも無視 */ }
+}
+
+

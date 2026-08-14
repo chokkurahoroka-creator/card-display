@@ -12,7 +12,7 @@ function toggleFav(c) {
   const key = cardKey(c);
   const arr = favGroups[activeGroup];
   const idx = arr.indexOf(key);
-  if (idx === -1) arr.push(key); else arr.splice(idx, 1);
+  if (idx === -1) { arr.push(key); logStatEvent('favorite', c); } else { arr.splice(idx, 1); } // 統計は追加時のみ記録（削除は対象外）
   saveFavGroups();
   renderFavMenu();
   // 表示中のスターの見た目だけ更新（再描画は避けて軽量に）
