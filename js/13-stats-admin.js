@@ -129,32 +129,49 @@ function buildBreakdownList(breakdown) {
 }
 
 // 時間帯（0〜23時）別のアクセス数をレーダー風のradial bar chart（円形の棒グラフ）で表示する
-// hourly は 24個の数値配列（インデックス=時、値=件数）を想定
-function buildHourlyRadialChart(hourly) {
-  if (!Array.isArray(hourly) || !hourly.length || !hourly.some(v => v > 0)) {
+// items: 24件の配列（インデックス=時）。各要素は { hour, sum または count, avg?, max?, min? } を想定
+//   - avg/max/min が含まれる場合（期間集計）：ホバー時に日平均・最大・最小も表示する
+//   - 含まれない場合（直近24時間の実データ）：件数のみのシンプルな表示
+// opts.size: SVGの一辺のサイズ（省略時300）
+function buildHourlyRadialChart(items, opts) {
+  opts = opts || {};
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const getValue = (it) => (it.sum !== undefined ? it.sum : (it.count || 0));
+
+  if (!Array.isArray(items) || items.length < 24 || !items.some(it => getValue(it) > 0)) {
     return '<div class="statsEmptyHint">この期間の時間帯データはまだありません</div>';
   }
-  const size = 320;
+
+  const size = opts.size || 300;
   const center = size / 2;
-  const innerR = 46;
-  const maxBarLen = 108;
-  const maxVal = Math.max(1, ...hourly);
+  const innerR = size * 0.145;
+  const maxBarLen = size * 0.33;
+  const maxVal = Math.max(1, ...items.map(getValue));
   const stepDeg = 360 / 24;
   const gapDeg = 1.4;
   const toRad = (deg) => (deg * Math.PI) / 180;
 
+  // 目盛りの同心円＋その値ラベル（右上45°方向に配置し、時刻ラベルと重ならないようにする）
   let gridHtml = '';
   [0.33, 0.66, 1].forEach(frac => {
-    gridHtml += `<circle cx="${center}" cy="${center}" r="${innerR + maxBarLen * frac}" fill="none" stroke="rgba(212,175,106,0.12)" stroke-width="1"/>`;
+    const r = innerR + maxBarLen * frac;
+    gridHtml += `<circle cx="${center}" cy="${center}" r="${r.toFixed(1)}" fill="none" stroke="rgba(212,175,106,0.14)" stroke-width="1"/>`;
+    const gv = Math.round(maxVal * frac);
+    const gx = center + r * Math.cos(toRad(-45));
+    const gy = center + r * Math.sin(toRad(-45));
+    gridHtml += `<text x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" font-size="9.5" fill="#8894ab" text-anchor="middle" dominant-baseline="middle">${gv}</text>`;
   });
 
   let barsHtml = '';
   let labelsHtml = '';
+  let valueLabelsHtml = '';
   for (let h = 0; h < 24; h++) {
-    const val = hourly[h] || 0;
+    const it = items[h] || {};
+    const val = getValue(it);
     const outerR = innerR + (val / maxVal) * maxBarLen;
     const startAngle = -90 + h * stepDeg + gapDeg / 2;
     const endAngle = -90 + (h + 1) * stepDeg - gapDeg / 2;
+    const midAngle = -90 + h * stepDeg + stepDeg / 2;
 
     const x1 = center + innerR * Math.cos(toRad(startAngle));
     const y1 = center + innerR * Math.sin(toRad(startAngle));
@@ -167,23 +184,36 @@ function buildHourlyRadialChart(hourly) {
     const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
     const opacity = (0.32 + (val / maxVal) * 0.68).toFixed(2);
 
-    barsHtml += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${outerR.toFixed(1)},${outerR.toFixed(1)} 0 ${largeArc} 1 ${x3.toFixed(1)},${y3.toFixed(1)} L${x4.toFixed(1)},${y4.toFixed(1)} A${innerR},${innerR} 0 ${largeArc} 0 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="var(--gold)" fill-opacity="${opacity}" stroke="rgba(212,175,106,0.5)" stroke-width="0.5"><title>${h}時台: ${val}件</title></path>`;
+    let tooltip = `${pad2(h)}:00 — ${val}件`;
+    if (it.avg !== undefined) {
+      tooltip += ` / 日平均 ${it.avg}件 / 最大 ${it.max}件 / 最小 ${it.min}件`;
+    }
 
+    barsHtml += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${outerR.toFixed(1)},${outerR.toFixed(1)} 0 ${largeArc} 1 ${x3.toFixed(1)},${y3.toFixed(1)} L${x4.toFixed(1)},${y4.toFixed(1)} A${innerR.toFixed(1)},${innerR.toFixed(1)} 0 ${largeArc} 0 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="var(--gold)" fill-opacity="${opacity}" stroke="rgba(212,175,106,0.5)" stroke-width="0.5"><title>${tooltip}</title></path>`;
+
+    // バーの値をバー先端のすぐ外側に表示
+    if (val > 0) {
+      const vr = outerR + 9;
+      const vx = center + vr * Math.cos(toRad(midAngle));
+      const vy = center + vr * Math.sin(toRad(midAngle));
+      valueLabelsHtml += `<text x="${vx.toFixed(1)}" y="${vy.toFixed(1)}" font-size="9.5" fill="var(--gold)" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${val}</text>`;
+    }
+
+    // 時刻ラベル（3時間おき・"00:00"形式）
     if (h % 3 === 0) {
-      const labelR = innerR + maxBarLen + 18;
-      const midAngle = -90 + h * stepDeg + stepDeg / 2;
+      const labelR = innerR + maxBarLen + 22;
       const lx = center + labelR * Math.cos(toRad(midAngle));
       const ly = center + labelR * Math.sin(toRad(midAngle));
-      labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#9aa5c0" text-anchor="middle" dominant-baseline="middle">${h}時</text>`;
+      labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#9aa5c0" text-anchor="middle" dominant-baseline="middle">${pad2(h)}:00</text>`;
     }
   }
 
-  return `<svg viewBox="0 0 ${size} ${size}" width="320" height="320" style="display:block;">
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="display:block; overflow:visible;">
     ${gridHtml}
     ${barsHtml}
+    ${valueLabelsHtml}
     ${labelsHtml}
-    <circle cx="${center}" cy="${center}" r="${innerR - 2}" fill="#10182a" stroke="rgba(212,175,106,0.3)" stroke-width="1"/>
-    <text x="${center}" y="${center}" font-size="12" fill="#9aa5c0" text-anchor="middle" dominant-baseline="middle">時間帯別</text>
+    <circle cx="${center}" cy="${center}" r="${(innerR - 2).toFixed(1)}" fill="#10182a" stroke="rgba(212,175,106,0.3)" stroke-width="1"/>
   </svg>`;
 }
 
@@ -236,6 +266,8 @@ async function loadStats() {
     const downloadRanking = data.downloadRanking || [];
     const deviceBreakdown = data.deviceBreakdown || [];
     const browserBreakdown = data.browserBreakdown || [];
+    const hourlyStats = data.hourlyStats || [];
+    const recentHourly = data.recentHourly || [];
 
     const totals = {};
     STATS_SERIES.forEach(s => { totals[s.key] = dailyTotals.reduce((sum, d) => sum + (d[s.key] || 0), 0); });
@@ -249,44 +281,67 @@ async function loadStats() {
         `).join('')}
       </div>
 
-      <div class="statsChartsRow">
-        <div class="statsChartCol">
-          <h3 style="margin:0 0 10px;">詳細表示（クリック数）の推移</h3>
-          <div class="statsChartLegend">
-            ${viewSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
+      <div class="statsSection">
+        <h3>推移グラフ</h3>
+        <div class="statsChartsRow">
+          <div class="statsChartCol">
+            <div class="hint" style="margin-bottom:6px;">詳細表示（クリック数）の推移</div>
+            <div class="statsChartLegend">
+              ${viewSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
+            </div>
+            <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals, viewSeries)}</div>
           </div>
-          <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals, viewSeries)}</div>
-        </div>
-        <div class="statsChartCol">
-          <h3 style="margin:0 0 10px;">その他の項目の推移</h3>
-          <div class="statsChartLegend">
-            ${otherSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
+          <div class="statsChartCol">
+            <div class="hint" style="margin-bottom:6px;">その他の項目の推移</div>
+            <div class="statsChartLegend">
+              ${otherSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
+            </div>
+            <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals, otherSeries)}</div>
           </div>
-          <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals, otherSeries)}</div>
         </div>
       </div>
 
-      <h3 style="margin:20px 0 10px;">時間帯別アクセス数 <span class="hint" style="display:inline;">（期間内合計・24時間の分布）</span></h3>
-      <div class="statsRadialWrap">${buildHourlyRadialChart(data.hourlyBreakdown)}</div>
-
-      <div class="statsBreakdownRowWrap">
-        <div class="statsBreakdownCol">
-          <h3 style="margin:0 0 10px;">端末別内訳（期間内）</h3>
-          ${buildBreakdownList(deviceBreakdown)}
-        </div>
-        <div class="statsBreakdownCol">
-          <h3 style="margin:0 0 10px;">ブラウザ別内訳（期間内）</h3>
-          ${buildBreakdownList(browserBreakdown)}
+      <div class="statsSection">
+        <h3>時間帯別アクセス数</h3>
+        <div class="statsRadialRow">
+          <div class="statsRadialCol">
+            <h4>期間中のアクセス数（時間帯別）</h4>
+            <div class="statsRadialNote">バーにカーソルを合わせると日平均・最大・最小を表示します</div>
+            <div class="statsRadialSvgWrap">${buildHourlyRadialChart(hourlyStats, { size: 320 })}</div>
+          </div>
+          <div class="statsRadialCol">
+            <h4>直近24時間のアクセス数</h4>
+            <div class="statsRadialNote">期間の絞り込みによらず常に直近24時間を表示します</div>
+            <div class="statsRadialSvgWrap">${buildHourlyRadialChart(recentHourly, { size: 320 })}</div>
+          </div>
         </div>
       </div>
 
-      <h3 style="margin:20px 0 10px;">人気カードランキング（全期間・閲覧+お気に入り順・上位30件）</h3>
-      <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
-      ${buildRankingTable(cardRanking)}
+      <div class="statsSection">
+        <h3>端末・ブラウザ内訳（期間内）</h3>
+        <div class="statsBreakdownRowWrap" style="margin-top:0;">
+          <div class="statsBreakdownCol">
+            <div class="hint" style="margin-bottom:8px;">端末別</div>
+            ${buildBreakdownList(deviceBreakdown)}
+          </div>
+          <div class="statsBreakdownCol">
+            <div class="hint" style="margin-bottom:8px;">ブラウザ別</div>
+            ${buildBreakdownList(browserBreakdown)}
+          </div>
+        </div>
+      </div>
 
-      <h3 style="margin:20px 0 10px;">ダウンロードランキング（全期間・上位30件）</h3>
-      <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
-      ${buildDownloadRankingTable(downloadRanking)}
+      <div class="statsSection">
+        <h3>人気カードランキング <span class="hint" style="display:inline;">（全期間・閲覧+お気に入り順・上位30件）</span></h3>
+        <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
+        ${buildRankingTable(cardRanking)}
+      </div>
+
+      <div class="statsSection">
+        <h3>ダウンロードランキング <span class="hint" style="display:inline;">（全期間・上位30件）</span></h3>
+        <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
+        ${buildDownloadRankingTable(downloadRanking)}
+      </div>
     `;
 
     bindStatsRankingClicks(contentEl);
