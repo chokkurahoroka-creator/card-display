@@ -66,13 +66,13 @@ function statsCardLabel(c) {
   return `${escapeAttr(c.cardName || '(不明)')} <span class="hint">（${escapeAttr(setLabel)} / ${escapeAttr(c.type)} 枠${escapeAttr(String(c.slot))}）</span>`;
 }
 
-// カードごとの内訳ランキング（閲覧＋お気に入りの合計が多い順、全期間で集計）。行クリックでそのカードへ遷移する
+// カードごとの内訳ランキング（閲覧＋お気に入り＋ダウンロードの合計が多い順、全期間で集計）。行クリックでそのカードへ遷移する
 function buildRankingTable(cardRanking) {
   if (!cardRanking.length) return '<div class="statsEmptyHint">まだデータがありません</div>';
   const top = cardRanking.slice(0, 30);
   return `
     <table class="statsRankingTable" data-kind="rank">
-      <thead><tr><th>#</th><th>カード</th><th>閲覧</th><th>お気に入り</th><th>合計</th></tr></thead>
+      <thead><tr><th>#</th><th>カード</th><th>閲覧</th><th>お気に入り</th><th>DL</th><th>合計</th></tr></thead>
       <tbody>
         ${top.map((c, i) => `
           <tr class="statsRankRow" data-setcode="${escapeAttr(c.setCode)}" data-type="${escapeAttr(c.type)}" data-slot="${escapeAttr(String(c.slot))}">
@@ -80,7 +80,8 @@ function buildRankingTable(cardRanking) {
             <td>${statsCardLabel(c)}</td>
             <td>${c.view}</td>
             <td>${c.favorite}</td>
-            <td><strong>${c.view + c.favorite}</strong></td>
+            <td>${c.download}</td>
+            <td><strong>${c.view + c.favorite + c.download}</strong></td>
           </tr>
         `).join('')}
       </tbody>
@@ -132,7 +133,8 @@ function buildBreakdownList(breakdown) {
 // items: 24件の配列（インデックス=時）。各要素は { hour, sum または count, avg?, max?, min? } を想定
 //   - avg/max/min が含まれる場合（期間集計）：ホバー時に日平均・最大・最小も表示する
 //   - 含まれない場合（直近24時間の実データ）：件数のみのシンプルな表示
-// opts.size: SVGの一辺のサイズ（省略時300）
+// opts.size: SVGの一辺のサイズ（省略時300）。ラベルが枠外にはみ出さないよう、内側の棒の最大半径を
+// センターから十分な余白を残して固定する（0時・12時のラベルも欠けずに見えるようにするための対策）
 function buildHourlyRadialChart(items, opts) {
   opts = opts || {};
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -144,8 +146,10 @@ function buildHourlyRadialChart(items, opts) {
 
   const size = opts.size || 300;
   const center = size / 2;
-  const innerR = size * 0.145;
-  const maxBarLen = size * 0.33;
+  // ラベル分の余白（時刻ラベル+数字ラベルの高さを見込んで center から一定量を必ず確保する）
+  const labelMargin = Math.max(48, size * 0.16);
+  const innerR = size * 0.13;
+  const maxBarLen = center - labelMargin - innerR;
   const maxVal = Math.max(1, ...items.map(getValue));
   const stepDeg = 360 / 24;
   const gapDeg = 1.4;
@@ -189,7 +193,7 @@ function buildHourlyRadialChart(items, opts) {
       tooltip += ` / 日平均 ${it.avg}件 / 最大 ${it.max}件 / 最小 ${it.min}件`;
     }
 
-    barsHtml += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${outerR.toFixed(1)},${outerR.toFixed(1)} 0 ${largeArc} 1 ${x3.toFixed(1)},${y3.toFixed(1)} L${x4.toFixed(1)},${y4.toFixed(1)} A${innerR.toFixed(1)},${innerR.toFixed(1)} 0 ${largeArc} 0 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="var(--gold)" fill-opacity="${opacity}" stroke="rgba(212,175,106,0.5)" stroke-width="0.5"><title>${tooltip}</title></path>`;
+    barsHtml += `<path class="statsRadialBar" data-tooltip="${escapeAttr(tooltip)}" d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${outerR.toFixed(1)},${outerR.toFixed(1)} 0 ${largeArc} 1 ${x3.toFixed(1)},${y3.toFixed(1)} L${x4.toFixed(1)},${y4.toFixed(1)} A${innerR.toFixed(1)},${innerR.toFixed(1)} 0 ${largeArc} 0 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="var(--gold)" fill-opacity="${opacity}" stroke="rgba(212,175,106,0.5)" stroke-width="0.5" style="cursor:pointer;"></path>`;
 
     // バーの値をバー先端のすぐ外側に表示
     if (val > 0) {
@@ -199,9 +203,9 @@ function buildHourlyRadialChart(items, opts) {
       valueLabelsHtml += `<text x="${vx.toFixed(1)}" y="${vy.toFixed(1)}" font-size="9.5" fill="var(--gold)" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${val}</text>`;
     }
 
-    // 時刻ラベル（3時間おき・"00:00"形式）
+    // 時刻ラベル（3時間おき・"00:00"形式。0時・12時も必ず含まれる）
     if (h % 3 === 0) {
-      const labelR = innerR + maxBarLen + 22;
+      const labelR = innerR + maxBarLen + 20;
       const lx = center + labelR * Math.cos(toRad(midAngle));
       const ly = center + labelR * Math.sin(toRad(midAngle));
       labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#9aa5c0" text-anchor="middle" dominant-baseline="middle">${pad2(h)}:00</text>`;
@@ -215,6 +219,43 @@ function buildHourlyRadialChart(items, opts) {
     ${labelsHtml}
     <circle cx="${center}" cy="${center}" r="${(innerR - 2).toFixed(1)}" fill="#10182a" stroke="rgba(212,175,106,0.3)" stroke-width="1"/>
   </svg>`;
+}
+
+// ===== radial bar chart用のホバーツールチップ（SVGネイティブの<title>は表示が遅く見えづらいため、
+// カード検索結果のホバープレビュー(11-hover-preview-boot.js)と同様に即時表示するカスタム実装にしている） =====
+function showStatsTooltip(text, x, y) {
+  let el = document.getElementById('statsRadialTooltip');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'statsRadialTooltip';
+    el.style.cssText = 'position:fixed; z-index:3000; pointer-events:none; display:none; padding:6px 11px; font-size:12px; line-height:1.5; color:#f0e6d2; background:rgba(10,14,24,0.96); border:1px solid rgba(212,175,106,0.55); border-radius:6px; box-shadow:0 8px 22px rgba(0,0,0,0.5); white-space:nowrap;';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.display = 'block';
+  positionStatsTooltip(x, y);
+}
+function positionStatsTooltip(x, y) {
+  const el = document.getElementById('statsRadialTooltip');
+  if (!el) return;
+  const margin = 14;
+  const rect = el.getBoundingClientRect();
+  let left = x + margin, top = y + margin;
+  if (left + rect.width > window.innerWidth) left = x - rect.width - margin;
+  if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - margin;
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+}
+function hideStatsTooltip() {
+  const el = document.getElementById('statsRadialTooltip');
+  if (el) el.style.display = 'none';
+}
+function bindStatsRadialTooltips(container) {
+  container.querySelectorAll('.statsRadialBar[data-tooltip]').forEach(el => {
+    el.addEventListener('mouseenter', (e) => showStatsTooltip(el.dataset.tooltip, e.clientX, e.clientY));
+    el.addEventListener('mousemove', (e) => positionStatsTooltip(e.clientX, e.clientY));
+    el.addEventListener('mouseleave', hideStatsTooltip);
+  });
 }
 
 // ランキング行クリックでそのカードへ遷移（弾が違えば切り替えてから編集ポップアップを開く）
@@ -285,14 +326,14 @@ async function loadStats() {
         <h3>推移グラフ</h3>
         <div class="statsChartsRow">
           <div class="statsChartCol">
-            <div class="hint" style="margin-bottom:6px;">詳細表示（クリック数）の推移</div>
+            <div class="hint" style="margin-bottom:10px;">詳細表示（クリック数）の推移</div>
             <div class="statsChartLegend">
               ${viewSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
             </div>
             <div class="statsChartWrap">${buildDailyTrendChart(dailyTotals, viewSeries)}</div>
           </div>
           <div class="statsChartCol">
-            <div class="hint" style="margin-bottom:6px;">その他の項目の推移</div>
+            <div class="hint" style="margin-bottom:10px;">その他の項目の推移</div>
             <div class="statsChartLegend">
               ${otherSeries.map(s => `<span><span class="statsLegendDot" style="background:${s.color};"></span>${escapeAttr(s.label)}</span>`).join('')}
             </div>
@@ -321,30 +362,33 @@ async function loadStats() {
         <h3>端末・ブラウザ内訳（期間内）</h3>
         <div class="statsBreakdownRowWrap" style="margin-top:0;">
           <div class="statsBreakdownCol">
-            <div class="hint" style="margin-bottom:8px;">端末別</div>
+            <div class="hint" style="margin-bottom:10px;">端末別</div>
             ${buildBreakdownList(deviceBreakdown)}
           </div>
           <div class="statsBreakdownCol">
-            <div class="hint" style="margin-bottom:8px;">ブラウザ別</div>
+            <div class="hint" style="margin-bottom:10px;">ブラウザ別</div>
             ${buildBreakdownList(browserBreakdown)}
           </div>
         </div>
       </div>
 
       <div class="statsSection">
-        <h3>人気カードランキング <span class="hint" style="display:inline;">（全期間・閲覧+お気に入り順・上位30件）</span></h3>
-        <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
-        ${buildRankingTable(cardRanking)}
-      </div>
-
-      <div class="statsSection">
-        <h3>ダウンロードランキング <span class="hint" style="display:inline;">（全期間・上位30件）</span></h3>
-        <div class="hint" style="margin-bottom:8px;">行をクリックするとそのカードの編集画面に移動します</div>
-        ${buildDownloadRankingTable(downloadRanking)}
+        <h3>カードランキング <span class="hint" style="display:inline;">（行クリックでそのカードの編集画面に移動）</span></h3>
+        <div class="statsRankingRowWrap">
+          <div class="statsRankingCol">
+            <div class="hint">人気ランキング（全期間・閲覧+お気に入り+ダウンロード順・上位30件）</div>
+            ${buildRankingTable(cardRanking)}
+          </div>
+          <div class="statsRankingCol">
+            <div class="hint">ダウンロードランキング（全期間・上位30件）</div>
+            ${buildDownloadRankingTable(downloadRanking)}
+          </div>
+        </div>
       </div>
     `;
 
     bindStatsRankingClicks(contentEl);
+    bindStatsRadialTooltips(contentEl);
   } catch (err) {
     contentEl.innerHTML = `<div class="statsEmptyHint">取得エラー: ${escapeAttr(err.message)}</div>`;
   }
