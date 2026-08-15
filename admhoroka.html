@@ -163,22 +163,25 @@
   /* ===== 統計オーバーレイ：セクションごとにカードで区切って視認性を上げる ===== */
   .statsSection {
     background: rgba(240,230,210,0.025); border: 1px solid rgba(212,175,106,0.2);
-    border-radius: 12px; padding: 20px 22px; margin-bottom: 22px;
+    border-radius: 12px; padding: 28px 26px 30px; margin-bottom: 30px;
   }
   .statsSection h3 {
-    margin: 0 0 14px; font-size: 16px; color: var(--gold);
-    padding-bottom: 10px; border-bottom: 1px solid rgba(212,175,106,0.2);
+    margin: 0 0 22px; font-size: 16px; color: var(--gold);
+    padding-bottom: 16px; border-bottom: 1px solid rgba(212,175,106,0.2);
   }
   .statsRadialRow { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
   .statsRadialCol { flex: 1; min-width: 320px; max-width: 440px; text-align: center; }
-  .statsRadialCol h4 { margin: 0 0 4px; font-size: 14px; color: #d8dde8; font-weight: bold; }
-  .statsRadialCol .statsRadialNote { font-size: 11.5px; color: #8894ab; margin-bottom: 10px; }
+  .statsRadialCol h4 { margin: 0 0 6px; font-size: 14px; color: #d8dde8; font-weight: bold; }
+  .statsRadialCol .statsRadialNote { font-size: 11.5px; color: #8894ab; margin-bottom: 14px; }
   .statsRadialCol .statsRadialSvgWrap { display: flex; justify-content: center; overflow-x: auto; }
+  .statsRankingRowWrap { display: flex; gap: 28px; flex-wrap: wrap; }
+  .statsRankingCol { flex: 1; min-width: 340px; }
+  .statsRankingCol .hint { margin-bottom: 10px; }
 
-  /* ===== 統計サイドバーアイコン（配信モード下・カードリストリンク下に固定配置） ===== */
+  /* ===== 統計サイドバーアイコン（配信モード下・カードリストリンク下に固定配置、公式リンクボタンとサイズを統一） ===== */
   .statsSidebarBtn {
     position: fixed; top: 148px; left: 16px; z-index: 1000;
-    width: 56px; height: 56px; border-radius: 50%; padding: 0;
+    width: 72px; height: 72px; border-radius: 50%; padding: 0;
     background: rgba(15, 20, 32, 0.85); backdrop-filter: blur(6px);
     border: 1px solid rgba(212,175,106,0.4); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
@@ -186,7 +189,7 @@
     transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
   }
   .statsSidebarBtn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
-  .statsSidebarBtn svg { width: 26px; height: 26px; stroke: var(--gold); fill: none; }
+  .statsSidebarBtn svg { width: 32px; height: 32px; stroke: var(--gold); fill: none; }
 
   /* ===== 統計オーバーレイ（画面の95%サイズで表示） ===== */
   .statsOverlay {
@@ -239,7 +242,7 @@
 
   .editModalOverlay {
     display: none; position: fixed; inset: 0; background: rgba(5,8,14,0.85);
-    z-index: 200; align-items: center; justify-content: center; padding: 20px;
+    z-index: 320; align-items: center; justify-content: center; padding: 20px;
   }
   .editModalOverlay.open { display: flex; }
   .editModalBox {
