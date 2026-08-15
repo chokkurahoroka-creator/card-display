@@ -129,12 +129,27 @@ function buildBreakdownList(breakdown) {
   `;
 }
 
+// 数値を「概数（キリの良い数）」に丸める。ラジアルバーチャートの目盛りラベル用
+// 例: 7→5, 13→10, 42→40, 137→150, 1230→1200
+function roundToNiceNumber(n) {
+  if (n <= 0) return 0;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(n)));
+  const norm = n / magnitude; // 1.0〜10.0の範囲に正規化
+  let niceNorm;
+  if (norm < 1.5) niceNorm = 1;
+  else if (norm < 3) niceNorm = 2;
+  else if (norm < 7) niceNorm = 5;
+  else niceNorm = 10;
+  return niceNorm * magnitude;
+}
+
 // 時間帯（0〜23時）別のアクセス数をレーダー風のradial bar chart（円形の棒グラフ）で表示する
 // items: 24件の配列（インデックス=時）。各要素は { hour, sum または count, avg?, max?, min? } を想定
 //   - avg/max/min が含まれる場合（期間集計）：ホバー時に日平均・最大・最小も表示する
 //   - 含まれない場合（直近24時間の実データ）：件数のみのシンプルな表示
-// opts.size: SVGの一辺のサイズ（省略時300）。ラベルが枠外にはみ出さないよう、内側の棒の最大半径を
-// センターから十分な余白を残して固定する（0時・12時のラベルも欠けずに見えるようにするための対策）
+// opts.size: SVGの一辺のサイズ（省略時380）
+// opts.color: バーの塗り色（CSS色。省略時は金色テーマ）
+// opts.strokeColor / opts.gridColor: バー枠線・目盛り円の色（省略時は金色テーマに合わせた値）
 function buildHourlyRadialChart(items, opts) {
   opts = opts || {};
   const pad2 = (n) => String(n).padStart(2, '0');
@@ -144,26 +159,30 @@ function buildHourlyRadialChart(items, opts) {
     return '<div class="statsEmptyHint">この期間の時間帯データはまだありません</div>';
   }
 
-  const size = opts.size || 300;
+  const barColor = opts.color || 'var(--gold)';
+  const barStroke = opts.strokeColor || 'rgba(212,175,106,0.55)';
+  const gridStroke = opts.gridColor || 'rgba(212,175,106,0.16)';
+
+  const size = opts.size || 380;
   const center = size / 2;
   // ラベル分の余白（時刻ラベル+数字ラベルの高さを見込んで center から一定量を必ず確保する）
-  const labelMargin = Math.max(48, size * 0.16);
-  const innerR = size * 0.13;
+  const labelMargin = Math.max(56, size * 0.17);
+  const innerR = size * 0.135;
   const maxBarLen = center - labelMargin - innerR;
   const maxVal = Math.max(1, ...items.map(getValue));
   const stepDeg = 360 / 24;
   const gapDeg = 1.4;
   const toRad = (deg) => (deg * Math.PI) / 180;
 
-  // 目盛りの同心円＋その値ラベル（右上45°方向に配置し、時刻ラベルと重ならないようにする）
+  // 目盛りの同心円＋その概数ラベル（右上45°方向に配置し、時刻ラベルと重ならないようにする）
   let gridHtml = '';
   [0.33, 0.66, 1].forEach(frac => {
     const r = innerR + maxBarLen * frac;
-    gridHtml += `<circle cx="${center}" cy="${center}" r="${r.toFixed(1)}" fill="none" stroke="rgba(212,175,106,0.14)" stroke-width="1"/>`;
-    const gv = Math.round(maxVal * frac);
+    gridHtml += `<circle cx="${center}" cy="${center}" r="${r.toFixed(1)}" fill="none" stroke="${gridStroke}" stroke-width="1"/>`;
+    const gv = roundToNiceNumber(maxVal * frac);
     const gx = center + r * Math.cos(toRad(-45));
     const gy = center + r * Math.sin(toRad(-45));
-    gridHtml += `<text x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" font-size="9.5" fill="#8894ab" text-anchor="middle" dominant-baseline="middle">${gv}</text>`;
+    gridHtml += `<text x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" font-size="11.5" fill="#8894ab" text-anchor="middle" dominant-baseline="middle">${gv}</text>`;
   });
 
   let barsHtml = '';
@@ -193,22 +212,22 @@ function buildHourlyRadialChart(items, opts) {
       tooltip += ` / 日平均 ${it.avg}件 / 最大 ${it.max}件 / 最小 ${it.min}件`;
     }
 
-    barsHtml += `<path class="statsRadialBar" data-tooltip="${escapeAttr(tooltip)}" d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${outerR.toFixed(1)},${outerR.toFixed(1)} 0 ${largeArc} 1 ${x3.toFixed(1)},${y3.toFixed(1)} L${x4.toFixed(1)},${y4.toFixed(1)} A${innerR.toFixed(1)},${innerR.toFixed(1)} 0 ${largeArc} 0 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="var(--gold)" fill-opacity="${opacity}" stroke="rgba(212,175,106,0.5)" stroke-width="0.5" style="cursor:pointer;"></path>`;
+    barsHtml += `<path class="statsRadialBar" data-tooltip="${escapeAttr(tooltip)}" d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${outerR.toFixed(1)},${outerR.toFixed(1)} 0 ${largeArc} 1 ${x3.toFixed(1)},${y3.toFixed(1)} L${x4.toFixed(1)},${y4.toFixed(1)} A${innerR.toFixed(1)},${innerR.toFixed(1)} 0 ${largeArc} 0 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="${barColor}" fill-opacity="${opacity}" stroke="${barStroke}" stroke-width="0.5" style="cursor:pointer;"></path>`;
 
     // バーの値をバー先端のすぐ外側に表示
     if (val > 0) {
-      const vr = outerR + 9;
+      const vr = outerR + 13;
       const vx = center + vr * Math.cos(toRad(midAngle));
       const vy = center + vr * Math.sin(toRad(midAngle));
-      valueLabelsHtml += `<text x="${vx.toFixed(1)}" y="${vy.toFixed(1)}" font-size="9.5" fill="var(--gold)" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${val}</text>`;
+      valueLabelsHtml += `<text x="${vx.toFixed(1)}" y="${vy.toFixed(1)}" font-size="12.5" fill="${barColor}" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${val}</text>`;
     }
 
     // 時刻ラベル（3時間おき・"00:00"形式。0時・12時も必ず含まれる）
     if (h % 3 === 0) {
-      const labelR = innerR + maxBarLen + 20;
+      const labelR = innerR + maxBarLen + 26;
       const lx = center + labelR * Math.cos(toRad(midAngle));
       const ly = center + labelR * Math.sin(toRad(midAngle));
-      labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="#9aa5c0" text-anchor="middle" dominant-baseline="middle">${pad2(h)}:00</text>`;
+      labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="13" fill="#9aa5c0" text-anchor="middle" dominant-baseline="middle">${pad2(h)}:00</text>`;
     }
   }
 
@@ -217,7 +236,7 @@ function buildHourlyRadialChart(items, opts) {
     ${barsHtml}
     ${valueLabelsHtml}
     ${labelsHtml}
-    <circle cx="${center}" cy="${center}" r="${(innerR - 2).toFixed(1)}" fill="#10182a" stroke="rgba(212,175,106,0.3)" stroke-width="1"/>
+    <circle cx="${center}" cy="${center}" r="${(innerR - 2).toFixed(1)}" fill="#10182a" stroke="${gridStroke}" stroke-width="1"/>
   </svg>`;
 }
 
@@ -348,12 +367,12 @@ async function loadStats() {
           <div class="statsRadialCol">
             <h4>期間中のアクセス数（時間帯別）</h4>
             <div class="statsRadialNote">バーにカーソルを合わせると日平均・最大・最小を表示します</div>
-            <div class="statsRadialSvgWrap">${buildHourlyRadialChart(hourlyStats, { size: 320 })}</div>
+            <div class="statsRadialSvgWrap">${buildHourlyRadialChart(hourlyStats, { size: 400 })}</div>
           </div>
           <div class="statsRadialCol">
             <h4>直近24時間のアクセス数</h4>
             <div class="statsRadialNote">期間の絞り込みによらず常に直近24時間を表示します</div>
-            <div class="statsRadialSvgWrap">${buildHourlyRadialChart(recentHourly, { size: 320 })}</div>
+            <div class="statsRadialSvgWrap">${buildHourlyRadialChart(recentHourly, { size: 400, color: '#5fb3e8', strokeColor: 'rgba(95,179,232,0.6)', gridColor: 'rgba(95,179,232,0.18)' })}</div>
           </div>
         </div>
       </div>
@@ -402,7 +421,7 @@ document.getElementById('statsDaysFilter').addEventListener('change', loadStats)
 document.getElementById('statsRollupNowBtn').addEventListener('click', async () => {
   const gasUrl = getCfg('gas');
   if (!gasUrl) { alert('先に①でGAS Web App URLを設定してください'); return; }
-  if (!confirm('eventsシートに溜まっている古いログを集計シートへまとめ、eventsシートから削除します。よろしいですか？')) return;
+  if (!confirm('eventsシートに現在あるログを、日数に関わらず今すぐ全て集計シートへまとめ、eventsシートから削除します。よろしいですか？')) return;
 
   const btn = document.getElementById('statsRollupNowBtn');
   const statusEl2 = document.getElementById('statsRollupStatus');
@@ -419,7 +438,7 @@ document.getElementById('statsRollupNowBtn').addEventListener('click', async () 
     if (json.error) {
       alert('集計に失敗しました: ' + json.error);
     } else if (json.rolledUp === 0) {
-      statusEl2.textContent = '集計対象の古いログはありませんでした（直近分のみのため対象なし）';
+      statusEl2.textContent = '集計対象のログはありませんでした（eventsシートは空です）';
       statusEl2.style.display = 'inline';
     } else {
       statusEl2.textContent = `${json.rolledUp}件のログを集計しました（eventsシートの残り: ${json.remaining}件）`;
