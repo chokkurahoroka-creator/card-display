@@ -154,7 +154,36 @@
   .statsBreakdownLabel { width: 90px; flex-shrink: 0; color: #c9d1e0; }
   .statsBreakdownBarWrap { flex: 1; height: 8px; border-radius: 4px; background: rgba(212,175,106,0.08); overflow: hidden; }
   .statsBreakdownBar { height: 100%; background: linear-gradient(90deg, rgba(212,175,106,0.5), var(--gold)); border-radius: 4px; }
-  .statsBreakdownCount { width: 36px; text-align: right; color: #9aa5c0; flex-shrink: 0; }
+  .statsBreakdownCount { width: 76px; text-align: right; color: #9aa5c0; flex-shrink: 0; }
+  .statsChartsRow { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
+  .statsChartsRow .statsChartCol { flex: 1; min-width: 320px; }
+  .statsChartsRow .statsChartWrap { margin-bottom: 0; }
+  .statsRadialWrap { display: flex; justify-content: center; margin-bottom: 24px; overflow-x: auto; }
+
+  /* ===== 統計サイドバーアイコン（配信モード下・カードリストリンク下に固定配置） ===== */
+  .statsSidebarBtn {
+    position: fixed; top: 148px; left: 16px; z-index: 1000;
+    width: 56px; height: 56px; border-radius: 50%; padding: 0;
+    background: rgba(15, 20, 32, 0.85); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,175,106,0.4); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .statsSidebarBtn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+  .statsSidebarBtn svg { width: 26px; height: 26px; stroke: var(--gold); fill: none; }
+
+  /* ===== 統計オーバーレイ（画面の95%サイズで表示） ===== */
+  .statsOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(5,8,14,0.85);
+    z-index: 260; align-items: center; justify-content: center; padding: 12px;
+  }
+  .statsOverlay.open { display: flex; }
+  .statsOverlayBox {
+    width: 95vw; height: 95vh; max-width: 95vw; max-height: 95vh;
+    background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
+    border-radius: 16px; padding: 26px; overflow-y: auto; position: relative;
+  }
   .streamPackTitle {
     font-size: 20px; font-weight: bold; text-align: center; color: var(--gold);
     margin-bottom: 14px; letter-spacing: 0.02em;
@@ -442,6 +471,15 @@
   <span class="cardListLinkBtnInner"><img src="https://hololive-official-cardgame.com/wp-content/themes/tcg/assets/img/global/logo.svg" alt="公式カードリスト"></span>
 </a>
 
+<button type="button" class="statsSidebarBtn" id="statsSidebarBtn" title="閲覧・お気に入り統計を表示">
+  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="4" y1="20" x2="4" y2="11"></line>
+    <line x1="10" y1="20" x2="10" y2="4"></line>
+    <line x1="16" y1="20" x2="16" y2="14"></line>
+    <line x1="3" y1="20" x2="21" y2="20"></line>
+  </svg>
+</button>
+
 <div class="layout" id="inputLayout">
 
 <!-- ===== 弾（セット）設定 ===== -->
@@ -666,23 +704,28 @@
   <div id="galleryGrid" class="galleryGrid"></div>
 </div>
 
-<!-- ===== 閲覧・お気に入り統計 ===== -->
-<div class="panel statsPanel" id="statsPanel">
-  <h2>📊 閲覧・お気に入り統計 <span class="hint" style="display:inline;">（一覧画面での詳細表示・お気に入り登録を集計）</span></h2>
-  <div class="statsToolbar">
-    <select id="statsSetFilter">
-      <option value="">全弾合算</option>
-    </select>
-    <select id="statsDaysFilter">
-      <option value="30">直近30日</option>
-      <option value="90" selected>直近90日</option>
-      <option value="180">直近180日</option>
-      <option value="3650">全期間</option>
-    </select>
-    <button type="button" class="secondary" id="statsRefreshBtn" style="margin-top:0;">更新</button>
-  </div>
-  <div id="statsContent">
-    <div class="statsEmptyHint">「更新」を押すと統計を取得します</div>
+<!-- ===== 閲覧・お気に入り統計（左サイドバーのアイコンから開くオーバーレイ） ===== -->
+<div class="statsOverlay" id="statsOverlay">
+  <div class="statsOverlayBox">
+    <button type="button" id="statsOverlayCloseBtn" class="modalCloseBtn">×</button>
+    <h2>📊 閲覧・お気に入り統計 <span class="hint" style="display:inline;">（一覧画面での詳細表示・お気に入り登録を集計）</span></h2>
+    <div class="statsToolbar">
+      <select id="statsSetFilter">
+        <option value="">全弾合算</option>
+      </select>
+      <select id="statsDaysFilter">
+        <option value="1">今日（24時間以内）</option>
+        <option value="7">1週間</option>
+        <option value="30">直近30日</option>
+        <option value="90" selected>直近90日</option>
+        <option value="180">直近180日</option>
+        <option value="3650">全期間</option>
+      </select>
+      <button type="button" class="secondary" id="statsRefreshBtn" style="margin-top:0;">更新</button>
+    </div>
+    <div id="statsContent">
+      <div class="statsEmptyHint">読み込み中...</div>
+    </div>
   </div>
 </div>
 
