@@ -134,8 +134,8 @@
     background: linear-gradient(160deg, rgba(212,175,106,0.08), rgba(0,0,0,0));
     border: 1px solid rgba(212,175,106,0.25);
   }
-  .statsSummaryLabel { font-size: 12px; color: #9aa5c0; margin-bottom: 4px; }
-  .statsSummaryValue { font-size: 24px; font-weight: bold; color: var(--gold); }
+  .statsSummaryLabel { font-size: 12.5px; color: #9aa5c0; margin-bottom: 5px; }
+  .statsSummaryValue { font-size: 26px; font-weight: bold; color: var(--gold); }
   .statsChartWrap { margin-bottom: 24px; overflow-x: auto; }
   .statsChartLegend { display: flex; gap: 16px; font-size: 12px; color: #9aa5c0; margin-bottom: 8px; }
   .statsLegendDot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
@@ -155,10 +155,25 @@
   .statsBreakdownBarWrap { flex: 1; height: 8px; border-radius: 4px; background: rgba(212,175,106,0.08); overflow: hidden; }
   .statsBreakdownBar { height: 100%; background: linear-gradient(90deg, rgba(212,175,106,0.5), var(--gold)); border-radius: 4px; }
   .statsBreakdownCount { width: 76px; text-align: right; color: #9aa5c0; flex-shrink: 0; }
-  .statsChartsRow { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
+  .statsChartsRow { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 0; }
   .statsChartsRow .statsChartCol { flex: 1; min-width: 320px; }
   .statsChartsRow .statsChartWrap { margin-bottom: 0; }
-  .statsRadialWrap { display: flex; justify-content: center; margin-bottom: 24px; overflow-x: auto; }
+  .statsRadialWrap { display: flex; justify-content: center; margin-bottom: 0; overflow-x: auto; }
+
+  /* ===== 統計オーバーレイ：セクションごとにカードで区切って視認性を上げる ===== */
+  .statsSection {
+    background: rgba(240,230,210,0.025); border: 1px solid rgba(212,175,106,0.2);
+    border-radius: 12px; padding: 20px 22px; margin-bottom: 22px;
+  }
+  .statsSection h3 {
+    margin: 0 0 14px; font-size: 16px; color: var(--gold);
+    padding-bottom: 10px; border-bottom: 1px solid rgba(212,175,106,0.2);
+  }
+  .statsRadialRow { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+  .statsRadialCol { flex: 1; min-width: 320px; max-width: 440px; text-align: center; }
+  .statsRadialCol h4 { margin: 0 0 4px; font-size: 14px; color: #d8dde8; font-weight: bold; }
+  .statsRadialCol .statsRadialNote { font-size: 11.5px; color: #8894ab; margin-bottom: 10px; }
+  .statsRadialCol .statsRadialSvgWrap { display: flex; justify-content: center; overflow-x: auto; }
 
   /* ===== 統計サイドバーアイコン（配信モード下・カードリストリンク下に固定配置） ===== */
   .statsSidebarBtn {
