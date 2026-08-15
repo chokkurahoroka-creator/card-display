@@ -398,6 +398,42 @@ document.getElementById('statsRefreshBtn').addEventListener('click', loadStats);
 document.getElementById('statsSetFilter').addEventListener('change', loadStats);
 document.getElementById('statsDaysFilter').addEventListener('change', loadStats);
 
+// ===== 「今すぐログを集計」：eventsシートに溜まっている古いログを今すぐ集計シートへロールアップする =====
+document.getElementById('statsRollupNowBtn').addEventListener('click', async () => {
+  const gasUrl = getCfg('gas');
+  if (!gasUrl) { alert('先に①でGAS Web App URLを設定してください'); return; }
+  if (!confirm('eventsシートに溜まっている古いログを集計シートへまとめ、eventsシートから削除します。よろしいですか？')) return;
+
+  const btn = document.getElementById('statsRollupNowBtn');
+  const statusEl2 = document.getElementById('statsRollupStatus');
+  btn.disabled = true;
+  btn.textContent = '集計中...';
+  statusEl2.style.display = 'none';
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'rollupNow' })
+    });
+    const json = await res.json();
+    if (json.error) {
+      alert('集計に失敗しました: ' + json.error);
+    } else if (json.rolledUp === 0) {
+      statusEl2.textContent = '集計対象の古いログはありませんでした（直近分のみのため対象なし）';
+      statusEl2.style.display = 'inline';
+    } else {
+      statusEl2.textContent = `${json.rolledUp}件のログを集計しました（eventsシートの残り: ${json.remaining}件）`;
+      statusEl2.style.display = 'inline';
+      await loadStats(); // 集計結果を画面に反映
+    }
+  } catch (err) {
+    alert('集計中にエラーが発生しました: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '今すぐログを集計';
+  }
+});
+
 // ===== 左サイドバーのアイコンから統計オーバーレイ（画面の95%サイズ）を開閉 =====
 function openStatsOverlay() {
   document.getElementById('statsOverlay').classList.add('open');
