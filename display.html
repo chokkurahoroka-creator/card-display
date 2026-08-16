@@ -143,14 +143,14 @@
   .sortDirBtn:hover { border-color: var(--gold); }
   .sortDirBtn.desc { transform: rotate(180deg); }
   .sortDivider {
-    grid-column: 1 / -1; position: relative; height: 1px;
-    background: rgba(212,175,106,0.35); margin: 16px 0 14px;
-    display: flex; align-items: center; justify-content: center;
+    align-self: stretch; display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; padding-top: 4px; min-width: 0;
   }
-  .sortDivider:first-child { margin-top: 2px; }
-  .sortDivider span {
-    background: #10182a; border: 1px solid rgba(212,175,106,0.45); color: var(--gold);
-    font-size: 12px; font-weight: bold; padding: 4px 14px; border-radius: 14px; white-space: nowrap;
+  .sortDivider .sortDividerLine {
+    width: 2px; flex: 1 1 auto; min-height: 36px; background: rgba(212,175,106,0.55); border-radius: 1px;
+  }
+  .sortDivider .sortDividerLabel {
+    margin-top: 6px; font-size: 11px; font-weight: bold; color: var(--gold); white-space: nowrap;
   }
   #grid-新規, #grid-再録, #grid-パラレル, #searchResultsGrid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cardMin, 150px), 1fr)); gap: var(--cardGap, 16px);
