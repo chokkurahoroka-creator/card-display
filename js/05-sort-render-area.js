@@ -76,6 +76,29 @@ function sortCardsBy(cards, key, dir) {
   return list;
 }
 
+// 並び替えキーごとに「その値が変わった位置」を判定するためのグループラベルを返す（'color'は区切り線を出さないためnull）
+function sortGroupLabel(card, key) {
+  if (key === 'rarity') return card.rarity || 'その他';
+  if (key === 'name') return (card.cardName || '').trim().charAt(0) || '？';
+  if (key === 'hp') return (card.hp !== undefined && card.hp !== null && card.hp !== '') ? `HP ${card.hp}` : 'HPなし';
+  return null;
+}
+
+// 並び替え後のカード一覧から、値が変わるたびに区切り線（値を中央に重ねた線）を挟んだHTMLを生成する
+function buildCardsHtmlWithDividers(cards, key) {
+  let html = '';
+  let prevLabel; // 初回は必ずundefinedと不一致になるため、最初のグループの前にも区切り線が入る
+  cards.forEach(c => {
+    const label = sortGroupLabel(c, key);
+    if (label !== null && label !== prevLabel) {
+      html += `<div class="sortDivider"><span>${escapeHtml(label)}</span></div>`;
+      prevLabel = label;
+    }
+    html += cardHtml(c);
+  });
+  return html;
+}
+
 // 新規/再録/パラレルの並び順を、現在の並び替え設定に応じて返す（navList構築・renderArea両方で共通利用）
 // デフォルト（色・昇順）の場合のみ、新規は枠番号順、再録/パラレルは既存のsortByCategory順を使う
 function getSectionOrderedCards(type, cardsOfType) {
@@ -114,8 +137,11 @@ function renderArea(type, total, offset) {
     }
   } else {
     // レアリティ/カード名/HP順、または色の降順が選ばれている場合：登録済みカードのみを並び替えて表示（空き枠は非表示）
+    // レアリティ/カード名/HP順のときは、値が切り替わる位置に区切り線を表示する
     const ordered = sortCardsBy(cardsOfType, state.key, state.dir);
-    html = ordered.map(c => cardHtml(c)).join('');
+    html = (state.key === 'rarity' || state.key === 'name' || state.key === 'hp')
+      ? buildCardsHtmlWithDividers(ordered, state.key)
+      : ordered.map(c => cardHtml(c)).join('');
   }
 
   const gridEl = document.getElementById('grid-' + type);

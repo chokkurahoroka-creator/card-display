@@ -115,7 +115,9 @@ async function showFavoritesView(group) {
   document.getElementById('searchResultsWrap').style.display = 'block';
   const countEl = document.getElementById('count-search');
   if (countEl) countEl.textContent = `${matched.length} 件`;
-  document.getElementById('searchResultsGrid').innerHTML = matched.map(c => cardHtml(c)).join('');
+  document.getElementById('searchResultsGrid').innerHTML = ['rarity', 'name', 'hp'].includes(sortState.search.key)
+    ? buildCardsHtmlWithDividers(matched, sortState.search.key)
+    : matched.map(c => cardHtml(c)).join('');
   bindCardClicks(document.getElementById('searchResultsGrid'));
   navList = matched;
 }
