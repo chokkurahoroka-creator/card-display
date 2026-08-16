@@ -122,11 +122,26 @@
   }
   section.typeArea { max-width: 1200px; margin: 0 auto 40px; }
   .typeHeader {
-    display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
-    border-bottom: 1px solid rgba(212,175,106,0.3); padding-bottom: 6px;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    border-bottom: 1px solid rgba(212,175,106,0.3); padding-bottom: 6px; flex-wrap: wrap;
   }
   .typeHeader h2 { font-size: 16px; margin: 0; color: var(--gold); }
   .typeHeader .count { font-size: 12px; color: #9aa5c0; }
+  .sortControl { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .sortControl .sortLabel { font-size: 11px; color: #9aa5c0; }
+  .sortControl select.sortSelect {
+    background: #10182a; color: var(--text); border: 1px solid rgba(212,175,106,0.35);
+    border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+  }
+  .sortControl select.sortSelect:hover { border-color: var(--gold); }
+  .sortDirBtn {
+    background: #10182a; color: var(--gold); border: 1px solid rgba(212,175,106,0.35);
+    border-radius: 6px; width: 26px; height: 26px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    font-size: 12px; line-height: 1; transition: transform 0.15s, border-color 0.15s;
+  }
+  .sortDirBtn:hover { border-color: var(--gold); }
+  .sortDirBtn.desc { transform: rotate(180deg); }
   #grid-新規, #grid-再録, #grid-パラレル, #searchResultsGrid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--cardMin, 150px), 1fr)); gap: var(--cardGap, 16px);
   }
@@ -578,20 +593,65 @@
 <div id="noResults" style="display:none;">該当するカードが見つかりませんでした</div>
 
 <div id="searchResultsWrap" style="display:none; max-width:1200px; margin:0 auto 40px;">
+  <div class="typeHeader">
+    <h2>検索結果</h2><span class="count" id="count-search"></span>
+    <div class="sortControl" data-section="search">
+      <select class="sortSelect">
+        <option value="color">色</option>
+        <option value="rarity">レアリティ</option>
+        <option value="name">カード名</option>
+        <option value="hp">HP</option>
+      </select>
+      <button type="button" class="sortDirBtn" title="並び順を反転（昇順/降順）">▲</button>
+    </div>
+  </div>
   <div id="searchResultsGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:16px;"></div>
 </div>
 
 <div id="areas" style="display:none;">
   <section class="typeArea">
-    <div class="typeHeader"><h2>新規追加</h2><span class="count" id="count-新規"></span></div>
+    <div class="typeHeader">
+      <h2>新規追加</h2><span class="count" id="count-新規"></span>
+      <div class="sortControl" data-section="新規">
+        <select class="sortSelect">
+          <option value="color">色</option>
+          <option value="rarity">レアリティ</option>
+          <option value="name">カード名</option>
+          <option value="hp">HP</option>
+        </select>
+        <button type="button" class="sortDirBtn" title="並び順を反転（昇順/降順）">▲</button>
+      </div>
+    </div>
     <div id="grid-新規"></div>
   </section>
   <section class="typeArea">
-    <div class="typeHeader"><h2>再録</h2><span class="count" id="count-再録"></span></div>
+    <div class="typeHeader">
+      <h2>再録</h2><span class="count" id="count-再録"></span>
+      <div class="sortControl" data-section="再録">
+        <select class="sortSelect">
+          <option value="color">色</option>
+          <option value="rarity">レアリティ</option>
+          <option value="name">カード名</option>
+          <option value="hp">HP</option>
+        </select>
+        <button type="button" class="sortDirBtn" title="並び順を反転（昇順/降順）">▲</button>
+      </div>
+    </div>
     <div id="grid-再録"></div>
   </section>
   <section class="typeArea">
-    <div class="typeHeader"><h2>パラレル</h2><span class="count" id="count-パラレル"></span></div>
+    <div class="typeHeader">
+      <h2>パラレル</h2><span class="count" id="count-パラレル"></span>
+      <div class="sortControl" data-section="パラレル">
+        <select class="sortSelect">
+          <option value="color">色</option>
+          <option value="rarity">レアリティ</option>
+          <option value="name">カード名</option>
+          <option value="hp">HP</option>
+        </select>
+        <button type="button" class="sortDirBtn" title="並び順を反転（昇順/降順）">▲</button>
+      </div>
+    </div>
     <div id="grid-パラレル"></div>
   </section>
 </div>
