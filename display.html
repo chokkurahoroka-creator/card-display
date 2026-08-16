@@ -28,6 +28,30 @@
   }
   .topBar { display: none; }
 
+  /* ===== サイト共通ヘッダーナビ（ページ間の遷移用） ===== */
+  .siteNav {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    margin: -24px -24px 20px; padding: 14px 24px;
+    background: linear-gradient(90deg, #141b2e, #1c2740);
+    border-bottom: 1px solid rgba(212,175,106,0.35);
+  }
+  .siteNav .siteNavLogo {
+    font-weight: 800; font-size: 15px; color: var(--gold); letter-spacing: 0.5px;
+    margin-right: 18px; text-decoration: none; white-space: nowrap;
+  }
+  .siteNav .siteNavLinks { display: flex; gap: 6px; flex-wrap: wrap; }
+  .siteNav a.siteNavLink {
+    color: #c9d1e0; text-decoration: none; font-size: 13px; font-weight: bold;
+    padding: 7px 14px; border-radius: 8px; border: 1px solid transparent; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .siteNav a.siteNavLink:hover { color: var(--gold); border-color: rgba(212,175,106,0.35); background: rgba(212,175,106,0.08); }
+  .siteNav a.siteNavLink.active { color: #1a1305; background: var(--gold); border-color: var(--gold); }
+  @media (max-width: 640px) {
+    .siteNav { flex-direction: column; align-items: flex-start; gap: 10px; margin: -24px -24px 16px; padding: 12px 16px; }
+    .siteNav .siteNavLinks { width: 100%; }
+  }
+
   @keyframes ytPulse {
     0%, 100% { box-shadow: 0 3px 12px rgba(255,0,0,0.5), 0 0 0 0 rgba(255,0,0,0.45); }
     50% { box-shadow: 0 3px 12px rgba(255,0,0,0.5), 0 0 0 8px rgba(255,0,0,0); }
@@ -529,6 +553,14 @@
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
 </head>
 <body>
+
+<nav class="siteNav">
+  <span class="siteNavLogo">ホロカ 非公式まとめ</span>
+  <div class="siteNavLinks">
+    <a href="display.html" class="siteNavLink active">新カード情報 一覧</a>
+    <a href="cardpool.html" class="siteNavLink">カードプール管理</a>
+  </div>
+</nav>
 
 <div class="shootingStarsField" aria-hidden="true">
   <span class="shootingStar"></span>

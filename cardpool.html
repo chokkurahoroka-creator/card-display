@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホロカ カードプール管理</title>
+<style>
+  :root { --gold: #d4af6a; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: radial-gradient(ellipse at top, #1c2740, #0a0e18);
+    color: #f0e6d2; font-family: "Hiragino Sans","Yu Gothic",sans-serif; padding: 24px;
+    min-height: 100vh;
+  }
+
+  /* ===== サイト共通ヘッダーナビ（ページ間の遷移用） ===== */
+  .siteNav {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    margin: -24px -24px 20px; padding: 14px 24px;
+    background: linear-gradient(90deg, #141b2e, #1c2740);
+    border-bottom: 1px solid rgba(212,175,106,0.35);
+  }
+  .siteNav .siteNavLogo {
+    font-weight: 800; font-size: 15px; color: var(--gold); letter-spacing: 0.5px;
+    margin-right: 18px; text-decoration: none; white-space: nowrap;
+  }
+  .siteNav .siteNavLinks { display: flex; gap: 6px; flex-wrap: wrap; }
+  .siteNav a.siteNavLink {
+    color: #c9d1e0; text-decoration: none; font-size: 13px; font-weight: bold;
+    padding: 7px 14px; border-radius: 8px; border: 1px solid transparent; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .siteNav a.siteNavLink:hover { color: var(--gold); border-color: rgba(212,175,106,0.35); background: rgba(212,175,106,0.08); }
+  .siteNav a.siteNavLink.active { color: #1a1305; background: var(--gold); border-color: var(--gold); }
+  @media (max-width: 640px) {
+    .siteNav { flex-direction: column; align-items: flex-start; gap: 10px; margin: -24px -24px 16px; padding: 12px 16px; }
+    .siteNav .siteNavLinks { width: 100%; }
+  }
+
+  /* ===== 流れ星の背景演出（一覧画面と共通） ===== */
+  .shootingStarsField { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .shootingStar {
+    position: absolute; top: -10%; left: 110%;
+    width: 130px; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(212,175,106,0), rgba(212,175,106,0.5), rgba(255,255,255,0.95));
+    box-shadow: 0 0 6px 1px rgba(255,255,255,0.5);
+    transform: rotate(145deg); opacity: 0;
+    animation: shootingStarMove linear infinite;
+  }
+  @keyframes shootingStarMove {
+    0%   { transform: translate(0, 0) rotate(145deg); opacity: 0; }
+    4%   { opacity: 1; }
+    16%  { opacity: 1; }
+    24%  { transform: translate(-1000px, 620px) rotate(145deg); opacity: 0; }
+    100% { transform: translate(-1000px, 620px) rotate(145deg); opacity: 0; }
+  }
+  .shootingStar:nth-child(1) { top: 4%;  left: 30%; animation-duration: 7s;  animation-delay: 0s; }
+  .shootingStar:nth-child(2) { top: 14%; left: 75%; animation-duration: 9s;  animation-delay: 2.4s; }
+  .shootingStar:nth-child(3) { top: -2%; left: 55%; animation-duration: 6.5s; animation-delay: 5s; }
+  .shootingStar:nth-child(4) { top: 22%; left: 92%; animation-duration: 10s; animation-delay: 1.2s; }
+  .shootingStar:nth-child(5) { top: 8%;  left: 15%; animation-duration: 8.2s; animation-delay: 7.5s; }
+  .shootingStar:nth-child(6) { top: 30%; left: 45%; animation-duration: 11s; animation-delay: 3.8s; }
+  @media (prefers-reduced-motion: reduce) {
+    .shootingStarsField { display: none; }
+  }
+
+  h1 { text-align: center; font-size: 28px; letter-spacing: 1.5px; margin: 0; font-weight: 800; }
+  .sub { text-align: center; color: #9aa5c0; font-size: 12px; margin-bottom: 10px; }
+
+  .comingSoonWrap {
+    max-width: 640px; margin: 90px auto 0; text-align: center;
+    padding: 56px 32px; border-radius: 18px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.25);
+  }
+  .comingSoonIcon { font-size: 46px; margin-bottom: 18px; }
+  .comingSoonTitle {
+    font-size: 26px; font-weight: 800; color: var(--gold); letter-spacing: 1px; margin-bottom: 14px;
+  }
+  .comingSoonText { font-size: 14px; color: #c9d1e0; line-height: 1.9; }
+  .comingSoonBackLink {
+    display: inline-block; margin-top: 28px; color: var(--gold); text-decoration: none;
+    font-size: 13px; font-weight: bold; border: 1px solid rgba(212,175,106,0.4);
+    padding: 9px 20px; border-radius: 20px; transition: all 0.15s;
+  }
+  .comingSoonBackLink:hover { background: rgba(212,175,106,0.1); border-color: var(--gold); }
+</style>
+</head>
+<body>
+
+<nav class="siteNav">
+  <span class="siteNavLogo">ホロカ 非公式まとめ</span>
+  <div class="siteNavLinks">
+    <a href="display.html" class="siteNavLink">新カード情報 一覧</a>
+    <a href="cardpool.html" class="siteNavLink active">カードプール管理</a>
+  </div>
+</nav>
+
+<div class="shootingStarsField" aria-hidden="true">
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+  <span class="shootingStar"></span>
+</div>
+
+<h1>カードプール管理</h1>
+<div class="sub">所持カードの管理ページ</div>
+
+<div class="comingSoonWrap">
+  <div class="comingSoonIcon">🛠️</div>
+  <div class="comingSoonTitle">近日公開予定</div>
+  <div class="comingSoonText">
+    所持しているカードを登録・管理できるページを準備中です。<br>
+    公開までもうしばらくお待ちください。
+  </div>
+  <a href="display.html" class="comingSoonBackLink">新カード情報 一覧に戻る</a>
+</div>
+
+</body>
+</html>
