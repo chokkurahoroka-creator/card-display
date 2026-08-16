@@ -165,8 +165,8 @@ function buildHourlyRadialChart(items, opts) {
 
   const size = opts.size || 380;
   const center = size / 2;
-  // ラベル分の余白（時刻ラベル+数字ラベルの高さを見込んで center から一定量を必ず確保する）
-  const labelMargin = Math.max(56, size * 0.17);
+  // ラベル分の余白（背景レーダー円と外側の時刻メモリの間を広めに空けるため大きめに確保する）
+  const labelMargin = Math.max(76, size * 0.22);
   const innerR = size * 0.135;
   const maxBarLen = center - labelMargin - innerR;
   const maxVal = Math.max(1, ...items.map(getValue));
@@ -182,7 +182,7 @@ function buildHourlyRadialChart(items, opts) {
     const gv = roundToNiceNumber(maxVal * frac);
     const gx = center + r * Math.cos(toRad(-45));
     const gy = center + r * Math.sin(toRad(-45));
-    gridHtml += `<text x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" font-size="11.5" fill="#8894ab" text-anchor="middle" dominant-baseline="middle">${gv}</text>`;
+    gridHtml += `<text x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" font-size="11.5" fill="#8894ab" text-anchor="middle" dominant-baseline="central">${gv}</text>`;
   });
 
   let barsHtml = '';
@@ -214,20 +214,20 @@ function buildHourlyRadialChart(items, opts) {
 
     barsHtml += `<path class="statsRadialBar" data-tooltip="${escapeAttr(tooltip)}" d="M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${outerR.toFixed(1)},${outerR.toFixed(1)} 0 ${largeArc} 1 ${x3.toFixed(1)},${y3.toFixed(1)} L${x4.toFixed(1)},${y4.toFixed(1)} A${innerR.toFixed(1)},${innerR.toFixed(1)} 0 ${largeArc} 0 ${x1.toFixed(1)},${y1.toFixed(1)} Z" fill="${barColor}" fill-opacity="${opacity}" stroke="${barStroke}" stroke-width="0.5" style="cursor:pointer;"></path>`;
 
-    // バーの値をバー先端のすぐ外側に表示
+    // バーの値をバー先端のすぐ外側に表示（背景の目盛り数字とバランスが取れる小さめサイズ）
     if (val > 0) {
-      const vr = outerR + 13;
+      const vr = outerR + 11;
       const vx = center + vr * Math.cos(toRad(midAngle));
       const vy = center + vr * Math.sin(toRad(midAngle));
-      valueLabelsHtml += `<text x="${vx.toFixed(1)}" y="${vy.toFixed(1)}" font-size="12.5" fill="${barColor}" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${val}</text>`;
+      valueLabelsHtml += `<text x="${vx.toFixed(1)}" y="${vy.toFixed(1)}" font-size="8.5" fill="${barColor}" font-weight="bold" text-anchor="middle" dominant-baseline="central">${val}</text>`;
     }
 
-    // 時刻ラベル（3時間おき・"00:00"形式。0時・12時も必ず含まれる）
+    // 時刻ラベル（3時間おき・"00"形式。0時・12時も必ず含まれる。時計の文字盤のように中央揃えで配置）
     if (h % 3 === 0) {
-      const labelR = innerR + maxBarLen + 26;
+      const labelR = innerR + maxBarLen + 34;
       const lx = center + labelR * Math.cos(toRad(midAngle));
       const ly = center + labelR * Math.sin(toRad(midAngle));
-      labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="13" fill="#9aa5c0" text-anchor="middle" dominant-baseline="middle">${pad2(h)}:00</text>`;
+      labelsHtml += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="13" fill="#9aa5c0" text-anchor="middle" dominant-baseline="central">${pad2(h)}</text>`;
     }
   }
 
