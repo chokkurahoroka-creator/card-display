@@ -47,7 +47,7 @@ function sortByCategory(cardsOfType) {
 // ===== 一覧画面の並び替え機能（新規/再録/パラレル・検索結果 共通） =====
 // key: 'color'（現在のデフォルト順）/ 'rarity' / 'name'（カード名あいう順）/ 'hp'
 // dir: 'asc' / 'desc'
-const RARITY_ORDER = ['C', 'U', 'R', 'RR', 'SR', 'OSR'];
+const RARITY_ORDER = ['SEC', 'OUR', 'OSR', 'OC', 'HR', 'SY', 'UR', 'SR', 'RR', 'U', 'S', 'R', 'C', 'P', '判別不能', 'その他'];
 const sortState = {
   '新規': { key: 'color', dir: 'asc' },
   '再録': { key: 'color', dir: 'asc' },
@@ -55,9 +55,12 @@ const sortState = {
   'search': { key: 'color', dir: 'asc' } // 検索結果・注目カード・お気に入り表示で共通利用
 };
 
+// レアリティの並び順インデックスを返す。リストに無い値は「判別不能」、未設定（空）は「その他」として扱う
 function rarityOrderIndex(rarity) {
-  const idx = RARITY_ORDER.indexOf((rarity || '').toUpperCase());
-  return idx === -1 ? RARITY_ORDER.length : idx;
+  const r = (rarity || '').toUpperCase().trim();
+  if (!r) return RARITY_ORDER.indexOf('その他');
+  const idx = RARITY_ORDER.indexOf(r);
+  return idx === -1 ? RARITY_ORDER.indexOf('判別不能') : idx;
 }
 
 // 選択された並び替えキー・方向でカード配列を並び替える（'color'は既存のsortByCategoryを使用）
@@ -78,23 +81,32 @@ function sortCardsBy(cards, key, dir) {
 
 // 並び替えキーごとに「その値が変わった位置」を判定するためのグループラベルを返す（'color'は区切り線を出さないためnull）
 function sortGroupLabel(card, key) {
-  if (key === 'rarity') return card.rarity || 'その他';
+  if (key === 'rarity') {
+    const r = (card.rarity || '').toUpperCase().trim();
+    if (!r) return 'その他';
+    return RARITY_ORDER.includes(r) ? r : '判別不能';
+  }
   if (key === 'name') return (card.cardName || '').trim().charAt(0) || '？';
   if (key === 'hp') return (card.hp !== undefined && card.hp !== null && card.hp !== '') ? `HP ${card.hp}` : 'HPなし';
   return null;
 }
 
-// 並び替え後のカード一覧から、値が変わるたびに区切り線（値を中央に重ねた線）を挟んだHTMLを生成する
+// 並び替え後のカード一覧から、値が変わるたびに区切り線（細い縦線＋その下にラベル）を挟んだHTMLを生成する。
+// 先頭グループの前には区切り線を出さない（グループが切り替わる境目にだけ表示する）
 function buildCardsHtmlWithDividers(cards, key) {
   let html = '';
-  let prevLabel; // 初回は必ずundefinedと不一致になるため、最初のグループの前にも区切り線が入る
+  let prevLabel = null;
+  let isFirst = true;
   cards.forEach(c => {
     const label = sortGroupLabel(c, key);
-    if (label !== null && label !== prevLabel) {
-      html += `<div class="sortDivider"><span>${escapeHtml(label)}</span></div>`;
+    if (label !== null) {
+      if (!isFirst && label !== prevLabel) {
+        html += `<div class="sortDivider"><span class="sortDividerLine"></span><span class="sortDividerLabel">${escapeHtml(label)}</span></div>`;
+      }
       prevLabel = label;
     }
     html += cardHtml(c);
+    isFirst = false;
   });
   return html;
 }
