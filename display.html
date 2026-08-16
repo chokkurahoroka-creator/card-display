@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ホロカ 新カード一覧</title>
+<title>ホロカ 新カード情報まとめ</title>
 <style>
   :root { --gold: #d4af6a; }
   * { box-sizing: border-box; }
@@ -12,20 +12,6 @@
     color: #f0e6d2; font-family: "Hiragino Sans","Yu Gothic",sans-serif; padding: 24px;
   }
   .headerRow { display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 4px; }
-  .youtubeBtn {
-    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-    display: inline-flex; align-items: center; gap: 8px;
-    background: linear-gradient(135deg, #ff3d3d, #d90000); color: #fff; text-decoration: none;
-    padding: 9px 18px 9px 14px; border-radius: 24px; font-size: 13px; font-weight: bold;
-    box-shadow: 0 3px 12px rgba(255,0,0,0.5), 0 0 0 rgba(255,0,0,0.5);
-    animation: ytPulse 2.4s ease-in-out infinite;
-    transition: transform 0.15s ease;
-  }
-  .youtubeBtn svg { width: 18px; height: 18px; flex-shrink: 0; }
-  .youtubeBtn:hover {
-    transform: translateY(-50%) scale(1.08);
-    box-shadow: 0 4px 18px rgba(255,0,0,0.7);
-  }
   .topBar { display: none; }
 
   /* ===== サイト共通ヘッダーナビ（ページ間の遷移用） ===== */
@@ -47,6 +33,18 @@
   }
   .siteNav a.siteNavLink:hover { color: var(--gold); border-color: rgba(212,175,106,0.35); background: rgba(212,175,106,0.08); }
   .siteNav a.siteNavLink.active { color: #1a1305; background: var(--gold); border-color: var(--gold); }
+  .siteNavYoutubeBtn {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #ff3d3d, #d90000); color: #fff; text-decoration: none;
+    padding: 8px 16px 8px 12px; border-radius: 22px; font-size: 12.5px; font-weight: bold;
+    box-shadow: 0 3px 12px rgba(255,0,0,0.5); animation: ytPulse 2.4s ease-in-out infinite;
+    transition: transform 0.15s ease; white-space: nowrap; flex-shrink: 0;
+  }
+  .siteNavYoutubeBtn svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .siteNavYoutubeBtn:hover { transform: scale(1.06); box-shadow: 0 4px 16px rgba(255,0,0,0.7); }
+  @media (max-width: 640px) {
+    .siteNavYoutubeBtn { display: none; }
+  }
   @media (max-width: 640px) {
     .siteNav { flex-direction: column; align-items: flex-start; gap: 10px; margin: -24px -24px 16px; padding: 12px 16px; }
     .siteNav .siteNavLinks { width: 100%; }
@@ -470,7 +468,6 @@
     body { padding: 14px; padding-top: 54px; }
     h1 { font-size: 18px; letter-spacing: 0.5px; }
     .headerRow { min-height: 34px; }
-    .headerRow .youtubeBtn { display: none; }
 
     /* スマホでは新着カードをより強く強調 */
     .card.isNew {
@@ -557,9 +554,13 @@
 <nav class="siteNav">
   <span class="siteNavLogo">ホロカ 非公式まとめ</span>
   <div class="siteNavLinks">
-    <a href="display.html" class="siteNavLink active">新カード情報 一覧</a>
+    <a href="display.html" class="siteNavLink active">新カード情報まとめ</a>
     <a href="cardpool.html" class="siteNavLink">カードプール管理</a>
   </div>
+  <a class="siteNavYoutubeBtn" href="https://www.youtube.com/channel/UClxMlIDTNlNv4H3QsWWgZbw" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12Z"/></svg>
+    カードチャンネルもやってるよ
+  </a>
 </nav>
 
 <div class="shootingStarsField" aria-hidden="true">
@@ -582,12 +583,8 @@
 
 <div class="headerRow">
   <h1>hololive OFFICIAL CARD GAME公開カードまとめ</h1>
-  <a class="youtubeBtn" href="https://www.youtube.com/channel/UClxMlIDTNlNv4H3QsWWgZbw" target="_blank" rel="noopener">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12Z"/></svg>
-    カードチャンネルもやってるよ
-  </a>
 </div>
-<div class="sub">新カード情報 一覧（公開中のみ表示）</div>
+<div class="sub">新カード情報まとめ（公開中のみ表示）</div>
 
 <!-- ===== 広告枠（AdSense審査完了後、data-ad-slot を実際のスロットIDに置き換えてください） ===== -->
 <div class="adSlotWrap">
