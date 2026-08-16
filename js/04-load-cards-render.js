@@ -60,9 +60,9 @@ function render() {
     renderArea('再録', lastSetInfo.totalRerun || 0, offsetRerun);
     renderArea('パラレル', lastSetInfo.totalParallel || 0, offsetParallel);
 
-    const newCards = lastCards.filter(c => c.type === '新規').sort((a, b) => Number(a.slot) - Number(b.slot));
-    const rerunCards = sortByCategory(lastCards.filter(c => c.type === '再録'));
-    const parallelCards = sortByCategory(lastCards.filter(c => c.type === 'パラレル'));
+    const newCards = getSectionOrderedCards('新規', lastCards.filter(c => c.type === '新規'));
+    const rerunCards = getSectionOrderedCards('再録', lastCards.filter(c => c.type === '再録'));
+    const parallelCards = getSectionOrderedCards('パラレル', lastCards.filter(c => c.type === 'パラレル'));
     navList = [...newCards, ...rerunCards, ...parallelCards];
   }
 }
@@ -83,7 +83,7 @@ function matchesQuery(c, q) {
 
 function renderFeaturedResults() {
   document.getElementById('areas').style.display = 'none';
-  const matched = lastCards.filter(c => c.featured === 'TRUE');
+  let matched = lastCards.filter(c => c.featured === 'TRUE');
 
   if (!matched.length) {
     document.getElementById('searchResultsWrap').style.display = 'none';
@@ -91,8 +91,11 @@ function renderFeaturedResults() {
     document.getElementById('noResults').style.display = 'block';
     return;
   }
+  matched = sortCardsBy(matched, sortState.search.key, sortState.search.dir);
   document.getElementById('noResults').style.display = 'none';
   document.getElementById('searchResultsWrap').style.display = 'block';
+  const countEl = document.getElementById('count-search');
+  if (countEl) countEl.textContent = `${matched.length} 件`;
   document.getElementById('searchResultsGrid').innerHTML = matched.map(c => cardHtml(c)).join('');
   bindCardClicks(document.getElementById('searchResultsGrid'));
   navList = matched;
@@ -101,15 +104,18 @@ function renderFeaturedResults() {
 function renderSearchResults() {
   document.getElementById('noResults').textContent = '該当するカードが見つかりませんでした';
   document.getElementById('areas').style.display = 'none';
-  const matched = lastCards.filter(c => matchesQuery(c, searchQuery));
+  let matched = lastCards.filter(c => matchesQuery(c, searchQuery));
 
   if (!matched.length) {
     document.getElementById('searchResultsWrap').style.display = 'none';
     document.getElementById('noResults').style.display = 'block';
     return;
   }
+  matched = sortCardsBy(matched, sortState.search.key, sortState.search.dir);
   document.getElementById('noResults').style.display = 'none';
   document.getElementById('searchResultsWrap').style.display = 'block';
+  const countEl = document.getElementById('count-search');
+  if (countEl) countEl.textContent = `${matched.length} 件`;
   document.getElementById('searchResultsGrid').innerHTML = matched.map(c => cardHtml(c)).join('');
   bindCardClicks(document.getElementById('searchResultsGrid'));
   navList = matched;

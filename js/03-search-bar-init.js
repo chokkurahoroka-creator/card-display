@@ -205,6 +205,9 @@ async function init() {
     }
   }, { passive: true });
 
+  // 並び替え機能（新規/再録/パラレル・検索結果 共通）
+  bindSortControls();
+
   await loadCards();
   await checkForUpdates(); // 現在のバージョンを基準値として記録（この時点では再取得しない）
   setInterval(checkForUpdates, REFRESH_INTERVAL);

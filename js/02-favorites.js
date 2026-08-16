@@ -102,7 +102,7 @@ async function showFavoritesView(group) {
       allCards = allCards.concat(cards);
     } catch (e) { /* skip failed set */ }
   }
-  const matched = allCards.filter(c => keys.includes(cardKey(c)));
+  const matched = sortCardsBy(allCards.filter(c => keys.includes(cardKey(c))), sortState.search.key, sortState.search.dir);
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('noResults').textContent = '該当するカードが見つかりませんでした';
@@ -113,6 +113,8 @@ async function showFavoritesView(group) {
   }
   document.getElementById('noResults').style.display = 'none';
   document.getElementById('searchResultsWrap').style.display = 'block';
+  const countEl = document.getElementById('count-search');
+  if (countEl) countEl.textContent = `${matched.length} 件`;
   document.getElementById('searchResultsGrid').innerHTML = matched.map(c => cardHtml(c)).join('');
   bindCardClicks(document.getElementById('searchResultsGrid'));
   navList = matched;
