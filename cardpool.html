@@ -16,6 +16,7 @@
   /* ===== サイト共通ヘッダーナビ（ページ間の遷移用） ===== */
   .siteNav {
     display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 90;
     margin: -24px -24px 20px; padding: 14px 24px;
     background: linear-gradient(90deg, #141b2e, #1c2740);
     border-bottom: 1px solid rgba(212,175,106,0.35);
@@ -46,11 +47,13 @@
     50% { box-shadow: 0 3px 12px rgba(255,0,0,0.5), 0 0 0 8px rgba(255,0,0,0); }
   }
   @media (max-width: 640px) {
-    .siteNavYoutubeBtn { display: none; }
-  }
-  @media (max-width: 640px) {
-    .siteNav { flex-direction: column; align-items: flex-start; gap: 10px; margin: -24px -24px 16px; padding: 12px 16px; }
-    .siteNav .siteNavLinks { width: 100%; }
+    .siteNav {
+      flex-wrap: wrap; margin: -24px -24px 16px; padding: 12px 16px; row-gap: 10px;
+    }
+    .siteNav .siteNavLogo { order: 1; margin-right: 0; }
+    .siteNavYoutubeBtn { order: 2; margin-left: auto; padding: 7px 14px 7px 10px; font-size: 11.5px; }
+    .siteNavYoutubeBtn svg { width: 14px; height: 14px; }
+    .siteNav .siteNavLinks { order: 3; width: 100%; }
   }
 
   /* ===== 流れ星の背景演出（一覧画面と共通） ===== */
