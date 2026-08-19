@@ -191,6 +191,34 @@
   .statsSidebarBtn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
   .statsSidebarBtn svg { width: 32px; height: 32px; stroke: var(--gold); fill: none; }
 
+  /* ===== サイト状態（公開/作業中/非公開）設定アイコン（統計アイコンの直下に固定配置） ===== */
+  .siteStatusSidebarBtn {
+    position: fixed; top: 236px; left: 16px; z-index: 1000;
+    width: 72px; height: 72px; border-radius: 50%; padding: 0;
+    background: rgba(15, 20, 32, 0.85); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,175,106,0.4); cursor: pointer; font-size: 30px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .siteStatusSidebarBtn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+
+  .siteStatusOverlayBox {
+    width: 480px; max-width: 92vw; max-height: 90vh; overflow-y: auto;
+    background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
+    border-radius: 16px; padding: 26px; position: relative;
+  }
+  .siteStatusRow {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid rgba(212,175,106,0.18);
+  }
+  .siteStatusRow:last-of-type { border-bottom: none; }
+  .siteStatusRowLabel { font-size: 14px; font-weight: bold; }
+  .siteStatusRow select {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
+    background: #10182a; color: var(--text); font-size: 13px;
+  }
+
   /* ===== 統計オーバーレイ（画面の95%サイズで表示） ===== */
   .statsOverlay {
     display: none; position: fixed; inset: 0; background: rgba(5,8,14,0.85);
@@ -239,12 +267,13 @@
   }
   .galleryCard .gcFeatured.active { opacity: 1; background: var(--gold); border-color: var(--gold); }
   .galleryCard .gcFeatured:hover { opacity: 0.8; }
-  /* 評価パラメータが入力済みのカードのサムネイル左上に表示するアイコン */
+  /* 評価パラメータが入力済みのカードのサムネイル左上に表示するアイコン（赤いチェックマーク） */
   .galleryCard .gcRated {
-    position: absolute; top: 5px; left: 5px; font-size: 12px; z-index: 2;
-    background: var(--gold); color: #1a1305; border-radius: 50%;
+    position: absolute; top: 5px; left: 5px; font-size: 13px; z-index: 2;
+    background: #e5342f; color: #fff; border-radius: 50%;
     width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.5);
+    font-weight: 900;
   }
 
   .editModalOverlay {
@@ -505,6 +534,8 @@
   </svg>
 </button>
 
+<button type="button" class="siteStatusSidebarBtn" id="siteStatusSidebarBtn" title="各ページの公開状態（公開/作業中/非公開）を設定">🚧</button>
+
 <div class="layout" id="inputLayout">
 
 <!-- ===== 弾（セット）設定 ===== -->
@@ -756,6 +787,36 @@
   </div>
 </div>
 
+<!-- ===== ページ公開状態（公開/作業中/非公開）設定パネル ===== -->
+<div class="statsOverlay" id="siteStatusOverlay">
+  <div class="siteStatusOverlayBox">
+    <button type="button" id="siteStatusOverlayCloseBtn" class="modalCloseBtn">×</button>
+    <h2>🚧 ページ公開状態の設定</h2>
+    <div class="hint" style="margin-bottom:6px;">
+      公開＝通常通り表示／作業中＝ページの上下にメンテナンス中バナーを表示（閲覧は通常通り可能）／
+      非公開＝サイトヘッダーのリンクを非表示（URLを直接開けば引き続き表示されます）
+    </div>
+    <div class="siteStatusRow">
+      <span class="siteStatusRowLabel">一覧ページ（display.html）</span>
+      <select id="siteStatusSelect_display">
+        <option value="公開">公開</option>
+        <option value="作業中">作業中</option>
+        <option value="非公開">非公開</option>
+      </select>
+    </div>
+    <div class="siteStatusRow">
+      <span class="siteStatusRowLabel">カードプール管理ページ（cardpool.html）</span>
+      <select id="siteStatusSelect_cardpool">
+        <option value="公開">公開</option>
+        <option value="作業中">作業中</option>
+        <option value="非公開">非公開</option>
+      </select>
+    </div>
+    <button type="button" class="secondary" id="siteStatusSaveBtn" style="margin-top:16px;">この内容を保存</button>
+    <span id="siteStatusSaveStatus" class="hint" style="margin-left:10px; display:inline;"></span>
+  </div>
+</div>
+
 <!-- ===== カード編集ポップアップ（表示画面の詳細ポップに近いUI） ===== -->
 <div id="editModalOverlay" class="editModalOverlay">
   <div class="editModalBox">
@@ -798,5 +859,6 @@
 <script src="js/11-hover-preview-boot.js"></script>
 <script src="js/12-page-zoom-admin.js"></script>
 <script src="js/13-stats-admin.js"></script>
+<script src="js/14-site-status-admin.js"></script>
 </body>
 </html>
