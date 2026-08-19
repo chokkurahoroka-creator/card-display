@@ -229,15 +229,16 @@
   .modalOverlay.open { display: flex; }
   .modalBox {
     background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
-    border-radius: 18px; max-width: 1180px; width: 100%; max-height: 94vh; overflow-y: auto;
-    display: flex; gap: 32px; padding: 36px; position: relative; flex-wrap: wrap;
+    border-radius: 18px; max-width: 1440px; width: 100%; max-height: 96vh; overflow-y: auto;
+    display: flex; align-items: center; gap: 40px; padding: 44px; position: relative; flex-wrap: wrap;
   }
-  /* 画像＋ダウンロードボタンをひとまとめにして、情報欄をスクロールしても中央に固定表示させる */
+  /* 画像＋ダウンロードボタンをひとまとめにして、情報欄をスクロールしても中央に固定表示させる。
+     align-self:centerにより初期表示時は画像列がモーダル内で上下中央に来る（スクロール時はtop:0で上に張り付く） */
   .modalImageCol {
-    position: sticky; top: 0; align-self: flex-start; flex-shrink: 0;
-    display: flex; flex-direction: column; align-items: center; gap: 14px; width: 420px; max-width: 100%;
+    position: sticky; top: 0; align-self: center; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; width: 480px; max-width: 100%;
   }
-  #modalImg { width: 420px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain; background: #10182a; border-radius: 14px; cursor: zoom-in; }
+  #modalImg { width: 480px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain; background: #10182a; border-radius: 14px; cursor: zoom-in; }
   .imageZoomOverlay {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 400;
     align-items: center; justify-content: center; cursor: zoom-out; padding: 20px; box-sizing: border-box;
@@ -270,8 +271,10 @@
   .modalNavBtn:hover { background: rgba(212,175,106,0.3); }
   .modalNavBtn.prev { left: 24px; }
   .modalNavBtn.next { right: 24px; }
+  /* ダウンロードボタン＋お気に入りボタンを横並びにする行 */
+  .modalActionRow { display: flex; align-items: center; gap: 10px; width: 100%; }
   .modalDownloadBtn {
-    width: 100%; justify-content: center;
+    flex: 1; justify-content: center;
     background: var(--gold); color: #1a1305; border: none; border-radius: 20px;
     padding: 10px 18px; font-size: 13px; font-weight: bold; cursor: pointer;
     display: flex; align-items: center; gap: 6px;
@@ -291,9 +294,11 @@
   .artsBlock .artsEffect { font-size: 26px; line-height: 1.6; white-space: pre-wrap; margin-top: 6px; }
 
   .modalBadgeRow { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  /* ダウンロードボタンの右隣に並ぶお気に入りボタン（カード一覧のfavStarと同じ見た目を流用しつつ、静的配置に上書き） */
   .modalFavStar {
-    position: absolute; right: 150px; bottom: 20px; margin-left: 0;
-    width: 34px; height: 34px; background: rgba(255,255,255,0.08); font-size: 17px; top: auto;
+    position: static; flex-shrink: 0;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); font-size: 19px;
   }
   .skillBlock {
     display: flex; flex-direction: column;
@@ -522,8 +527,10 @@
       display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 2;
     }
     .modalDownloadBtn .dlLabel { display: none; }
+    /* ダウンロードボタンが画像上に浮くレイアウトになるため、お気に入りボタンは行の中央に単独表示する */
+    .modalActionRow { justify-content: center; }
     .modalFavStar {
-      position: static; width: 30px; height: 30px; margin-left: auto;
+      position: static; width: 34px; height: 34px; margin: 0 auto;
     }
     .modalClose { top: 10px; right: 10px; width: 30px; height: 30px; font-size: 18px; }
 
@@ -697,7 +704,10 @@
     <button class="modalClose" id="modalClose">×</button>
     <div class="modalImageCol">
       <img id="modalImg" alt="">
-      <button class="modalDownloadBtn" id="modalDownload">⬇ <span class="dlLabel">画像を保存</span></button>
+      <div class="modalActionRow">
+        <button class="modalDownloadBtn" id="modalDownload">⬇ <span class="dlLabel">画像を保存</span></button>
+        <button class="favStar modalFavStar" id="modalFavStarBtn" title="お気に入りに追加/削除">☆</button>
+      </div>
     </div>
     <div class="modalInfo" id="modalInfo"></div>
   </div>

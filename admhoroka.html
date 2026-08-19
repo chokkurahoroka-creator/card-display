@@ -239,6 +239,13 @@
   }
   .galleryCard .gcFeatured.active { opacity: 1; background: var(--gold); border-color: var(--gold); }
   .galleryCard .gcFeatured:hover { opacity: 0.8; }
+  /* 評価パラメータが入力済みのカードのサムネイル左上に表示するアイコン */
+  .galleryCard .gcRated {
+    position: absolute; top: 5px; left: 5px; font-size: 12px; z-index: 2;
+    background: var(--gold); color: #1a1305; border-radius: 50%;
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
 
   .editModalOverlay {
     display: none; position: fixed; inset: 0; background: rgba(5,8,14,0.85);
