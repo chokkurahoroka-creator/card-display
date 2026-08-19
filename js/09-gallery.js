@@ -102,7 +102,7 @@ async function renderGallery() {
           return `
             <div class="galleryCard" data-index="${idx}">
               <button type="button" class="gcFeatured ${c.featured === 'TRUE' ? 'active' : ''}" data-index="${idx}" title="注目カードに設定/解除">📌</button>
-              ${hasCardRating(c) ? '<span class="gcRated" title="評価入力済み">★</span>' : ''}
+              ${hasCardRating(c) ? '<span class="gcRated" title="評価入力済み">✓</span>' : ''}
               <img src="${c.imageUrl}" alt="${escapeAttr(c.cardName)}" loading="lazy">
               <div class="gcBody">
                 ${c.cardType ? `<div class="gcTag">${escapeAttr(c.cardType)}</div>` : ''}
