@@ -126,6 +126,108 @@
     .sub { font-size: 11px; margin-bottom: 14px; }
     .comingSoonWrap { margin-top: 40px; padding: 40px 20px; }
   }
+
+  /* ===== ユーザーIDボックス ===== */
+  .userIdBox {
+    max-width: 900px; margin: 0 auto 18px; padding: 12px 16px; border-radius: 12px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,106,0.3);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px;
+  }
+  .userIdBox .userIdLabel { color: #9aa5c0; }
+  .userIdBox .userIdValue { color: var(--gold); font-weight: bold; letter-spacing: 1px; font-family: 'Courier New', monospace; }
+  .userIdBox .userIdHint { flex-basis: 100%; font-size: 11px; color: #6e7893; }
+  .cpPrimaryBtn, .cpSecondaryBtn {
+    border-radius: 16px; padding: 6px 14px; font-size: 12px; font-weight: bold; cursor: pointer; border: none;
+  }
+  .cpPrimaryBtn { background: var(--gold); color: #1a1305; }
+  .cpPrimaryBtn:hover { filter: brightness(1.1); }
+  .cpSecondaryBtn { background: transparent; color: #c9d1e0; border: 1px solid rgba(212,175,106,0.4); }
+  .cpSecondaryBtn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ===== タブ ===== */
+  .cpTabs { max-width: 900px; margin: 0 auto 16px; display: flex; gap: 8px; }
+  .cpTabBtn {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(212,175,106,0.3);
+    background: rgba(255,255,255,0.02); color: #c9d1e0; font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  .cpTabBtn.active { background: var(--gold); color: #1a1305; border-color: var(--gold); }
+  .cpMain { max-width: 1100px; margin: 0 auto; }
+  .cpHint { color: #9aa5c0; font-size: 13px; padding: 20px; text-align: center; }
+
+  /* ===== 所持カード一覧 ===== */
+  .cpCollectionControls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .cpCollectionControls select, .cpCollectionControls input {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
+    background: #10182a; color: var(--text); font-size: 13px;
+  }
+  .cpCollectionControls select { min-width: 200px; }
+  .cpCollectionControls input { flex: 1; min-width: 160px; }
+  .cpSaveStatus { font-size: 12px; color: #9aa5c0; align-self: center; }
+  .cpCollectionGrid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px;
+  }
+  .cpCard {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.18); border-radius: 10px;
+    overflow: hidden; opacity: 0.55; transition: opacity 0.15s, border-color 0.15s;
+  }
+  .cpCard.owned { opacity: 1; border-color: var(--gold); }
+  .cpCard img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; background: #10182a; }
+  .cpCardBody { padding: 6px 8px 2px; }
+  .cpCardName { font-size: 12px; font-weight: bold; color: var(--text); line-height: 1.3; }
+  .cpCardMeta { font-size: 10.5px; color: #9aa5c0; margin-top: 2px; }
+  .cpQtyRow { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 8px 8px; }
+  .cpQtyBtn {
+    width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(212,175,106,0.4);
+    background: rgba(212,175,106,0.08); color: var(--gold); font-size: 14px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .cpQtyBtn:hover { background: rgba(212,175,106,0.2); }
+  .cpQtyValue { min-width: 22px; text-align: center; font-size: 13px; font-weight: bold; }
+
+  /* ===== マイデッキ ===== */
+  .cpDeckList { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .cpDeckRow {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.25);
+  }
+  .cpDeckRowName { font-weight: bold; flex: 1; }
+  .cpDeckRowMeta { font-size: 12px; color: #9aa5c0; }
+  .cpDeckNameInput {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
+    background: #10182a; color: var(--text); font-size: 15px; font-weight: bold; margin: 14px 0;
+  }
+  .cpDeckSearchWrap { position: relative; margin-bottom: 14px; }
+  .cpDeckSearchWrap input {
+    width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
+    background: #10182a; color: var(--text); font-size: 13px;
+  }
+  .cpDeckSearchResults {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 20; max-height: 280px; overflow-y: auto;
+    background: #10182a; border: 1px solid rgba(212,175,106,0.4); border-radius: 8px; margin-top: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .cpDeckSearchItem {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px; cursor: pointer; font-size: 13px;
+    border-bottom: 1px solid rgba(212,175,106,0.12);
+  }
+  .cpDeckSearchItem:hover { background: rgba(212,175,106,0.12); }
+  .cpDeckCardThumb { width: 40px; aspect-ratio: 5/7; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+  .cpDeckCardsList { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .cpDeckCardRow {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.18);
+  }
+  .cpDeckCardName { flex: 1; font-size: 13px; }
+  .cpDeckRemoveBtn {
+    background: transparent; border: 1px solid rgba(227,126,126,0.5); color: #e37e7e;
+    border-radius: 14px; padding: 3px 10px; font-size: 11px; cursor: pointer;
+  }
+  .cpDeckRemoveBtn:hover { background: rgba(227,126,126,0.12); }
+  .cpDeckTotalRow { font-size: 13px; color: #c9d1e0; margin-bottom: 14px; }
+  @media (max-width: 640px) {
+    .userIdBox { font-size: 12px; }
+    .cpCollectionGrid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+  }
 </style>
 </head>
 <body>
@@ -153,15 +255,53 @@
 
 <div class="sub">所持カードの管理ページ</div>
 
-<div class="comingSoonWrap">
-  <div class="comingSoonIcon">🛠️</div>
-  <div class="comingSoonTitle">近日公開予定</div>
-  <div class="comingSoonText">
-    所持しているカードを登録・管理できるページを準備中です。<br>
-    公開までもうしばらくお待ちください。
-  </div>
-  <a href="display.html" class="comingSoonBackLink">新カード情報に戻る</a>
+<div class="userIdBox">
+  <span class="userIdLabel">あなたのID:</span>
+  <span class="userIdValue" id="cpUserIdDisplay">----</span>
+  <button type="button" class="cpSecondaryBtn" id="cpCopyUserIdBtn">IDをコピー</button>
+  <button type="button" class="cpSecondaryBtn" id="cpChangeUserIdBtn">別端末のIDを使う</button>
+  <span class="userIdHint">このIDが所持カード・デッキ情報の保存キーです。他の端末でも同じ内容を見るには、このIDをその端末の「別端末のIDを使う」から入力してください。</span>
 </div>
+
+<div class="cpTabs">
+  <button type="button" class="cpTabBtn active" data-tab="collection">所持カード</button>
+  <button type="button" class="cpTabBtn" data-tab="decks">マイデッキ</button>
+</div>
+
+<div class="cpMain">
+  <div id="cpTab_collection" class="cpTabPanel">
+    <div class="cpCollectionControls">
+      <select id="cpSetSelect"></select>
+      <input type="text" id="cpSearchInput" placeholder="カード名で検索（弾をまたいで検索します）">
+      <span class="cpSaveStatus" id="cpSaveStatus"></span>
+    </div>
+    <div id="cpCollectionGrid" class="cpCollectionGrid"></div>
+  </div>
+
+  <div id="cpTab_decks" class="cpTabPanel" style="display:none;">
+    <div id="cpDeckListView">
+      <button type="button" class="cpPrimaryBtn" id="cpNewDeckBtn">＋ 新しいデッキ</button>
+      <div id="cpDeckList" class="cpDeckList"></div>
+    </div>
+    <div id="cpDeckEditorView" style="display:none;">
+      <button type="button" class="cpSecondaryBtn" id="cpDeckBackBtn">← デッキ一覧に戻る</button>
+      <input type="text" id="cpDeckNameInput" class="cpDeckNameInput" placeholder="デッキ名">
+      <div class="cpDeckSearchWrap">
+        <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加">
+        <div id="cpDeckSearchResults" class="cpDeckSearchResults" style="display:none;"></div>
+      </div>
+      <div id="cpDeckCardsList" class="cpDeckCardsList"></div>
+      <div class="cpDeckTotalRow">合計 <span id="cpDeckTotalCount">0</span> 枚</div>
+      <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">このデッキを保存</button>
+      <div id="cpDeckStatus" class="cpHint" style="padding:8px 0;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/14-cardpool-config.js"></script>
+<script src="js/15-cardpool-collection.js"></script>
+<script src="js/16-cardpool-decks.js"></script>
+<script src="js/17-cardpool-boot.js"></script>
 <script src="js/13-page-zoom.js"></script>
 </body>
 </html>
