@@ -1,3 +1,5 @@
+let currentModalCard = null; // ダウンロードボタン右隣の固定お気に入りボタンが対象とする、現在表示中のカード
+
 function openModal(c) {
   navIndex = navList.findIndex(x => x.type === c.type && String(x.slot) === String(c.slot));
   logStatEvent('view', c); // 統計用：詳細表示を開いた記録（表示体験には影響しない）
@@ -82,7 +84,6 @@ function openModal(c) {
       ${c.rarity ? `<span class="modalTypeBadge" style="background:#7ec8e3;">${escapeHtml(c.rarity)}</span>` : ''}
       ${c.cardType ? `<span class="modalTypeBadge" style="background:#a3a3a3;">${escapeHtml(c.cardType)}</span>` : ''}
       ${(!isSupportCardType && c.stage) ? `<span class="modalTypeBadge" style="background:#9d7cf2;">${escapeHtml(c.stage)}</span>` : ''}
-      <button class="favStar modalFavStar ${favActive ? 'active' : ''}" data-fullkey="${key}" title="お気に入りに追加/削除">${favActive ? '★' : '☆'}</button>
     </div>
     <h3>${escapeHtml(c.cardName)}</h3>
     ${limitedBannerHtml}
@@ -95,9 +96,14 @@ function openModal(c) {
   document.getElementById('modalOverlay').classList.add('open');
   autofitLongTitles(document.getElementById('modalInfo'));
 
-  document.querySelectorAll('.modalFavStar').forEach(btn => {
-    btn.addEventListener('click', () => toggleFav(c));
-  });
+  // ダウンロードボタン右隣の固定お気に入りボタン（要素は使い回すため、状態だけをここで更新する）
+  currentModalCard = c;
+  const modalFavStarBtn = document.getElementById('modalFavStarBtn');
+  if (modalFavStarBtn) {
+    modalFavStarBtn.dataset.fullkey = key;
+    modalFavStarBtn.classList.toggle('active', favActive);
+    modalFavStarBtn.textContent = favActive ? '★' : '☆';
+  }
 
   const hasNav = navList.length > 1 && navIndex !== -1;
   document.getElementById('modalPrev').style.display = hasNav ? 'flex' : 'none';
@@ -105,5 +111,12 @@ function openModal(c) {
 
   loadRelatedCards(c);
 }
+
+// ダウンロードボタン右隣の固定お気に入りボタンは要素自体を使い回すため、クリックリスナーはここで一度だけ登録する
+// （openModalのたびに登録すると呼び出しが重複してしまうため）
+(function bindModalFavStarOnce() {
+  const btn = document.getElementById('modalFavStarBtn');
+  if (btn) btn.addEventListener('click', () => { if (currentModalCard) toggleFav(currentModalCard); });
+})();
 
 // パラレル⇔元カードの相互リンクを取得してモーダル内に表示する

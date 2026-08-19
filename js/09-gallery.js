@@ -18,6 +18,16 @@ function byNameJa(a, b) {
   return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
 }
 
+// 評価パラメータが1項目以上入力済みかどうかを判定する（サムネイルへの「評価済み」アイコン表示用）
+function hasCardRating(c) {
+  try {
+    const rating = JSON.parse(c.ratingJson || '{}');
+    return RATE_KEYS.some(k => rating[k] !== undefined && rating[k] !== null && rating[k] !== '');
+  } catch (e) {
+    return false;
+  }
+}
+
 // カードを「推しホロメン」「ホロメン」「サポート」「その他」の4カテゴリに分類し、各カテゴリ内をソートする
 // 戻り値は [{ label, cards }, ...]（該当カードが無いカテゴリは含めない）
 function categorizeCards(cardsOfType) {
@@ -92,6 +102,7 @@ async function renderGallery() {
           return `
             <div class="galleryCard" data-index="${idx}">
               <button type="button" class="gcFeatured ${c.featured === 'TRUE' ? 'active' : ''}" data-index="${idx}" title="注目カードに設定/解除">📌</button>
+              ${hasCardRating(c) ? '<span class="gcRated" title="評価入力済み">★</span>' : ''}
               <img src="${c.imageUrl}" alt="${escapeAttr(c.cardName)}" loading="lazy">
               <div class="gcBody">
                 ${c.cardType ? `<div class="gcTag">${escapeAttr(c.cardType)}</div>` : ''}
