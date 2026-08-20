@@ -558,8 +558,10 @@
     width: 100%; height: 64px; overflow: hidden; opacity: 0.9;
     background: repeating-linear-gradient(135deg, #000 0 18px, #f5d800 18px 36px);
     border-top: 2px solid #f5d800; border-bottom: 2px solid #f5d800;
-    position: relative; z-index: 300;
+    position: fixed; left: 0; right: 0; z-index: 400;
   }
+  .maintenanceBanner.top { top: 0; }
+  .maintenanceBanner.bottom { bottom: 0; }
   .maintenanceBannerTrack {
     display: flex; align-items: center; height: 100%; width: max-content; white-space: nowrap;
     animation: maintenanceScroll 45s linear infinite;
@@ -578,6 +580,11 @@
     from { transform: translateX(0); }
     to { transform: translateX(-50%); }
   }
+  /* バナーが上下に常時固定表示されるため、ヘッダー・本文・ズームウィジェットが隠れないよう余白を確保する */
+  body.maintenanceMode { padding-top: 64px; padding-bottom: 64px; }
+  body.maintenanceMode .siteNav { top: 64px; }
+  body.maintenanceMode .pageZoomWidget { bottom: 80px; }
+  body.maintenanceMode .modalNavBtn { margin-top: 32px; }
 </style>
 <!-- ===== Google AdSense =====
      ①下記の ca-pub-XXXXXXXXXXXXXXXX を、ご自身のPublisher IDに置き換えてください
