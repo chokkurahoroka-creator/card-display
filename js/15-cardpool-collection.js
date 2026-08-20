@@ -1,8 +1,9 @@
-// ===== 所持カード一覧 =====
+// ===== 所持カード登録（左＝所持カード／右＝検索して追加、の2分割ビュー） =====
 let ownedCollection = {}; // { "setCode__type__slot": 枚数, ... }
 let cpSets = [];
 let cpSearchTimer = null;
 let cpSaveTimer = null;
+let cpDropZonesInitialized = false;
 
 async function cpLoadSets() {
   const res = await fetch(GAS_URL + '?action=listSets');
@@ -39,21 +40,39 @@ function cpScheduleSave() {
   }, 800);
 }
 
-function cpCardCellHtml(c) {
+// pane: 'owned'（左＝所持カード一覧、＋/－ステッパー付き）/ 'search'（右＝検索結果、＋ボタン＋所持数バッジ）
+function cpCardCellHtml(c, pane) {
   const key = cardKey(c);
   collectionCardsCache[key] = c;
   const qty = ownedCollection[key] || 0;
+
+  const metaHtml = `
+    <div class="cpCardBody">
+      <div class="cpCardName">${escapeHtml(c.cardName)}</div>
+      <div class="cpCardMeta">${escapeHtml(c.rarity || '')} ${escapeHtml(c.setCode)}${c.cardNumber ? '-' + escapeHtml(c.cardNumber) : ''}</div>
+    </div>`;
+
+  if (pane === 'owned') {
+    return `
+      <div class="cpCard owned" data-key="${key}" draggable="true">
+        <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+        ${metaHtml}
+        <div class="cpQtyRow">
+          <button type="button" class="cpQtyBtn cpQtyMinus" data-key="${key}">−</button>
+          <span class="cpQtyValue">${qty}</span>
+          <button type="button" class="cpQtyBtn cpQtyPlus" data-key="${key}">＋</button>
+        </div>
+      </div>`;
+  }
+
+  // 検索パネル側：所持している場合は右上にバッジ表示、追加は＋ボタン1つ
   return `
-    <div class="cpCard ${qty > 0 ? 'owned' : ''}" data-key="${key}">
+    <div class="cpCard ${qty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
+      <span class="cpCardOwnedBadge" id="cpBadge_${key}" style="${qty > 0 ? '' : 'display:none;'}">所持:${qty}</span>
       <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
-      <div class="cpCardBody">
-        <div class="cpCardName">${escapeHtml(c.cardName)}</div>
-        <div class="cpCardMeta">${escapeHtml(c.rarity || '')} ${escapeHtml(c.setCode)}${c.cardNumber ? '-' + escapeHtml(c.cardNumber) : ''}</div>
-      </div>
+      ${metaHtml}
       <div class="cpQtyRow">
-        <button type="button" class="cpQtyBtn cpQtyMinus" data-key="${key}">−</button>
-        <span class="cpQtyValue" id="cpQty_${key}">${qty}</span>
-        <button type="button" class="cpQtyBtn cpQtyPlus" data-key="${key}">＋</button>
+        <button type="button" class="cpQtyBtn cpAddBtn" data-key="${key}" title="追加">＋</button>
       </div>
     </div>`;
 }
@@ -63,47 +82,96 @@ function cpChangeQty(key, delta) {
   const next = Math.max(0, cur + delta);
   if (next === 0) delete ownedCollection[key]; else ownedCollection[key] = next;
 
-  const qtyEl = document.getElementById('cpQty_' + key);
-  if (qtyEl) qtyEl.textContent = next;
-  const cardEl = document.querySelector(`.cpCard[data-key="${cssEscapeKey(key)}"]`);
-  if (cardEl) cardEl.classList.toggle('owned', next > 0);
-
+  cpRenderOwnedGrid();
+  cpUpdateSearchBadge(key, next);
   cpScheduleSave();
 }
 
-// data-key には "__" を含むキーが入るため、CSS.escape が使えない古い環境向けに簡易フォールバックを用意
-function cssEscapeKey(key) {
-  return (window.CSS && CSS.escape) ? CSS.escape(key) : key.replace(/["\\]/g, '\\$&');
+// 検索パネル側に同じカードが表示中であれば、所持数バッジと枠の色だけを軽く更新する（再検索はしない）
+function cpUpdateSearchBadge(key, qty) {
+  const badge = document.getElementById('cpBadge_' + key);
+  if (!badge) return;
+  if (qty > 0) { badge.style.display = ''; badge.textContent = '所持:' + qty; }
+  else { badge.style.display = 'none'; badge.textContent = ''; }
+  const cardEl = badge.closest('.cpCard');
+  if (cardEl) cardEl.classList.toggle('owned', qty > 0);
 }
 
-function cpBindGridEvents(container) {
+function cpBindGridEvents(container, pane) {
+  container.querySelectorAll('.cpCard').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ key: el.dataset.key, pane }));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+  });
   container.querySelectorAll('.cpQtyPlus').forEach(btn => {
     btn.addEventListener('click', () => cpChangeQty(btn.dataset.key, 1));
   });
   container.querySelectorAll('.cpQtyMinus').forEach(btn => {
     btn.addEventListener('click', () => cpChangeQty(btn.dataset.key, -1));
   });
+  container.querySelectorAll('.cpAddBtn').forEach(btn => {
+    btn.addEventListener('click', () => cpChangeQty(btn.dataset.key, 1));
+  });
+}
+
+// pane='owned'の枠に検索パネルのカードをドロップ→追加(+1) / pane='search'の枠に所持カードをドロップ→削除(-1)
+function cpSetupDropZone(el, pane) {
+  el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('dragOver'); });
+  el.addEventListener('dragleave', () => el.classList.remove('dragOver'));
+  el.addEventListener('drop', (e) => {
+    e.preventDefault();
+    el.classList.remove('dragOver');
+    let data;
+    try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
+    if (!data || !data.key) return;
+    if (pane === 'owned' && data.pane === 'search') cpChangeQty(data.key, 1);
+    else if (pane === 'search' && data.pane === 'owned') cpChangeQty(data.key, -1);
+  });
+}
+
+async function cpRenderOwnedGrid() {
+  const gridEl = document.getElementById('cpOwnedGrid');
+  const keys = Object.keys(ownedCollection).filter(k => ownedCollection[k] > 0);
+  if (!keys.length) {
+    gridEl.innerHTML = '<div class="cpHint">まだ所持カードが登録されていません。右側から検索して追加、またはドラッグ＆ドロップしてください</div>';
+    return;
+  }
+  // まだ情報をキャッシュしていないカード（他のタブ・端末で登録済みのもの等）は個別に取得する
+  for (const key of keys) {
+    if (collectionCardsCache[key]) continue;
+    const [setCode, type, slot] = key.split('__');
+    try {
+      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+      const card = await res.json();
+      if (card) collectionCardsCache[key] = card;
+    } catch (e) { /* 取得失敗時はスキップ */ }
+  }
+  const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
+  cards.sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja'));
+  gridEl.innerHTML = cards.map(c => cpCardCellHtml(c, 'owned')).join('');
+  cpBindGridEvents(gridEl, 'owned');
 }
 
 async function cpRenderGridForSet(setCode) {
-  const gridEl = document.getElementById('cpCollectionGrid');
+  const gridEl = document.getElementById('cpSearchGrid');
   gridEl.innerHTML = '<div class="cpHint">読み込み中...</div>';
   const res = await fetch(GAS_URL + `?action=list&setCode=${encodeURIComponent(setCode)}`);
   const cards = await res.json();
   if (!cards.length) { gridEl.innerHTML = '<div class="cpHint">この弾にはまだカードが登録されていません</div>'; return; }
   cards.sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja'));
-  gridEl.innerHTML = cards.map(cpCardCellHtml).join('');
-  cpBindGridEvents(gridEl);
+  gridEl.innerHTML = cards.map(c => cpCardCellHtml(c, 'search')).join('');
+  cpBindGridEvents(gridEl, 'search');
 }
 
 async function cpRenderGridForSearch(query) {
-  const gridEl = document.getElementById('cpCollectionGrid');
+  const gridEl = document.getElementById('cpSearchGrid');
   gridEl.innerHTML = '<div class="cpHint">検索中...</div>';
   const res = await fetch(GAS_URL + `?action=searchCards&q=${encodeURIComponent(query)}`);
   const cards = await res.json();
   if (!cards.length) { gridEl.innerHTML = '<div class="cpHint">該当するカードが見つかりませんでした</div>'; return; }
-  gridEl.innerHTML = cards.map(cpCardCellHtml).join('');
-  cpBindGridEvents(gridEl);
+  gridEl.innerHTML = cards.map(c => cpCardCellHtml(c, 'search')).join('');
+  cpBindGridEvents(gridEl, 'search');
 }
 
 document.getElementById('cpSetSelect').addEventListener('change', (e) => {
@@ -122,6 +190,12 @@ document.getElementById('cpSearchInput').addEventListener('input', (e) => {
 async function cpInitCollectionTab() {
   await cpLoadSets();
   await cpLoadOwnedCollection();
+  if (!cpDropZonesInitialized) {
+    cpSetupDropZone(document.getElementById('cpOwnedGrid'), 'owned');
+    cpSetupDropZone(document.getElementById('cpSearchGrid'), 'search');
+    cpDropZonesInitialized = true;
+  }
+  await cpRenderOwnedGrid();
   const sel = document.getElementById('cpSetSelect');
   if (sel.value) await cpRenderGridForSet(sel.value);
 }

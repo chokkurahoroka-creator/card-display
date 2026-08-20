@@ -27,6 +27,7 @@
 
   // このページ自身が「作業中」の場合、上部・下部にスライドするメンテナンス中バナーを表示する
   if (status[THIS_PAGE_KEY] === '作業中') {
+    document.body.classList.add('maintenanceMode');
     const bannerItem = '<span class="maintenanceBannerItem">▶ <span class="jp">作業中</span> <span class="en">CAUTION</span> ▶ <span class="en">WORK IN PROGRESS</span></span>';
     const track = Array(16).fill(bannerItem).join(''); // 画面幅より確実に長くなる数だけ繰り返す
     const trackHtml = `<div class="maintenanceBannerTrack">${track}${track}</div>`; // 2倍にして-50%移動時に継ぎ目なくループさせる
