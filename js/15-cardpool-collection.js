@@ -43,23 +43,33 @@ function cpScheduleSave() {
   }, 800);
 }
 
+// レアリティに応じたバッジ色（既存サイトのレア度表記に合わせた簡易な色分け）
+function cpRarityColor(rarity) {
+  const r = (rarity || '').toUpperCase().trim();
+  if (['OSR', 'SEC', 'OUR', 'HR', 'SY', 'UR'].indexOf(r) !== -1) return '#d4af6a';
+  if (['SR', 'RR'].indexOf(r) !== -1) return '#e08a3c';
+  if (['R', 'U'].indexOf(r) !== -1) return '#5a9bd4';
+  return '#7a8296';
+}
+
 // pane: 'owned'（左＝所持カード一覧、＋/－ステッパー付き）/ 'search'（右＝検索結果、＋ボタン＋所持数バッジ）
 function cpCardCellHtml(c, pane) {
   const key = cardKey(c);
   collectionCardsCache[key] = c;
   const qty = ownedCollection[key] || 0;
-
-  const metaHtml = `
-    <div class="cpCardBody">
-      <div class="cpCardName">${escapeHtml(c.cardName)}</div>
-      <div class="cpCardMeta">${escapeHtml(c.rarity || '')} ${escapeHtml(c.setCode)}${c.cardNumber ? '-' + escapeHtml(c.cardNumber) : ''}</div>
-    </div>`;
+  const rarity = c.rarity || '';
+  const rarityBadge = rarity
+    ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>`
+    : '';
 
   if (pane === 'owned') {
     return `
       <div class="cpCard owned" data-key="${key}" draggable="true">
-        <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
-        ${metaHtml}
+        <div class="cpCardImgWrap">
+          ${rarityBadge}
+          <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+        </div>
+        <div class="cpCardName">${escapeHtml(c.cardName)}</div>
         <div class="cpQtyRow">
           <button type="button" class="cpQtyBtn cpQtyMinus" data-key="${key}">−</button>
           <span class="cpQtyValue">${qty}</span>
@@ -68,15 +78,16 @@ function cpCardCellHtml(c, pane) {
       </div>`;
   }
 
-  // 検索パネル側：所持している場合は右上にバッジ表示、追加は＋ボタン1つ
+  // 検索パネル側：所持している場合は画像右下に枚数バッジ、追加は＋ボタン1つ
   return `
     <div class="cpCard ${qty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
-      <span class="cpCardOwnedBadge" id="cpBadge_${key}" style="${qty > 0 ? '' : 'display:none;'}">所持:${qty}</span>
-      <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
-      ${metaHtml}
-      <div class="cpQtyRow">
-        <button type="button" class="cpQtyBtn cpAddBtn" data-key="${key}" title="追加">＋</button>
+      <div class="cpCardImgWrap">
+        ${rarityBadge}
+        <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+        <span class="cpQtyBadge" id="cpBadge_${key}" style="${qty > 0 ? '' : 'display:none;'}">${qty}</span>
       </div>
+      <div class="cpCardName">${escapeHtml(c.cardName)}</div>
+      <button type="button" class="cpAddBtn" data-key="${key}" title="追加">＋ 追加</button>
     </div>`;
 }
 
@@ -94,7 +105,7 @@ function cpChangeQty(key, delta) {
 function cpUpdateSearchBadge(key, qty) {
   const badge = document.getElementById('cpBadge_' + key);
   if (!badge) return;
-  if (qty > 0) { badge.style.display = ''; badge.textContent = '所持:' + qty; }
+  if (qty > 0) { badge.style.display = ''; badge.textContent = String(qty); }
   else { badge.style.display = 'none'; badge.textContent = ''; }
   const cardEl = badge.closest('.cpCard');
   if (cardEl) cardEl.classList.toggle('owned', qty > 0);
@@ -210,6 +221,7 @@ async function cpRenderGridForSearch(query) {
 document.getElementById('cpSetSelect').addEventListener('change', (e) => {
   document.getElementById('cpSearchInput').value = '';
   cpRenderGridForSet(e.target.value);
+  cpCloseFilterPopover();
 });
 document.getElementById('cpSearchInput').addEventListener('input', (e) => {
   const q = e.target.value.trim();
@@ -218,6 +230,33 @@ document.getElementById('cpSearchInput').addEventListener('input', (e) => {
     if (q.length >= 2) cpRenderGridForSearch(q);
     else cpRenderGridForSet(document.getElementById('cpSetSelect').value);
   }, 350);
+});
+
+// ===== 検索前のプルダウンを集約した「弾で絞り込む」フィルターポップオーバー =====
+function cpToggleFilterPopover() {
+  const pop = document.getElementById('cpFilterPopover');
+  const isOpen = pop.style.display !== 'none';
+  pop.style.display = isOpen ? 'none' : 'block';
+  document.getElementById('cpFilterBtn').classList.toggle('active', !isOpen);
+}
+function cpCloseFilterPopover() {
+  document.getElementById('cpFilterPopover').style.display = 'none';
+  document.getElementById('cpFilterBtn').classList.remove('active');
+}
+document.getElementById('cpFilterBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  cpToggleFilterPopover();
+});
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('cpFilterWrap') || document.querySelector('.cpFilterWrap');
+  if (wrap && !wrap.contains(e.target)) cpCloseFilterPopover();
+});
+document.getElementById('cpFilterClearBtn').addEventListener('click', () => {
+  document.getElementById('cpSearchInput').value = '';
+  const sel = document.getElementById('cpSetSelect');
+  if (cpSets.length) sel.value = cpSets[cpSets.length - 1].setCode;
+  cpRenderGridForSet(sel.value);
+  cpCloseFilterPopover();
 });
 
 async function cpInitCollectionTab() {
