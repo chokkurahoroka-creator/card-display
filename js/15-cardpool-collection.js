@@ -1,6 +1,7 @@
 // ===== 所持カード登録（左＝所持カード／右＝検索して追加、の2分割ビュー） =====
 let ownedCollection = {}; // { "setCode__type__slot": 枚数, ... }
-let cpSets = [];
+let cpSets = []; // 公開終了を除いた弾一覧（検索パネルのプルダウン用）
+let cpSetNameMap = {}; // setCode -> setName（公開終了も含む全弾。所持カードのパック見出し表示用）
 let cpSearchTimer = null;
 let cpSaveTimer = null;
 let cpDropZonesInitialized = false;
@@ -8,6 +9,8 @@ let cpDropZonesInitialized = false;
 async function cpLoadSets() {
   const res = await fetch(GAS_URL + '?action=listSets');
   const all = await res.json();
+  cpSetNameMap = {};
+  all.forEach(s => { cpSetNameMap[s.setCode] = s.setName; });
   cpSets = all.filter(s => s.status !== '公開終了');
   const sel = document.getElementById('cpSetSelect');
   sel.innerHTML = cpSets.map(s => `<option value="${escapeHtml(s.setCode)}">${escapeHtml(s.setCode)}（${escapeHtml(s.setName)}）</option>`).join('');
@@ -148,8 +151,38 @@ async function cpRenderOwnedGrid() {
     } catch (e) { /* 取得失敗時はスキップ */ }
   }
   const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
-  cards.sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja'));
-  gridEl.innerHTML = cards.map(c => cpCardCellHtml(c, 'owned')).join('');
+
+  // パック（弾）ごとにグループ化する
+  const groups = {};
+  cards.forEach(c => {
+    const sc = c.setCode || '（不明）';
+    if (!groups[sc]) groups[sc] = [];
+    groups[sc].push(c);
+  });
+  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja')));
+
+  // 弾の並び順：sets一覧に載っている順（登録順）の新しい方を上に、載っていない（不明含む）ものは末尾にアルファベット順
+  const setOrder = cpSets.map(s => s.setCode);
+  const sortedSetCodes = Object.keys(groups).sort((a, b) => {
+    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ib - ia;
+  });
+
+  gridEl.innerHTML = sortedSetCodes.map(sc => {
+    const setName = cpSetNameMap[sc] || '';
+    const cardsHtml = groups[sc].map(c => cpCardCellHtml(c, 'owned')).join('');
+    return `
+      <div class="cpPackGroup">
+        <div class="cpPackGroupHeader">
+          <span>${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
+          <span class="cpPackGroupCount">${groups[sc].length}種</span>
+        </div>
+        <div class="cpPackGroupGrid">${cardsHtml}</div>
+      </div>`;
+  }).join('');
   cpBindGridEvents(gridEl, 'owned');
 }
 
