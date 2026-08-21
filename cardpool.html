@@ -129,7 +129,7 @@
 
   /* ===== ユーザーIDボックス ===== */
   .userIdBox {
-    max-width: 900px; margin: 0 auto 18px; padding: 12px 16px; border-radius: 12px;
+    max-width: 1700px; margin: 0 auto 18px; padding: 12px 16px; border-radius: 12px;
     background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,106,0.3);
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px;
   }
@@ -145,18 +145,18 @@
   .cpSecondaryBtn:hover { border-color: var(--gold); color: var(--gold); }
 
   /* ===== タブ ===== */
-  .cpTabs { max-width: 900px; margin: 0 auto 16px; display: flex; gap: 8px; }
+  .cpTabs { max-width: 1700px; margin: 0 auto 16px; display: flex; gap: 8px; }
   .cpTabBtn {
     flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(212,175,106,0.3);
     background: rgba(255,255,255,0.02); color: #c9d1e0; font-size: 13px; font-weight: bold; cursor: pointer;
   }
   .cpTabBtn.active { background: var(--gold); color: #1a1305; border-color: var(--gold); }
-  .cpMain { max-width: 1100px; margin: 0 auto; }
+  .cpMain { max-width: 1700px; margin: 0 auto; }
   .cpHint { color: #9aa5c0; font-size: 13px; padding: 20px; text-align: center; }
 
   /* ===== 所持カード登録：左右2分割（左=所持カード／右=検索して追加） ===== */
   .cpCollectionSplit { display: flex; gap: 22px; align-items: flex-start; }
-  .cpCollectionPane { flex: 1; min-width: 0; }
+  .cpCollectionPane { flex: 1; min-width: 0; min-height: 0; }
   .cpPaneHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .cpPaneHeader h3 { margin: 0; font-size: 14px; color: var(--gold); }
   .cpDropTarget { transition: outline 0.1s, background-color 0.1s; }
@@ -199,12 +199,14 @@
 
   .cpSaveStatus { font-size: 12px; color: #9aa5c0; }
   .cpCollectionGrid {
-    height: 60vh; min-height: 320px; max-height: 640px; overflow-y: auto;
-    padding: 12px; border: 1px solid rgba(212,175,106,0.25); border-radius: 10px;
-    background: rgba(255,255,255,0.015);
+    height: 60vh; min-height: 320px; max-height: 640px;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.015);
   }
-  .cpFlatGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
-  /* ===== 所持カード：パック（弾）ごとのグループ表示 ===== */
+  /* 所持カード枠と検索枠を色・枠線太さで見分けやすくする */
+  #cpOwnedGrid { border: 3px solid rgba(212,175,106,0.6); background: rgba(212,175,106,0.035); }
+  #cpSearchGrid { border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); }
+  /* ===== パック（弾）ごとのグループ表示（所持カード・検索結果ともに共通） ===== */
   .cpPackGroup { margin-bottom: 20px; }
   .cpPackGroup:last-child { margin-bottom: 0; }
   .cpPackGroupHeader {
@@ -213,7 +215,7 @@
     font-size: 13px; font-weight: bold; color: var(--gold);
   }
   .cpPackGroupCount { font-size: 11px; color: #9aa5c0; font-weight: normal; white-space: nowrap; }
-  .cpPackGroupGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .cpPackGroupGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
 
   /* ===== カードセル（Yu-Gi-Oh!風のコンパクトなグリッド表示） ===== */
   .cpCard {
@@ -227,31 +229,31 @@
   .cpCardImgWrap { position: relative; }
   .cpCardImgWrap img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; background: #10182a; }
   .cpRarityBadge {
-    position: absolute; top: 3px; left: 3px; z-index: 2;
-    font-size: 9px; font-weight: 900; color: #1a1305; padding: 1px 5px; border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5); letter-spacing: 0.5px;
+    position: absolute; top: 2px; left: 2px; z-index: 2;
+    font-size: 8px; font-weight: 900; color: #1a1305; padding: 1px 4px; border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5); letter-spacing: 0.3px;
   }
   .cpQtyBadge {
-    position: absolute; bottom: 3px; right: 3px; z-index: 2;
-    background: rgba(10,14,24,0.88); color: var(--gold); font-size: 10px; font-weight: bold;
-    min-width: 16px; text-align: center; padding: 1px 5px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.5);
+    position: absolute; bottom: 2px; right: 2px; z-index: 2;
+    background: rgba(10,14,24,0.88); color: var(--gold); font-size: 9px; font-weight: bold;
+    min-width: 14px; text-align: center; padding: 0px 4px; border-radius: 7px; border: 1px solid rgba(212,175,106,0.5);
   }
   .cpCardName {
-    font-size: 10.5px; font-weight: bold; color: var(--text); line-height: 1.3; padding: 4px 5px 0;
+    font-size: 9.5px; font-weight: bold; color: var(--text); line-height: 1.25; padding: 3px 4px 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .cpQtyRow { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 4px 5px 5px; }
+  .cpQtyRow { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 3px 4px 4px; }
   .cpQtyBtn {
-    width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(212,175,106,0.4);
-    background: rgba(212,175,106,0.08); color: var(--gold); font-size: 11px; line-height: 1; cursor: pointer;
+    width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(212,175,106,0.4);
+    background: rgba(212,175,106,0.08); color: var(--gold); font-size: 10px; line-height: 1; cursor: pointer;
     display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0;
   }
   .cpQtyBtn:hover { background: rgba(212,175,106,0.2); }
-  .cpQtyValue { min-width: 16px; text-align: center; font-size: 11px; font-weight: bold; }
+  .cpQtyValue { min-width: 13px; text-align: center; font-size: 10px; font-weight: bold; }
   .cpAddBtn {
-    width: calc(100% - 10px); margin: 4px 5px 5px; height: 20px; border-radius: 6px;
+    width: calc(100% - 8px); margin: 3px 4px 4px; height: 17px; border-radius: 5px;
     border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.08); color: var(--gold);
-    font-size: 12px; font-weight: bold; cursor: pointer;
+    font-size: 10px; font-weight: bold; cursor: pointer; padding: 0;
   }
   .cpAddBtn:hover { background: rgba(212,175,106,0.2); }
 
@@ -311,7 +313,7 @@
   @media (max-width: 640px) {
     .userIdBox { font-size: 12px; }
     .cpCollectionGrid { height: 46vh; min-height: 260px; }
-    .cpFlatGrid, .cpPackGroupGrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+    .cpPackGroupGrid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
     .cpFilterPopover { width: 220px; right: 0; }
   }
 
@@ -416,7 +418,7 @@
           </div>
         </div>
         <div class="hint" style="margin-bottom:8px;">カードを左側へドラッグ＆ドロップすると追加、所持カードをここへドラッグすると削除されます</div>
-        <div id="cpSearchGrid" class="cpCollectionGrid cpDropTarget cpFlatGrid"></div>
+        <div id="cpSearchGrid" class="cpCollectionGrid cpDropTarget"></div>
       </div>
     </div>
   </div>
