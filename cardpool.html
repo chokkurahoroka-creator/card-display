@@ -155,7 +155,7 @@
   .cpHint { color: #9aa5c0; font-size: 13px; padding: 20px; text-align: center; }
 
   /* ===== 所持カード登録：左右2分割（左=所持カード／右=検索して追加） ===== */
-  .cpCollectionSplit { display: flex; gap: 22px; align-items: flex-start; }
+  .cpCollectionSplit { display: flex; gap: 22px; align-items: flex-start; margin-bottom: 16px; }
   .cpCollectionPane { flex: 1; min-width: 0; min-height: 0; }
   .cpPaneHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .cpPaneHeader h3 { margin: 0; font-size: 14px; color: var(--gold); }
@@ -206,6 +206,8 @@
   /* 所持カード枠と検索枠を色・枠線太さで見分けやすくする */
   #cpOwnedGrid { border: 3px solid rgba(212,175,106,0.6); background: rgba(212,175,106,0.035); }
   #cpSearchGrid { border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); }
+  #cpDeckSourceGrid { border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); }
+  #cpDeckSections { border: 3px solid rgba(212,175,106,0.6); background: rgba(212,175,106,0.035); }
   /* ===== パック（弾）ごとのグループ表示（所持カード・検索結果ともに共通） ===== */
   .cpPackGroup { margin-bottom: 20px; }
   .cpPackGroup:last-child { margin-bottom: 0; }
@@ -256,6 +258,21 @@
     font-size: 10px; font-weight: bold; cursor: pointer; padding: 0;
   }
   .cpAddBtn:hover { background: rgba(212,175,106,0.2); }
+  /* カード画像右上：ホバーで表示される「まとめて削除」×ボタン（タッチ端末ではホバーが無いため常時薄く表示） */
+  .cpCardRemoveBtn {
+    position: absolute; top: 2px; right: 2px; z-index: 3;
+    width: 16px; height: 16px; border-radius: 50%; border: none;
+    background: rgba(224,80,80,0.92); color: #fff; font-size: 10px; font-weight: bold; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+    opacity: 0; transition: opacity 0.12s;
+  }
+  @media (hover: hover) {
+    .cpCard:hover .cpCardRemoveBtn { opacity: 1; }
+  }
+  @media (hover: none) {
+    .cpCardRemoveBtn { opacity: 0.85; }
+  }
+  .cpCardRemoveBtn:hover { background: #e05050; }
 
   /* ===== マイデッキ ===== */
   .cpDeckList { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
@@ -292,7 +309,7 @@
   }
   .cpDeckSummaryRow { font-size: 13px; color: #c9d1e0; margin-bottom: 16px; }
   .cpDeckUnownedCount { color: #e37e7e; font-weight: bold; }
-  .cpDeckSections { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+  .cpDeckSections { display: flex; flex-direction: column; gap: 16px; }
   .cpDeckSection { border: 1px solid rgba(212,175,106,0.25); border-radius: 10px; padding: 12px 14px; }
   .cpDeckSectionHeader { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; flex-wrap: wrap; gap: 4px; }
   .cpDeckSectionTitle { font-weight: bold; font-size: 14px; color: var(--gold); }
@@ -432,13 +449,24 @@
       <button type="button" class="cpSecondaryBtn" id="cpDeckBackBtn">← デッキ一覧に戻る</button>
       <input type="text" id="cpDeckNameInput" class="cpDeckNameInput" placeholder="デッキ名">
       <div class="cpDeckSearchWrap">
-        <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加">
+        <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加（未所持カードも追加できます）">
         <div id="cpDeckSearchResults" class="cpDeckSearchResults" style="display:none;"></div>
       </div>
       <div class="cpDeckSummaryRow">
         合計 <span id="cpDeckTotalCount">0</span> 枚 ／ 未所持カード <span id="cpDeckUnownedCount" class="cpDeckUnownedCount">0</span> 枚
       </div>
-      <div id="cpDeckSections" class="cpDeckSections"></div>
+      <div class="cpCollectionSplit">
+        <div class="cpCollectionPane">
+          <div class="cpPaneHeader"><h3>所持カードから選ぶ</h3></div>
+          <div class="hint" style="margin-bottom:8px;">カードを右へドラッグ＆ドロップ、または＋ボタンでデッキに追加できます</div>
+          <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
+        </div>
+        <div class="cpCollectionPane">
+          <div class="cpPaneHeader"><h3>デッキ</h3></div>
+          <div class="hint" style="margin-bottom:8px;">カードにカーソルを合わせると右上の×で一気に削除できます</div>
+          <div id="cpDeckSections" class="cpDeckSections cpCollectionGrid cpDropTarget"></div>
+        </div>
+      </div>
       <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">このデッキを保存</button>
       <div id="cpDeckStatus" class="cpHint" style="padding:8px 0;"></div>
     </div>
