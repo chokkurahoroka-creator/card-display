@@ -144,6 +144,46 @@ function cpSetupDropZone(el, pane) {
   });
 }
 
+// カード配列をパック（弾）ごとにグループ化して枠内に描画する（所持カード・検索結果パネルの両方で共通利用）
+// 弾の並び順：sets一覧に載っている順（登録順）の新しい方を上に、載っていない（不明含む）ものは末尾にアルファベット順
+function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
+  if (!cards.length) {
+    gridEl.innerHTML = `<div class="cpHint">${emptyMessage}</div>`;
+    return;
+  }
+
+  const groups = {};
+  cards.forEach(c => {
+    const sc = c.setCode || '（不明）';
+    if (!groups[sc]) groups[sc] = [];
+    groups[sc].push(c);
+  });
+  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja')));
+
+  const setOrder = cpSets.map(s => s.setCode);
+  const sortedSetCodes = Object.keys(groups).sort((a, b) => {
+    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ib - ia;
+  });
+
+  gridEl.innerHTML = sortedSetCodes.map(sc => {
+    const setName = cpSetNameMap[sc] || '';
+    const cardsHtml = groups[sc].map(c => cpCardCellHtml(c, pane)).join('');
+    return `
+      <div class="cpPackGroup">
+        <div class="cpPackGroupHeader">
+          <span>${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
+          <span class="cpPackGroupCount">${groups[sc].length}種</span>
+        </div>
+        <div class="cpPackGroupGrid">${cardsHtml}</div>
+      </div>`;
+  }).join('');
+  cpBindGridEvents(gridEl, pane);
+}
+
 async function cpRenderOwnedGrid() {
   const gridEl = document.getElementById('cpOwnedGrid');
   const keys = Object.keys(ownedCollection).filter(k => ownedCollection[k] > 0);
@@ -162,39 +202,7 @@ async function cpRenderOwnedGrid() {
     } catch (e) { /* 取得失敗時はスキップ */ }
   }
   const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
-
-  // パック（弾）ごとにグループ化する
-  const groups = {};
-  cards.forEach(c => {
-    const sc = c.setCode || '（不明）';
-    if (!groups[sc]) groups[sc] = [];
-    groups[sc].push(c);
-  });
-  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja')));
-
-  // 弾の並び順：sets一覧に載っている順（登録順）の新しい方を上に、載っていない（不明含む）ものは末尾にアルファベット順
-  const setOrder = cpSets.map(s => s.setCode);
-  const sortedSetCodes = Object.keys(groups).sort((a, b) => {
-    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ib - ia;
-  });
-
-  gridEl.innerHTML = sortedSetCodes.map(sc => {
-    const setName = cpSetNameMap[sc] || '';
-    const cardsHtml = groups[sc].map(c => cpCardCellHtml(c, 'owned')).join('');
-    return `
-      <div class="cpPackGroup">
-        <div class="cpPackGroupHeader">
-          <span>${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
-          <span class="cpPackGroupCount">${groups[sc].length}種</span>
-        </div>
-        <div class="cpPackGroupGrid">${cardsHtml}</div>
-      </div>`;
-  }).join('');
-  cpBindGridEvents(gridEl, 'owned');
+  cpRenderGroupedCards(gridEl, cards, 'owned', '所持カードが見つかりませんでした');
 }
 
 async function cpRenderGridForSet(setCode) {
@@ -202,10 +210,7 @@ async function cpRenderGridForSet(setCode) {
   gridEl.innerHTML = '<div class="cpHint">読み込み中...</div>';
   const res = await fetch(GAS_URL + `?action=list&setCode=${encodeURIComponent(setCode)}`);
   const cards = await res.json();
-  if (!cards.length) { gridEl.innerHTML = '<div class="cpHint">この弾にはまだカードが登録されていません</div>'; return; }
-  cards.sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja'));
-  gridEl.innerHTML = cards.map(c => cpCardCellHtml(c, 'search')).join('');
-  cpBindGridEvents(gridEl, 'search');
+  cpRenderGroupedCards(gridEl, cards, 'search', 'この弾にはまだカードが登録されていません');
 }
 
 async function cpRenderGridForSearch(query) {
@@ -213,9 +218,8 @@ async function cpRenderGridForSearch(query) {
   gridEl.innerHTML = '<div class="cpHint">検索中...</div>';
   const res = await fetch(GAS_URL + `?action=searchCards&q=${encodeURIComponent(query)}`);
   const cards = await res.json();
-  if (!cards.length) { gridEl.innerHTML = '<div class="cpHint">該当するカードが見つかりませんでした</div>'; return; }
-  gridEl.innerHTML = cards.map(c => cpCardCellHtml(c, 'search')).join('');
-  cpBindGridEvents(gridEl, 'search');
+  // 検索結果もパックシリーズごとにまとめて表示する（デフォルトの並び替え）
+  cpRenderGroupedCards(gridEl, cards, 'search', '該当するカードが見つかりませんでした');
 }
 
 document.getElementById('cpSetSelect').addEventListener('change', (e) => {
