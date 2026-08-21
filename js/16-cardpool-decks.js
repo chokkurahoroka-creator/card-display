@@ -24,6 +24,31 @@ function cpDeckMainCategory(card) {
   return 'holomen'; // ホロメン、Buzzホロメン、各種サポートはまとめてメインデッキ扱い
 }
 
+// デッキ内の枚数を増減する（所持カード自体の枚数は変更しない）。0以下になったら完全に削除する
+function cpChangeDeckQty(key, delta) {
+  const cur = (cpEditingDeckCards[key] && cpEditingDeckCards[key].qty) || 0;
+  const next = Math.max(0, cur + delta);
+  if (next === 0) {
+    delete cpEditingDeckCards[key];
+  } else {
+    const zone = (cpEditingDeckCards[key] && cpEditingDeckCards[key].zone) || 'main';
+    cpEditingDeckCards[key] = { qty: next, zone };
+  }
+  cpRefreshDeckEditor();
+}
+
+// ×ボタン用：枚数に関わらずそのカードをデッキから丸ごと削除する
+function cpRemoveCardFromDeckEntirely(key) {
+  delete cpEditingDeckCards[key];
+  cpRefreshDeckEditor();
+}
+
+// デッキ内容が変わるたびに、右側（デッキ本体）と左側（所持カードから選ぶパネル）の両方を再描画して状態を同期する
+async function cpRefreshDeckEditor() {
+  await cpRenderDeckEditorCards();
+  await cpRenderDeckSourceGrid();
+}
+
 // 保存済みデータが旧形式（{key: 枚数}）の場合も読み込めるよう変換する
 function cpNormalizeDeckCards(raw) {
   const result = {};
@@ -89,7 +114,7 @@ function cpOpenDeckEditor(deck) {
   document.getElementById('cpDeckSearchResults').style.display = 'none';
   document.getElementById('cpDeckListView').style.display = 'none';
   document.getElementById('cpDeckEditorView').style.display = 'block';
-  cpRenderDeckEditorCards();
+  cpRefreshDeckEditor();
 }
 
 function cpCloseDeckEditor() {
@@ -98,6 +123,46 @@ function cpCloseDeckEditor() {
 }
 document.getElementById('cpDeckBackBtn').addEventListener('click', cpCloseDeckEditor);
 document.getElementById('cpNewDeckBtn').addEventListener('click', () => cpOpenDeckEditor(null));
+
+// 左側「所持カードから選ぶ」パネル：所持カードをパックごとにグループ表示する（所持カードタブと同じ描画ロジックを再利用）
+async function cpRenderDeckSourceGrid() {
+  const gridEl = document.getElementById('cpDeckSourceGrid');
+  const keys = Object.keys(ownedCollection).filter(k => ownedCollection[k] > 0);
+  if (!keys.length) {
+    gridEl.innerHTML = '<div class="cpHint">所持カードがありません。先に「所持カード」タブでカードを登録してください</div>';
+    return;
+  }
+  for (const key of keys) {
+    if (collectionCardsCache[key]) continue;
+    const [setCode, type, slot] = key.split('__');
+    try {
+      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+      const card = await res.json();
+      if (card) collectionCardsCache[key] = card;
+    } catch (e) { /* 取得失敗時はスキップ */ }
+  }
+  const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
+  cpRenderGroupedCards(gridEl, cards, 'deckSource', '所持カードが見つかりませんでした');
+}
+
+// 右側「デッキ」パネル：所持カードパネルからドラッグされたカードをドロップで追加する
+let cpDeckDropZoneInitialized = false;
+function cpSetupDeckDropZone() {
+  if (cpDeckDropZoneInitialized) return;
+  const el = document.getElementById('cpDeckSections');
+  el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('dragOver'); });
+  el.addEventListener('dragleave', () => el.classList.remove('dragOver'));
+  el.addEventListener('drop', (e) => {
+    e.preventDefault();
+    el.classList.remove('dragOver');
+    let data;
+    try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
+    if (!data || !data.key || data.pane !== 'deckSource') return;
+    cpChangeDeckQty(data.key, 1);
+  });
+  cpDeckDropZoneInitialized = true;
+}
+cpSetupDeckDropZone();
 
 function cpDeckSectionHtml(sec, items) {
   const total = items.reduce((a, r) => a + r.qty, 0);
@@ -183,7 +248,7 @@ function cpBindDeckEditorCardEvents(container) {
   container.querySelectorAll('.cpDeckQtyPlus').forEach(btn => {
     btn.addEventListener('click', () => {
       cpEditingDeckCards[btn.dataset.key].qty += 1;
-      cpRenderDeckEditorCards();
+      cpRefreshDeckEditor();
     });
   });
   container.querySelectorAll('.cpDeckQtyMinus').forEach(btn => {
@@ -191,20 +256,20 @@ function cpBindDeckEditorCardEvents(container) {
       const entry = cpEditingDeckCards[btn.dataset.key];
       entry.qty -= 1;
       if (entry.qty <= 0) delete cpEditingDeckCards[btn.dataset.key];
-      cpRenderDeckEditorCards();
+      cpRefreshDeckEditor();
     });
   });
   container.querySelectorAll('.cpDeckZoneToggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const entry = cpEditingDeckCards[btn.dataset.key];
       entry.zone = entry.zone === 'side' ? 'main' : 'side';
-      cpRenderDeckEditorCards();
+      cpRefreshDeckEditor();
     });
   });
   container.querySelectorAll('.cpDeckRemoveBtn').forEach(btn => {
     btn.addEventListener('click', () => {
       delete cpEditingDeckCards[btn.dataset.key];
-      cpRenderDeckEditorCards();
+      cpRefreshDeckEditor();
     });
   });
 }
@@ -240,7 +305,7 @@ document.getElementById('cpDeckSearchInput').addEventListener('input', (e) => {
         cpEditingDeckCards[key].qty += 1;
         document.getElementById('cpDeckSearchInput').value = '';
         resultsEl.style.display = 'none';
-        cpRenderDeckEditorCards();
+        cpRefreshDeckEditor();
       });
     });
   }, 300);

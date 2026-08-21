@@ -52,22 +52,33 @@ function cpRarityColor(rarity) {
   return '#7a8296';
 }
 
-// pane: 'owned'（左＝所持カード一覧、＋/－ステッパー付き）/ 'search'（右＝検索結果、＋ボタン＋所持数バッジ）
+// pane: 'owned'（左＝所持カード一覧）/ 'search'（検索結果）/ 'deckSource'（デッキ編集：所持カードから選ぶ）
+// owned/deckSource は ＋/－ステッパー付き、search は＋ボタン＋所持数バッジ。
+// いずれも枚数が1以上の時だけ、画像右上にホバー表示の「まとめて削除」×ボタンを出す
 function cpCardCellHtml(c, pane) {
   const key = cardKey(c);
   collectionCardsCache[key] = c;
-  const qty = ownedCollection[key] || 0;
+  const ownedQty = ownedCollection[key] || 0;
   const rarity = c.rarity || '';
   const rarityBadge = rarity
     ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>`
     : '';
 
-  if (pane === 'owned') {
+  if (pane === 'owned' || pane === 'deckSource') {
+    const qty = pane === 'deckSource'
+      ? ((typeof cpEditingDeckCards !== 'undefined' && cpEditingDeckCards[key] && cpEditingDeckCards[key].qty) || 0)
+      : ownedQty;
+    const removeBtn = qty > 0 ? `<button type="button" class="cpCardRemoveBtn" data-key="${key}" title="まとめて削除">×</button>` : '';
+    // デッキ編集の「所持カードから選ぶ」パネルでは、デッキ内の枚数（ステッパー）とは別に所持枚数もバッジで示す
+    const ownedBadge = (pane === 'deckSource' && ownedQty > 0)
+      ? `<span class="cpQtyBadge" title="所持枚数">${ownedQty}</span>` : '';
     return `
-      <div class="cpCard owned" data-key="${key}" draggable="true">
+      <div class="cpCard ${qty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
         <div class="cpCardImgWrap">
           ${rarityBadge}
           <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+          ${ownedBadge}
+          ${removeBtn}
         </div>
         <div class="cpCardName">${escapeHtml(c.cardName)}</div>
         <div class="cpQtyRow">
@@ -79,12 +90,14 @@ function cpCardCellHtml(c, pane) {
   }
 
   // 検索パネル側：所持している場合は画像右下に枚数バッジ、追加は＋ボタン1つ
+  const removeBtn = ownedQty > 0 ? `<button type="button" class="cpCardRemoveBtn" data-key="${key}" title="まとめて削除">×</button>` : '';
   return `
-    <div class="cpCard ${qty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
+    <div class="cpCard ${ownedQty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
       <div class="cpCardImgWrap">
         ${rarityBadge}
         <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
-        <span class="cpQtyBadge" id="cpBadge_${key}" style="${qty > 0 ? '' : 'display:none;'}">${qty}</span>
+        <span class="cpQtyBadge" id="cpBadge_${key}" style="${ownedQty > 0 ? '' : 'display:none;'}">${ownedQty}</span>
+        ${removeBtn}
       </div>
       <div class="cpCardName">${escapeHtml(c.cardName)}</div>
       <button type="button" class="cpAddBtn" data-key="${key}" title="追加">＋ 追加</button>
@@ -119,13 +132,29 @@ function cpBindGridEvents(container, pane) {
     });
   });
   container.querySelectorAll('.cpQtyPlus').forEach(btn => {
-    btn.addEventListener('click', () => cpChangeQty(btn.dataset.key, 1));
+    btn.addEventListener('click', () => {
+      if (pane === 'deckSource') cpChangeDeckQty(btn.dataset.key, 1);
+      else cpChangeQty(btn.dataset.key, 1);
+    });
   });
   container.querySelectorAll('.cpQtyMinus').forEach(btn => {
-    btn.addEventListener('click', () => cpChangeQty(btn.dataset.key, -1));
+    btn.addEventListener('click', () => {
+      if (pane === 'deckSource') cpChangeDeckQty(btn.dataset.key, -1);
+      else cpChangeQty(btn.dataset.key, -1);
+    });
   });
   container.querySelectorAll('.cpAddBtn').forEach(btn => {
-    btn.addEventListener('click', () => cpChangeQty(btn.dataset.key, 1));
+    btn.addEventListener('click', () => {
+      if (pane === 'deckSource') cpChangeDeckQty(btn.dataset.key, 1);
+      else cpChangeQty(btn.dataset.key, 1);
+    });
+  });
+  container.querySelectorAll('.cpCardRemoveBtn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (pane === 'deckSource') cpRemoveCardFromDeckEntirely(btn.dataset.key);
+      else cpChangeQty(btn.dataset.key, -(ownedCollection[btn.dataset.key] || 0));
+    });
   });
 }
 
