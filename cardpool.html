@@ -307,6 +307,10 @@
     display: inline-block; font-size: 10px; color: #e37e7e; border: 1px solid rgba(227,126,126,0.6);
     border-radius: 8px; padding: 1px 6px; margin-left: 6px; vertical-align: middle;
   }
+  .cpUnownedInlineBadge {
+    display: inline-block; font-size: 8px; color: #e37e7e; border: 1px solid rgba(227,126,126,0.6);
+    border-radius: 5px; padding: 0 3px; margin-left: 3px; vertical-align: middle;
+  }
   .cpDeckSummaryRow { font-size: 13px; color: #c9d1e0; margin-bottom: 16px; }
   .cpDeckUnownedCount { color: #e37e7e; font-weight: bold; }
   .cpDeckSections { display: flex; flex-direction: column; gap: 16px; }
@@ -315,22 +319,18 @@
   .cpDeckSectionTitle { font-weight: bold; font-size: 14px; color: var(--gold); }
   .cpDeckSectionCount { font-size: 12px; color: #9aa5c0; }
   .cpDeckSectionCount.over { color: #e37e7e; font-weight: bold; }
-  .cpDeckSectionList { display: flex; flex-direction: column; gap: 8px; }
-  .cpDeckCardRow {
-    display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.18); flex-wrap: wrap;
+  /* デッキ内カードもギャラリー（グリッド）表示にする */
+  .cpDeckSectionGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
+  .cpDeckZoneToggle {
+    width: calc(100% - 8px); margin: 3px 4px 4px; height: 17px; border-radius: 5px;
+    border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.05); color: var(--gold);
+    font-size: 9px; font-weight: bold; cursor: pointer; padding: 0;
   }
-  .cpDeckCardName { flex: 1; font-size: 13px; min-width: 120px; }
-  .cpDeckZoneToggle { white-space: nowrap; }
-  .cpDeckRemoveBtn {
-    background: transparent; border: 1px solid rgba(227,126,126,0.5); color: #e37e7e;
-    border-radius: 14px; padding: 3px 10px; font-size: 11px; cursor: pointer;
-  }
-  .cpDeckRemoveBtn:hover { background: rgba(227,126,126,0.12); }
+  .cpDeckZoneToggle:hover { background: rgba(212,175,106,0.15); }
   @media (max-width: 640px) {
     .userIdBox { font-size: 12px; }
     .cpCollectionGrid { height: 46vh; min-height: 260px; }
-    .cpPackGroupGrid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
+    .cpPackGroupGrid, .cpDeckSectionGrid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
     .cpFilterPopover { width: 220px; right: 0; }
   }
 
@@ -448,23 +448,23 @@
     <div id="cpDeckEditorView" style="display:none;">
       <button type="button" class="cpSecondaryBtn" id="cpDeckBackBtn">← デッキ一覧に戻る</button>
       <input type="text" id="cpDeckNameInput" class="cpDeckNameInput" placeholder="デッキ名">
-      <div class="cpDeckSearchWrap">
-        <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加（未所持カードも追加できます）">
-        <div id="cpDeckSearchResults" class="cpDeckSearchResults" style="display:none;"></div>
-      </div>
       <div class="cpDeckSummaryRow">
         合計 <span id="cpDeckTotalCount">0</span> 枚 ／ 未所持カード <span id="cpDeckUnownedCount" class="cpDeckUnownedCount">0</span> 枚
       </div>
       <div class="cpCollectionSplit">
         <div class="cpCollectionPane">
-          <div class="cpPaneHeader"><h3>所持カードから選ぶ</h3></div>
-          <div class="hint" style="margin-bottom:8px;">カードを右へドラッグ＆ドロップ、または＋ボタンでデッキに追加できます</div>
-          <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
-        </div>
-        <div class="cpCollectionPane">
           <div class="cpPaneHeader"><h3>デッキ</h3></div>
           <div class="hint" style="margin-bottom:8px;">カードにカーソルを合わせると右上の×で一気に削除できます</div>
           <div id="cpDeckSections" class="cpDeckSections cpCollectionGrid cpDropTarget"></div>
+        </div>
+        <div class="cpCollectionPane">
+          <div class="cpPaneHeader"><h3>所持カードから選ぶ</h3></div>
+          <div class="cpDeckSearchWrap">
+            <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加（未所持カードも追加できます）">
+            <div id="cpDeckSearchResults" class="cpDeckSearchResults" style="display:none;"></div>
+          </div>
+          <div class="hint" style="margin-bottom:8px;">カードを左へドラッグ＆ドロップ、または＋ボタンでデッキに追加できます</div>
+          <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
         </div>
       </div>
       <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">このデッキを保存</button>
