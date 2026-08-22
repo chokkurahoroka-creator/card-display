@@ -336,6 +336,37 @@
   .cpUnownedDeckName { font-weight: bold; }
   .cpUnownedDeckMeta { color: #9aa5c0; font-size: 11px; margin-top: 2px; }
   .cpUnownedDeckShortage { color: #e37e7e; font-weight: bold; }
+  /* ===== 所持カードクリック時：デッキ使用状況の詳細モーダル ===== */
+  .cpModalOverlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 600;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .cpModalBox {
+    position: relative; background: linear-gradient(160deg, #1a2233, #10182a);
+    border: 1px solid rgba(212,175,106,0.4); border-radius: 16px; padding: 24px;
+    max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto;
+  }
+  .cpModalCloseBtn {
+    position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid rgba(212,175,106,0.4); background: rgba(255,255,255,0.05); color: var(--gold);
+    font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .cpModalCloseBtn:hover { border-color: var(--gold); }
+  .cpCardUsageHeader { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; padding-right: 20px; }
+  .cpCardUsageThumb { width: 72px; aspect-ratio: 5/7; object-fit: cover; border-radius: 8px; border: 1px solid rgba(212,175,106,0.3); flex-shrink: 0; }
+  .cpCardUsageName { font-size: 15px; font-weight: bold; }
+  .cpCardUsageMeta { font-size: 12px; color: #9aa5c0; margin-top: 4px; }
+  .cpCardUsageListLabel { font-size: 12px; color: #9aa5c0; margin-bottom: 8px; }
+  .cpCardUsageList { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .cpCardUsageRow {
+    display: flex; justify-content: space-between; align-items: center; font-size: 13px;
+    padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,106,0.2);
+  }
+  .cpCardUsageRemaining {
+    font-size: 13px; padding: 10px 12px; border-radius: 8px;
+    background: rgba(212,175,106,0.08); border: 1px solid rgba(212,175,106,0.3); text-align: center;
+  }
+  .cpCardUsageRemaining strong { color: var(--gold); font-size: 15px; }
   /* ===== デッキ内カード：同名グループの見出し＋1枚ずつ横並びのコピー表示 ===== */
   .cpDeckSectionGroups { display: flex; flex-direction: column; gap: 12px; }
   .cpDeckCardGroup { }
@@ -364,11 +395,12 @@
   }
   .cpCopyRemoveBtn:hover { background: #e05050; }
   .cpDeckSections { display: flex; flex-direction: column; gap: 16px; }
-  .cpDeckSection { border: 1px solid rgba(212,175,106,0.25); border-radius: 10px; padding: 12px 14px; }
-  .cpDeckSectionHeader { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; flex-wrap: wrap; gap: 4px; }
-  .cpDeckSectionTitle { font-weight: bold; font-size: 14px; color: var(--gold); }
-  .cpDeckSectionCount { font-size: 12px; color: #9aa5c0; }
-  .cpDeckSectionCount.over { color: #e37e7e; font-weight: bold; }
+  .cpDeckSummaryChips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .cpDeckSummaryChip {
+    font-size: 11px; padding: 4px 10px; border-radius: 12px; white-space: nowrap;
+    border: 1px solid rgba(212,175,106,0.3); color: #c9d1e0; background: rgba(255,255,255,0.02);
+  }
+  .cpDeckSummaryChip.over { border-color: rgba(227,126,126,0.6); color: #e37e7e; }
   .cpDeckZoneToggle {
     width: calc(100% - 8px); margin: 3px 4px 4px; height: 17px; border-radius: 5px;
     border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.05); color: var(--gold);
@@ -507,6 +539,7 @@
       <div class="cpCollectionSplit">
         <div class="cpCollectionPane">
           <div class="cpPaneHeader"><h3>デッキ</h3></div>
+          <div id="cpDeckSectionSummary" class="cpDeckSummaryChips"></div>
           <div class="hint" style="margin-bottom:8px;">カードにカーソルを合わせると右上の×で一気に削除できます</div>
           <div id="cpDeckSections" class="cpDeckSections cpCollectionGrid cpDropTarget"></div>
         </div>
@@ -524,6 +557,11 @@
       <div id="cpDeckStatus" class="cpHint" style="padding:8px 0;"></div>
     </div>
   </div>
+</div>
+
+<!-- ===== 所持カードクリック時：デッキ使用状況の詳細表示 ===== -->
+<div class="cpModalOverlay" id="cpCardUsageOverlay" style="display:none;">
+  <div class="cpModalBox" id="cpCardUsageBox"></div>
 </div>
 
 <script src="js/14-cardpool-config.js"></script>
