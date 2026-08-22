@@ -185,29 +185,18 @@ function cpSetupDeckDropZone() {
 }
 cpSetupDeckDropZone();
 
-function cpDeckSectionHtml(sec, items) {
-  const total = items.reduce((a, r) => a + r.qty, 0);
+// 各区分（推しホロメン/ホロメン/エール/サイドデッキ）の合計枚数と上限を、小さな chip テキストで表す
+function cpDeckSectionChipHtml(sec, total) {
   let limitText, overLimit;
   if (sec.zone === 'side') {
-    limitText = `${total}枚（目安 ${sec.minLimit}〜${sec.maxLimit}枚）`;
+    limitText = `${total}枚（目安${sec.minLimit}〜${sec.maxLimit}）`;
     overLimit = total > sec.maxLimit;
   } else {
     const totalLimit = sec.mainLimit + (sec.reserveLimit || 0);
-    limitText = sec.reserveLimit
-      ? `${total} / ${sec.mainLimit}枚（控え枠含む上限 ${totalLimit}枚）`
-      : `${total} / ${sec.mainLimit}枚`;
+    limitText = sec.reserveLimit ? `${total}/${sec.mainLimit}枚（上限${totalLimit}）` : `${total}/${sec.mainLimit}枚`;
     overLimit = total > totalLimit;
   }
-  return `
-    <div class="cpDeckSection">
-      <div class="cpDeckSectionHeader">
-        <span class="cpDeckSectionTitle">${escapeHtml(sec.label)}</span>
-        <span class="cpDeckSectionCount ${overLimit ? 'over' : ''}">${limitText}</span>
-      </div>
-      <div class="cpDeckSectionGroups">
-        ${items.length ? items.map(r => cpDeckCardGroupHtml(r, sec.zone)).join('') : '<div class="cpHint" style="padding:6px 0;">カードがありません</div>'}
-      </div>
-    </div>`;
+  return `<span class="cpDeckSummaryChip ${overLimit ? 'over' : ''}">${escapeHtml(sec.label)} ${limitText}</span>`;
 }
 
 // デッキ内カードは「1枚＝1タイル」でスタックせず横に並べて表示する（参考画像のYu-Gi-Oh!デッキ画面と同じ見た目）。
@@ -242,6 +231,46 @@ function cpDeckCardGroupHtml(r, currentZone) {
     </div>`;
 }
 
+// デッキ本体の表示は区分ごとの箱で上下に分けず、所持カード画面と同じ「パックごとのグループ表示」でひとつなぎにする
+function cpRenderDeckCardsGrouped(items) {
+  const gridEl = document.getElementById('cpDeckSections');
+  if (!items.length) {
+    gridEl.innerHTML = '<div class="cpHint">まだカードが追加されていません。右側から選ぶか検索して追加してください</div>';
+    return;
+  }
+  const groups = {};
+  items.forEach(it => {
+    const sc = it.card.setCode || '（不明）';
+    if (!groups[sc]) groups[sc] = [];
+    groups[sc].push(it);
+  });
+  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => (a.card.cardName || '').localeCompare(b.card.cardName || '', 'ja')));
+
+  const setOrder = cpSets.map(s => s.setCode);
+  const sortedSetCodes = Object.keys(groups).sort((a, b) => {
+    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ib - ia;
+  });
+
+  gridEl.innerHTML = sortedSetCodes.map(sc => {
+    const setName = cpSetNameMap[sc] || '';
+    const cardsHtml = groups[sc].map(r => cpDeckCardGroupHtml(r, r.zone)).join('');
+    return `
+      <div class="cpPackGroup">
+        <div class="cpPackGroupHeader">
+          <span>${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
+          <span class="cpPackGroupCount">${groups[sc].length}種</span>
+        </div>
+        <div class="cpDeckSectionGroups">${cardsHtml}</div>
+      </div>`;
+  }).join('');
+
+  cpBindDeckEditorCardEvents(gridEl);
+}
+
 // デッキに入っている各カードの情報は、所持カード一覧で読み込み済みのキャッシュを優先し、
 // 無ければ個別にGASへ取得しにいく（別の弾のカードをデッキに入れている場合など）
 async function cpRenderDeckEditorCards() {
@@ -257,7 +286,8 @@ async function cpRenderDeckEditorCards() {
     } catch (e) { /* 取得失敗時はスキップ */ }
   }
 
-  const grouped = { oshi: [], holomen: [], yell: [], side: [] };
+  const sectionTotals = { oshi: 0, holomen: 0, yell: 0, side: 0 };
+  const items = [];
   let totalAll = 0;
   let unownedCount = 0;
 
@@ -266,19 +296,18 @@ async function cpRenderDeckEditorCards() {
     const card = collectionCardsCache[key];
     if (!card) return;
     const sectionKey = entry.zone === 'side' ? 'side' : cpDeckMainCategory(card);
-    grouped[sectionKey].push({ key, card, qty: entry.qty, zone: entry.zone });
+    sectionTotals[sectionKey] += entry.qty;
     totalAll += entry.qty;
     const owned = ownedCollection[key] || 0;
     if (owned < entry.qty) unownedCount += (entry.qty - owned);
+    items.push({ key, card, qty: entry.qty, zone: entry.zone });
   });
 
-  Object.keys(grouped).forEach(k => grouped[k].sort((a, b) => (a.card.cardName || '').localeCompare(b.card.cardName || '', 'ja')));
-
-  document.getElementById('cpDeckSections').innerHTML = CP_DECK_SECTIONS.map(sec => cpDeckSectionHtml(sec, grouped[sec.key])).join('');
+  document.getElementById('cpDeckSectionSummary').innerHTML = CP_DECK_SECTIONS.map(sec => cpDeckSectionChipHtml(sec, sectionTotals[sec.key])).join('');
   document.getElementById('cpDeckTotalCount').textContent = totalAll;
   document.getElementById('cpDeckUnownedCount').textContent = unownedCount;
 
-  cpBindDeckEditorCardEvents(document.getElementById('cpDeckSections'));
+  cpRenderDeckCardsGrouped(items);
 }
 
 function cpBindDeckEditorCardEvents(container) {

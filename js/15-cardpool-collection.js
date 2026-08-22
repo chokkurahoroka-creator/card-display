@@ -166,7 +166,65 @@ function cpBindGridEvents(container, pane) {
       else cpChangeQty(btn.dataset.key, -(ownedCollection[btn.dataset.key] || 0));
     });
   });
+  // 所持カードタブのカードをクリックすると、どのデッキに何枚入っているかの詳細を表示する
+  // （＋/－/×ボタンのクリックはここでは無視する）
+  if (pane === 'owned') {
+    container.querySelectorAll('.cpCard').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        cpOpenCardUsageOverlay(el.dataset.key);
+      });
+    });
+  }
 }
+
+// 所持カードタブでカードをクリックした時に、そのカードがどのデッキに何枚入っているか・
+// デッキに入れていない残り枚数を表示する
+function cpOpenCardUsageOverlay(key) {
+  const card = collectionCardsCache[key];
+  if (!card) return;
+  const owned = ownedCollection[key] || 0;
+
+  const usageList = [];
+  let usedTotal = 0;
+  (cpDecks || []).forEach(deck => {
+    const cards = (typeof cpNormalizeDeckCards === 'function') ? cpNormalizeDeckCards(deck.cards) : {};
+    const entry = cards[key];
+    if (entry && entry.qty > 0) {
+      usageList.push({ deckName: deck.deckName, qty: entry.qty });
+      usedTotal += entry.qty;
+    }
+  });
+  const remaining = Math.max(0, owned - usedTotal);
+
+  const box = document.getElementById('cpCardUsageBox');
+  box.innerHTML = `
+    <button type="button" class="cpModalCloseBtn" id="cpCardUsageCloseBtn">×</button>
+    <div class="cpCardUsageHeader">
+      <img src="${card.imageUrl}" class="cpCardUsageThumb" alt="${escapeHtml(card.cardName)}">
+      <div>
+        <div class="cpCardUsageName">${escapeHtml(card.cardName)}</div>
+        <div class="cpCardUsageMeta">所持 ${owned}枚 ／ デッキ使用合計 ${usedTotal}枚</div>
+      </div>
+    </div>
+    <div class="cpCardUsageListLabel">使用中のデッキ</div>
+    <div class="cpCardUsageList">
+      ${usageList.length
+        ? usageList.map(u => `<div class="cpCardUsageRow"><span>${escapeHtml(u.deckName)}</span><span>${u.qty}枚</span></div>`).join('')
+        : '<div class="cpHint" style="padding:8px 0;">このカードを使用しているデッキはありません</div>'}
+    </div>
+    <div class="cpCardUsageRemaining">デッキに入れていない残り：<strong>${remaining}枚</strong></div>
+  `;
+  document.getElementById('cpCardUsageOverlay').style.display = 'flex';
+  document.getElementById('cpCardUsageCloseBtn').addEventListener('click', cpCloseCardUsageOverlay);
+}
+
+function cpCloseCardUsageOverlay() {
+  document.getElementById('cpCardUsageOverlay').style.display = 'none';
+}
+document.getElementById('cpCardUsageOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'cpCardUsageOverlay') cpCloseCardUsageOverlay();
+});
 
 // pane='owned'の枠に検索パネルのカードをドロップ→追加(+1) / pane='search'の枠に所持カードをドロップ→削除(-1)
 function cpSetupDropZone(el, pane) {
