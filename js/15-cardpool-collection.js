@@ -52,6 +52,15 @@ function cpRarityColor(rarity) {
   return '#7a8296';
 }
 
+// 所持カード（owned/deckSource）の並び替え用レアリティ順（display.html/admhoroka.htmlと同じ並び順）
+const CP_RARITY_ORDER = ['SEC', 'OUR', 'OSR', 'OC', 'HR', 'SY', 'UR', 'SR', 'RR', 'U', 'S', 'R', 'C', 'P', '判別不能', 'その他'];
+function cpRarityOrderIndex(rarity) {
+  const r = (rarity || '').toUpperCase().trim();
+  if (!r) return CP_RARITY_ORDER.indexOf('その他');
+  const idx = CP_RARITY_ORDER.indexOf(r);
+  return idx === -1 ? CP_RARITY_ORDER.indexOf('判別不能') : idx;
+}
+
 // pane: 'owned'（左＝所持カード一覧）/ 'search'（検索結果）/ 'deckSource'（デッキ編集：所持カードから選ぶ）
 // owned/deckSource は ＋/－ステッパー付き、search は＋ボタン＋所持数バッジ。
 // いずれも枚数が1以上の時だけ、画像右上にホバー表示の「まとめて削除」×ボタンを出す
@@ -112,6 +121,7 @@ function cpChangeQty(key, delta) {
   cpRenderOwnedGrid();
   cpUpdateSearchBadge(key, next);
   cpScheduleSave();
+  if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 }
 
 // 検索パネル側に同じカードが表示中であれば、所持数バッジと枠の色だけを軽く更新する（再検索はしない）
@@ -187,7 +197,16 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
     if (!groups[sc]) groups[sc] = [];
     groups[sc].push(c);
   });
-  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja')));
+  // 所持カード関連のパネル（所持カードタブ・デッキ編集の「所持カードから選ぶ」）はレア度順、
+  // 検索結果パネルは従来通りカード名順に並べる
+  const sortByRarity = (pane === 'owned' || pane === 'deckSource');
+  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => {
+    if (sortByRarity) {
+      const diff = cpRarityOrderIndex(a.rarity) - cpRarityOrderIndex(b.rarity);
+      if (diff !== 0) return diff;
+    }
+    return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
+  }));
 
   const setOrder = cpSets.map(s => s.setCode);
   const sortedSetCodes = Object.keys(groups).sort((a, b) => {

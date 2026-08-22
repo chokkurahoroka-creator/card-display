@@ -24,8 +24,28 @@ function cpDeckMainCategory(card) {
   return 'holomen'; // ホロメン、Buzzホロメン、各種サポートはまとめてメインデッキ扱い
 }
 
-// デッキ内の枚数を増減する（所持カード自体の枚数は変更しない）。0以下になったら完全に削除する
+// 同名カードがデッキ内に何枚あるか（別の弾・レアリティの再録/パラレルもカード名が同じなら合算してカウントする）
+function cpCountCardsByName(cardName) {
+  let total = 0;
+  Object.keys(cpEditingDeckCards).forEach(k => {
+    const card = collectionCardsCache[k];
+    if (card && card.cardName === cardName) total += cpEditingDeckCards[k].qty;
+  });
+  return total;
+}
+
+// デッキ内の枚数を増減する（所持カード自体の枚数は変更しない）。0以下になったら完全に削除する。
+// 追加した結果、同名カードが4枚を超える場合は警告を表示する（追加自体は止めない）
 function cpChangeDeckQty(key, delta) {
+  if (delta > 0) {
+    const card = collectionCardsCache[key];
+    if (card) {
+      const nameTotalBefore = cpCountCardsByName(card.cardName);
+      if (nameTotalBefore + delta > 4) {
+        alert(`「${card.cardName}」は同名カード4枚を超えています（追加後: ${nameTotalBefore + delta}枚）。`);
+      }
+    }
+  }
   const cur = (cpEditingDeckCards[key] && cpEditingDeckCards[key].qty) || 0;
   const next = Math.max(0, cur + delta);
   if (next === 0) {
@@ -77,6 +97,7 @@ async function cpLoadDecks() {
   const res = await fetch(GAS_URL + `?action=listUserDecks&userId=${encodeURIComponent(userId)}`);
   cpDecks = await res.json();
   cpRenderDeckList();
+  if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 }
 
 function cpRenderDeckList() {
@@ -183,25 +204,41 @@ function cpDeckSectionHtml(sec, items) {
         <span class="cpDeckSectionTitle">${escapeHtml(sec.label)}</span>
         <span class="cpDeckSectionCount ${overLimit ? 'over' : ''}">${limitText}</span>
       </div>
-      <div class="cpDeckSectionList">
-        ${items.length ? items.map(r => cpDeckCardRowHtml(r, sec.zone)).join('') : '<div class="cpHint" style="padding:6px 0;">カードがありません</div>'}
+      <div class="cpDeckSectionGroups">
+        ${items.length ? items.map(r => cpDeckCardGroupHtml(r, sec.zone)).join('') : '<div class="cpHint" style="padding:6px 0;">カードがありません</div>'}
       </div>
     </div>`;
 }
 
-function cpDeckCardRowHtml(r, currentZone) {
+// デッキ内カードは「1枚＝1タイル」でスタックせず横に並べて表示する（参考画像のYu-Gi-Oh!デッキ画面と同じ見た目）。
+// 所持数を超える分（コピー番号がowned以上）のタイルだけモノクロ表示にする。
+// 名前・メイン/サイド切替は同名カードグループの見出しに1つだけ表示し、コピー1枚ごとに×で削除できる
+function cpDeckCardGroupHtml(r, currentZone) {
   const owned = ownedCollection[r.key] || 0;
-  const isUnowned = owned < r.qty;
-  const toggleLabel = currentZone === 'side' ? 'メインへ戻す' : 'サイドへ移動';
+  const hasUnowned = owned < r.qty;
+  const toggleLabel = currentZone === 'side' ? 'メインへ' : 'サイドへ';
+  const rarity = r.card.rarity || '';
+  const rarityBadge = rarity
+    ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>`
+    : '';
+
+  const copiesHtml = Array.from({ length: r.qty }).map((_, i) => {
+    const isUnownedCopy = i >= owned;
+    return `
+      <div class="cpDeckCopyTile" data-key="${r.key}">
+        ${rarityBadge}
+        <img src="${r.card.imageUrl}" class="${isUnownedCopy ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(r.card.cardName)}" loading="lazy">
+        <button type="button" class="cpCopyRemoveBtn" data-key="${r.key}" title="この1枚を削除">×</button>
+      </div>`;
+  }).join('');
+
   return `
-    <div class="cpDeckCardRow" data-key="${r.key}">
-      <img src="${r.card.imageUrl}" class="cpDeckCardThumb ${isUnowned ? 'cpUnownedThumb' : ''}" alt="">
-      <span class="cpDeckCardName">${escapeHtml(r.card.cardName)}${isUnowned ? ' <span class="cpUnownedBadge">未所持</span>' : ''}</span>
-      <button type="button" class="cpQtyBtn cpDeckQtyMinus" data-key="${r.key}">−</button>
-      <span class="cpQtyValue">${r.qty}</span>
-      <button type="button" class="cpQtyBtn cpDeckQtyPlus" data-key="${r.key}">＋</button>
-      <button type="button" class="cpSecondaryBtn cpDeckZoneToggle" data-key="${r.key}">${toggleLabel}</button>
-      <button type="button" class="cpDeckRemoveBtn" data-key="${r.key}">削除</button>
+    <div class="cpDeckCardGroup">
+      <div class="cpDeckCardGroupHeader">
+        <span class="cpDeckCardGroupName">${escapeHtml(r.card.cardName)}${hasUnowned ? ' <span class="cpUnownedInlineBadge">未所持あり</span>' : ''}</span>
+        <button type="button" class="cpDeckZoneToggle" data-key="${r.key}">${toggleLabel}</button>
+      </div>
+      <div class="cpDeckCopyRow">${copiesHtml}</div>
     </div>`;
 }
 
@@ -245,20 +282,6 @@ async function cpRenderDeckEditorCards() {
 }
 
 function cpBindDeckEditorCardEvents(container) {
-  container.querySelectorAll('.cpDeckQtyPlus').forEach(btn => {
-    btn.addEventListener('click', () => {
-      cpEditingDeckCards[btn.dataset.key].qty += 1;
-      cpRefreshDeckEditor();
-    });
-  });
-  container.querySelectorAll('.cpDeckQtyMinus').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const entry = cpEditingDeckCards[btn.dataset.key];
-      entry.qty -= 1;
-      if (entry.qty <= 0) delete cpEditingDeckCards[btn.dataset.key];
-      cpRefreshDeckEditor();
-    });
-  });
   container.querySelectorAll('.cpDeckZoneToggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const entry = cpEditingDeckCards[btn.dataset.key];
@@ -266,10 +289,10 @@ function cpBindDeckEditorCardEvents(container) {
       cpRefreshDeckEditor();
     });
   });
-  container.querySelectorAll('.cpDeckRemoveBtn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      delete cpEditingDeckCards[btn.dataset.key];
-      cpRefreshDeckEditor();
+  container.querySelectorAll('.cpCopyRemoveBtn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cpChangeDeckQty(btn.dataset.key, -1); // 1枚だけ削除（0になれば自動的にカード自体も消える）
     });
   });
 }
@@ -301,11 +324,9 @@ document.getElementById('cpDeckSearchInput').addEventListener('input', (e) => {
         const card = list[Number(el.dataset.idx)];
         const key = cardKey(card);
         collectionCardsCache[key] = card;
-        if (!cpEditingDeckCards[key]) cpEditingDeckCards[key] = { qty: 0, zone: 'main' };
-        cpEditingDeckCards[key].qty += 1;
         document.getElementById('cpDeckSearchInput').value = '';
         resultsEl.style.display = 'none';
-        cpRefreshDeckEditor();
+        cpChangeDeckQty(key, 1);
       });
     });
   }, 300);
@@ -334,3 +355,70 @@ document.getElementById('cpSaveDeckBtn').addEventListener('click', async () => {
     statusEl.textContent = '保存に失敗しました: ' + e.message;
   }
 });
+
+/* ============ 所持カードタブ：デッキで使用中の未所持カード一覧 ============ */
+// 保存済みの全デッキを見渡し、「そのデッキを組むのに必要な枚数（各カードごとに、複数デッキ中の最大必要数）」に対して
+// 所持枚数が足りていないカードを一覧表示する。所持カードタブから、買い足すべきカードをまとめて確認できるようにする
+async function cpRenderUnownedDeckCardsPanel() {
+  const badgeEl = document.getElementById('cpUnownedDeckBadge');
+  const panelEl = document.getElementById('cpUnownedDeckPanel');
+  if (!badgeEl || !panelEl) return;
+
+  const maxNeeded = {}; // key -> { maxQty, deckNames: [] }
+  cpDecks.forEach(deck => {
+    const cards = cpNormalizeDeckCards(deck.cards);
+    Object.keys(cards).forEach(key => {
+      const qty = cards[key].qty;
+      if (!maxNeeded[key]) maxNeeded[key] = { maxQty: 0, deckNames: [] };
+      if (qty > maxNeeded[key].maxQty) maxNeeded[key].maxQty = qty;
+      if (maxNeeded[key].deckNames.indexOf(deck.deckName) === -1) maxNeeded[key].deckNames.push(deck.deckName);
+    });
+  });
+
+  const shortageKeys = Object.keys(maxNeeded).filter(key => (ownedCollection[key] || 0) < maxNeeded[key].maxQty);
+
+  if (!shortageKeys.length) {
+    badgeEl.style.display = 'none';
+    panelEl.innerHTML = '<div class="cpHint">デッキで不足しているカードはありません</div>';
+    return;
+  }
+
+  badgeEl.style.display = '';
+  badgeEl.textContent = String(shortageKeys.length);
+
+  for (const key of shortageKeys) {
+    if (collectionCardsCache[key]) continue;
+    const [setCode, type, slot] = key.split('__');
+    try {
+      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+      const card = await res.json();
+      if (card) collectionCardsCache[key] = card;
+    } catch (e) { /* 取得失敗時はスキップ */ }
+  }
+
+  const rows = shortageKeys.map(key => {
+    const card = collectionCardsCache[key];
+    if (!card) return '';
+    const owned = ownedCollection[key] || 0;
+    const needed = maxNeeded[key].maxQty;
+    const shortage = needed - owned;
+    return `
+      <div class="cpUnownedDeckRow">
+        <img src="${card.imageUrl}" class="cpUnownedDeckThumb" alt="">
+        <div class="cpUnownedDeckInfo">
+          <div class="cpUnownedDeckName">${escapeHtml(card.cardName)}</div>
+          <div class="cpUnownedDeckMeta">所持 ${owned} / 必要 ${needed}枚（<span class="cpUnownedDeckShortage">あと${shortage}枚</span>）・ 使用デッキ: ${escapeHtml(maxNeeded[key].deckNames.join('、'))}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  panelEl.innerHTML = rows || '<div class="cpHint">デッキで不足しているカードはありません</div>';
+}
+
+const cpUnownedDeckToggleBtn = document.getElementById('cpUnownedDeckToggleBtn');
+if (cpUnownedDeckToggleBtn) {
+  cpUnownedDeckToggleBtn.addEventListener('click', () => {
+    const panelEl = document.getElementById('cpUnownedDeckPanel');
+    panelEl.style.display = panelEl.style.display === 'none' ? 'block' : 'none';
+  });
+}
