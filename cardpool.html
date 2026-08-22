@@ -313,14 +313,62 @@
   }
   .cpDeckSummaryRow { font-size: 13px; color: #c9d1e0; margin-bottom: 16px; }
   .cpDeckUnownedCount { color: #e37e7e; font-weight: bold; }
+  /* ===== 所持カードタブ：デッキで使用中の未所持カード一覧 ===== */
+  .cpUnownedDeckPanelWrap { margin-bottom: 14px; }
+  .cpUnownedDeckBadge {
+    display: inline-block; background: #e05050; color: #fff; font-size: 10px; font-weight: bold;
+    border-radius: 8px; padding: 1px 6px; margin-left: 6px;
+  }
+  .cpUnownedDeckPanel {
+    margin-top: 10px; padding: 12px; border: 1px solid rgba(227,126,126,0.4); border-radius: 10px;
+    background: rgba(227,126,126,0.05); max-height: 260px; overflow-y: auto;
+  }
+  .cpUnownedDeckRow {
+    display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(227,126,126,0.15);
+    font-size: 12px;
+  }
+  .cpUnownedDeckRow:last-child { border-bottom: none; }
+  .cpUnownedDeckThumb {
+    width: 36px; aspect-ratio: 5/7; object-fit: cover; border-radius: 4px; flex-shrink: 0;
+    filter: grayscale(1) brightness(0.75);
+  }
+  .cpUnownedDeckInfo { flex: 1; }
+  .cpUnownedDeckName { font-weight: bold; }
+  .cpUnownedDeckMeta { color: #9aa5c0; font-size: 11px; margin-top: 2px; }
+  .cpUnownedDeckShortage { color: #e37e7e; font-weight: bold; }
+  /* ===== デッキ内カード：同名グループの見出し＋1枚ずつ横並びのコピー表示 ===== */
+  .cpDeckSectionGroups { display: flex; flex-direction: column; gap: 12px; }
+  .cpDeckCardGroup { }
+  .cpDeckCardGroupHeader {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px;
+  }
+  .cpDeckCardGroupName { font-size: 12px; font-weight: bold; }
+  .cpDeckCopyRow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cpDeckCopyTile {
+    position: relative; width: 74px; border-radius: 8px; overflow: hidden;
+    border: 1px solid rgba(212,175,106,0.3); background: rgba(255,255,255,0.02);
+  }
+  .cpDeckCopyTile img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; background: #10182a; }
+  .cpCopyRemoveBtn {
+    position: absolute; top: 2px; right: 2px; z-index: 3;
+    width: 16px; height: 16px; border-radius: 50%; border: none;
+    background: rgba(224,80,80,0.92); color: #fff; font-size: 10px; font-weight: bold; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+    opacity: 0; transition: opacity 0.12s;
+  }
+  @media (hover: hover) {
+    .cpDeckCopyTile:hover .cpCopyRemoveBtn { opacity: 1; }
+  }
+  @media (hover: none) {
+    .cpCopyRemoveBtn { opacity: 0.85; }
+  }
+  .cpCopyRemoveBtn:hover { background: #e05050; }
   .cpDeckSections { display: flex; flex-direction: column; gap: 16px; }
   .cpDeckSection { border: 1px solid rgba(212,175,106,0.25); border-radius: 10px; padding: 12px 14px; }
   .cpDeckSectionHeader { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; flex-wrap: wrap; gap: 4px; }
   .cpDeckSectionTitle { font-weight: bold; font-size: 14px; color: var(--gold); }
   .cpDeckSectionCount { font-size: 12px; color: #9aa5c0; }
   .cpDeckSectionCount.over { color: #e37e7e; font-weight: bold; }
-  /* デッキ内カードもギャラリー（グリッド）表示にする */
-  .cpDeckSectionGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 6px; }
   .cpDeckZoneToggle {
     width: calc(100% - 8px); margin: 3px 4px 4px; height: 17px; border-radius: 5px;
     border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.05); color: var(--gold);
@@ -330,7 +378,8 @@
   @media (max-width: 640px) {
     .userIdBox { font-size: 12px; }
     .cpCollectionGrid { height: 46vh; min-height: 260px; }
-    .cpPackGroupGrid, .cpDeckSectionGrid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
+    .cpPackGroupGrid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
+    .cpDeckCopyTile { width: 62px; }
     .cpFilterPopover { width: 220px; right: 0; }
   }
 
@@ -407,6 +456,10 @@
 
 <div class="cpMain">
   <div id="cpTab_collection" class="cpTabPanel">
+    <div class="cpUnownedDeckPanelWrap">
+      <button type="button" class="cpSecondaryBtn" id="cpUnownedDeckToggleBtn">⚠ デッキで使用中の未所持カード <span id="cpUnownedDeckBadge" class="cpUnownedDeckBadge" style="display:none;">0</span></button>
+      <div id="cpUnownedDeckPanel" class="cpUnownedDeckPanel" style="display:none;"></div>
+    </div>
     <div class="cpCollectionSplit">
       <div class="cpCollectionPane">
         <div class="cpPaneHeader">
