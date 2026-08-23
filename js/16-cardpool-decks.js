@@ -25,27 +25,8 @@ function cpDeckMainCategory(card) {
 }
 
 // 同名カードがデッキ内に何枚あるか（別の弾・レアリティの再録/パラレルもカード名が同じなら合算してカウントする）
-function cpCountCardsByName(cardName) {
-  let total = 0;
-  Object.keys(cpEditingDeckCards).forEach(k => {
-    const card = collectionCardsCache[k];
-    if (card && card.cardName === cardName) total += cpEditingDeckCards[k].qty;
-  });
-  return total;
-}
-
-// デッキ内の枚数を増減する（所持カード自体の枚数は変更しない）。0以下になったら完全に削除する。
-// 追加した結果、同名カードが4枚を超える場合は警告を表示する（追加自体は止めない）
+// デッキ内の枚数を増減する（所持カード自体の枚数は変更しない）。0以下になったら完全に削除する
 function cpChangeDeckQty(key, delta) {
-  if (delta > 0) {
-    const card = collectionCardsCache[key];
-    if (card) {
-      const nameTotalBefore = cpCountCardsByName(card.cardName);
-      if (nameTotalBefore + delta > 4) {
-        alert(`「${card.cardName}」は同名カード4枚を超えています（追加後: ${nameTotalBefore + delta}枚）。`);
-      }
-    }
-  }
   const cur = (cpEditingDeckCards[key] && cpEditingDeckCards[key].qty) || 0;
   const next = Math.max(0, cur + delta);
   if (next === 0) {
@@ -94,6 +75,8 @@ function cpDeckRowHtml(d) {
 }
 
 async function cpLoadDecks() {
+  const listEl = document.getElementById('cpDeckList');
+  if (listEl) listEl.innerHTML = cpLoadingHtml('読み込み中...');
   const res = await fetch(GAS_URL + `?action=listUserDecks&userId=${encodeURIComponent(userId)}`);
   cpDecks = await res.json();
   cpRenderDeckList();
@@ -153,8 +136,9 @@ async function cpRenderDeckSourceGrid() {
     gridEl.innerHTML = '<div class="cpHint">所持カードがありません。先に「所持カード」タブでカードを登録してください</div>';
     return;
   }
-  for (const key of keys) {
-    if (collectionCardsCache[key]) continue;
+  const uncachedKeys = keys.filter(k => !collectionCardsCache[k]);
+  if (uncachedKeys.length) gridEl.innerHTML = cpLoadingHtml('読み込み中...');
+  for (const key of uncachedKeys) {
     const [setCode, type, slot] = key.split('__');
     try {
       const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
@@ -338,6 +322,8 @@ document.getElementById('cpDeckSearchInput').addEventListener('input', (e) => {
   clearTimeout(cpDeckSearchTimer);
   const resultsEl = document.getElementById('cpDeckSearchResults');
   if (q.length < 2) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = cpLoadingHtml('検索中...');
   cpDeckSearchTimer = setTimeout(async () => {
     const res = await fetch(GAS_URL + `?action=searchCards&q=${encodeURIComponent(q)}`);
     const list = await res.json();

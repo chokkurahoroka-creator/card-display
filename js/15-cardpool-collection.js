@@ -301,8 +301,12 @@ async function cpRenderOwnedGrid() {
     return;
   }
   // まだ情報をキャッシュしていないカード（他のタブ・端末で登録済みのもの等）は個別に取得する
-  for (const key of keys) {
-    if (collectionCardsCache[key]) continue;
+  const uncachedKeys = keys.filter(k => !collectionCardsCache[k]);
+  if (uncachedKeys.length) {
+    const loadingHtml = cpLoadingHtml('読み込み中...');
+    targets.forEach(t => { t.innerHTML = loadingHtml; });
+  }
+  for (const key of uncachedKeys) {
     const [setCode, type, slot] = key.split('__');
     try {
       const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
@@ -316,7 +320,7 @@ async function cpRenderOwnedGrid() {
 
 async function cpRenderGridForSet(setCode) {
   const gridEl = document.getElementById('cpSearchGrid');
-  gridEl.innerHTML = '<div class="cpHint">読み込み中...</div>';
+  gridEl.innerHTML = cpLoadingHtml('読み込み中...');
   const res = await fetch(GAS_URL + `?action=list&setCode=${encodeURIComponent(setCode)}`);
   const cards = await res.json();
   cpRenderGroupedCards(gridEl, cards, 'search', 'この弾にはまだカードが登録されていません');
@@ -324,7 +328,7 @@ async function cpRenderGridForSet(setCode) {
 
 async function cpRenderGridForSearch(query) {
   const gridEl = document.getElementById('cpSearchGrid');
-  gridEl.innerHTML = '<div class="cpHint">検索中...</div>';
+  gridEl.innerHTML = cpLoadingHtml('検索中...');
   const res = await fetch(GAS_URL + `?action=searchCards&q=${encodeURIComponent(query)}`);
   const cards = await res.json();
   // 検索結果もパックシリーズごとにまとめて表示する（デフォルトの並び替え）

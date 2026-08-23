@@ -30,3 +30,8 @@ function cardKey(c) { return `${c.setCode}__${c.type}__${c.slot}`; }
 
 // カード情報のキャッシュ（所持カード一覧・デッキ編集の両方で同じカードを何度も取得しないための共有キャッシュ）
 const collectionCardsCache = {};
+
+// データ取得中に表示する共通のローディング表示（スピナー＋メッセージ）
+function cpLoadingHtml(msg) {
+  return `<div class="cpHint"><span class="cpSpinner"></span>${escapeHtml(msg || '読み込み中...')}</div>`;
+}
