@@ -178,9 +178,23 @@ function cpSetupDeckDropZone() {
     el.classList.remove('dragOver');
     let data;
     try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
-    if (!data || !data.key || data.pane !== 'deckSource') return;
+    if (!data || !data.key || (data.pane !== 'deckSource' && data.pane !== 'deckSearch')) return;
     cpChangeDeckQty(data.key, 1);
   });
+
+  // 検索結果の枠に、デッキ内のカードをドラッグして落とすと1枚削除できる
+  const resultsEl = document.getElementById('cpDeckSearchResults');
+  resultsEl.addEventListener('dragover', (e) => { e.preventDefault(); resultsEl.classList.add('dragOver'); });
+  resultsEl.addEventListener('dragleave', () => resultsEl.classList.remove('dragOver'));
+  resultsEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    resultsEl.classList.remove('dragOver');
+    let data;
+    try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch (err) { return; }
+    if (!data || !data.key || data.pane !== 'deckSource') return;
+    cpChangeDeckQty(data.key, -1);
+  });
+
   cpDeckDropZoneInitialized = true;
 }
 cpSetupDeckDropZone();
@@ -286,43 +300,56 @@ function cpBindDeckEditorCardEvents(container) {
   });
 }
 
+// 検索結果を、所持カードから選ぶパネルと同じカードタイルのギャラリーとして表示する（枠内でドラッグ＆ドロップ操作可能）
+function cpDeckSearchResultTileHtml(c) {
+  const key = cardKey(c);
+  collectionCardsCache[key] = c;
+  const ownedQty = ownedCollection[key] || 0;
+  const rarity = c.rarity || '';
+  const rarityBadge = rarity
+    ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>`
+    : '';
+  return `
+    <div class="cpCard ${ownedQty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
+      <div class="cpCardImgWrap">
+        ${rarityBadge}
+        <img src="${c.imageUrl}" class="${ownedQty > 0 ? '' : 'cpUnownedThumb'}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+        <span class="cpQtyBadge" title="所持枚数">${ownedQty}</span>
+      </div>
+      <div class="cpCardName">${escapeHtml(c.cardName)}</div>
+      <button type="button" class="cpAddBtn" data-key="${key}" title="デッキに追加">＋ 追加</button>
+    </div>`;
+}
+
+function cpBindDeckSearchResultEvents(container) {
+  container.querySelectorAll('.cpCard').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ key: el.dataset.key, pane: 'deckSearch' }));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+  });
+  container.querySelectorAll('.cpAddBtn').forEach(btn => {
+    btn.addEventListener('click', () => cpChangeDeckQty(btn.dataset.key, 1));
+  });
+}
+
 document.getElementById('cpDeckSearchInput').addEventListener('input', (e) => {
   const q = e.target.value.trim();
   clearTimeout(cpDeckSearchTimer);
   const resultsEl = document.getElementById('cpDeckSearchResults');
-  if (q.length < 2) { resultsEl.style.display = 'none'; return; }
+  if (q.length < 2) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
   cpDeckSearchTimer = setTimeout(async () => {
     const res = await fetch(GAS_URL + `?action=searchCards&q=${encodeURIComponent(q)}`);
     const list = await res.json();
+    resultsEl.style.display = 'grid';
     if (!list.length) {
-      resultsEl.innerHTML = '<div class="cpHint" style="padding:8px;">該当なし</div>';
       resultsEl.style.display = 'block';
+      resultsEl.innerHTML = '<div class="cpHint">該当するカードが見つかりませんでした</div>';
       return;
     }
-    resultsEl.innerHTML = list.map((c, i) => {
-      const owned = ownedCollection[cardKey(c)] || 0;
-      return `
-      <div class="cpDeckSearchItem" data-idx="${i}">
-        <img src="${c.imageUrl}" class="cpDeckCardThumb ${owned ? '' : 'cpUnownedThumb'}" alt="">
-        <span>${escapeHtml(c.cardName)}（${escapeHtml(c.setCode)} / ${escapeHtml(c.type)}・${escapeHtml(c.rarity || '')}）${owned ? '' : ' <span class="cpUnownedBadge">未所持</span>'}</span>
-      </div>`;
-    }).join('');
-    resultsEl.style.display = 'block';
-    resultsEl.querySelectorAll('.cpDeckSearchItem').forEach(el => {
-      el.addEventListener('click', () => {
-        const card = list[Number(el.dataset.idx)];
-        const key = cardKey(card);
-        collectionCardsCache[key] = card;
-        document.getElementById('cpDeckSearchInput').value = '';
-        resultsEl.style.display = 'none';
-        cpChangeDeckQty(key, 1);
-      });
-    });
+    resultsEl.innerHTML = list.map(c => cpDeckSearchResultTileHtml(c)).join('');
+    cpBindDeckSearchResultEvents(resultsEl);
   }, 300);
-});
-document.addEventListener('click', (e) => {
-  const wrap = document.querySelector('.cpDeckSearchWrap');
-  if (wrap && !wrap.contains(e.target)) document.getElementById('cpDeckSearchResults').style.display = 'none';
 });
 
 document.getElementById('cpSaveDeckBtn').addEventListener('click', async () => {

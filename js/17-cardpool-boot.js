@@ -9,9 +9,15 @@ document.querySelectorAll('.cpTabBtn').forEach(btn => {
 });
 
 // ===== ユーザーID表示・端末間の切替 =====
+let cpUserIdVisible = false;
 function cpRenderUserIdBox() {
-  document.getElementById('cpUserIdDisplay').textContent = userId;
+  document.getElementById('cpUserIdDisplay').textContent = cpUserIdVisible ? userId : '••••-••••';
 }
+document.getElementById('cpUserIdToggleBtn').addEventListener('click', () => {
+  cpUserIdVisible = !cpUserIdVisible;
+  document.getElementById('cpUserIdToggleBtn').textContent = cpUserIdVisible ? '隠す' : '表示';
+  cpRenderUserIdBox();
+});
 
 document.getElementById('cpCopyUserIdBtn').addEventListener('click', async () => {
   const btn = document.getElementById('cpCopyUserIdBtn');
@@ -32,6 +38,8 @@ document.getElementById('cpChangeUserIdBtn').addEventListener('click', async () 
 
   userId = input;
   localStorage.setItem('cardpool_userId', userId);
+  cpUserIdVisible = true;
+  document.getElementById('cpUserIdToggleBtn').textContent = '隠す';
   cpRenderUserIdBox();
   await cpInitCollectionTab();
   await cpLoadDecks();

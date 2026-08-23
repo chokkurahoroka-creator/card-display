@@ -292,10 +292,12 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
 }
 
 async function cpRenderOwnedGrid() {
-  const gridEl = document.getElementById('cpOwnedGrid');
+  const targets = ['cpOwnedGrid', 'cpOwnedListGrid'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!targets.length) return;
   const keys = Object.keys(ownedCollection).filter(k => ownedCollection[k] > 0);
   if (!keys.length) {
-    gridEl.innerHTML = '<div class="cpHint">まだ所持カードが登録されていません。右側から検索して追加、またはドラッグ＆ドロップしてください</div>';
+    const emptyHtml = '<div class="cpHint">まだ所持カードが登録されていません。「所持カードを追加」タブから検索して追加、またはドラッグ＆ドロップしてください</div>';
+    targets.forEach(t => { t.innerHTML = emptyHtml; });
     return;
   }
   // まだ情報をキャッシュしていないカード（他のタブ・端末で登録済みのもの等）は個別に取得する
@@ -309,7 +311,7 @@ async function cpRenderOwnedGrid() {
     } catch (e) { /* 取得失敗時はスキップ */ }
   }
   const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
-  cpRenderGroupedCards(gridEl, cards, 'owned', '所持カードが見つかりませんでした');
+  targets.forEach(t => cpRenderGroupedCards(t, cards, 'owned', '所持カードが見つかりませんでした'));
 }
 
 async function cpRenderGridForSet(setCode) {
