@@ -127,9 +127,10 @@
     .comingSoonWrap { margin-top: 40px; padding: 40px 20px; }
   }
 
-  /* ===== ユーザーIDボックス ===== */
+  /* ===== ユーザーIDボタン／パネル（普段は非表示、ボタンを押した時だけ枠を表示） ===== */
+  .userIdBar { max-width: 1700px; margin: 0 auto 18px; }
   .userIdBox {
-    max-width: 1700px; margin: 0 auto 18px; padding: 12px 16px; border-radius: 12px;
+    margin-top: 8px; padding: 12px 16px; border-radius: 12px;
     background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,106,0.3);
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px;
   }
@@ -153,6 +154,12 @@
   .cpTabBtn.active { background: var(--gold); color: #1a1305; border-color: var(--gold); }
   .cpMain { max-width: 1700px; margin: 0 auto; }
   .cpHint { color: #9aa5c0; font-size: 13px; padding: 20px; text-align: center; }
+  .cpSpinner {
+    display: inline-block; width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
+    border: 2px solid rgba(212,175,106,0.3); border-top-color: var(--gold); border-radius: 50%;
+    animation: cpSpin 0.7s linear infinite;
+  }
+  @keyframes cpSpin { to { transform: rotate(360deg); } }
 
   /* ===== 所持カード登録：左右2分割（左=所持カード／右=検索して追加） ===== */
   .cpCollectionSplit { display: flex; gap: 22px; align-items: flex-start; margin-bottom: 16px; }
@@ -207,6 +214,8 @@
   #cpOwnedGrid { border: 3px solid rgba(212,175,106,0.6); background: rgba(212,175,106,0.035); }
   #cpSearchGrid { border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); }
   #cpDeckSourceGrid { border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); }
+  /* デッキ編集画面のカード画像は他画面よりコンパクトに表示する */
+  #cpDeckSourceGrid .cpPackGroupGrid { grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 5px; }
   #cpDeckSections { border: 3px solid rgba(212,175,106,0.6); background: rgba(212,175,106,0.035); }
   /* ===== パック（弾）ごとのグループ表示（所持カード・検索結果ともに共通） ===== */
   .cpPackGroup { margin-bottom: 20px; }
@@ -292,9 +301,9 @@
     background: #10182a; color: var(--text); font-size: 13px;
   }
   .cpDeckSearchResults {
-    margin-top: 10px; height: 240px; overflow-y: auto; padding: 12px;
+    margin-top: 10px; height: auto; max-height: 560px; overflow-y: auto; padding: 12px;
     border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); border-radius: 10px;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px;
   }
   .cpDeckCardThumb { width: 40px; aspect-ratio: 5/7; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
   .cpDeckCardThumb.cpUnownedThumb { filter: grayscale(1) brightness(0.7); }
@@ -368,7 +377,7 @@
   .cpDeckSectionBlockHeader { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
   .cpDeckSectionBlockTitle { font-size: 15px; font-weight: bold; color: var(--text); }
   .cpDeckSectionBlockCount { font-size: 12px; color: #9aa5c0; }
-  .cpDeckSectionBlockGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+  .cpDeckSectionBlockGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 5px; }
   .cpDeckSectionDivider { height: 1px; background: rgba(212,175,106,0.25); margin: 18px 0; }
   .cpDeckSectionBlock:last-child .cpDeckSectionDivider { display: none; }
   .cpDeckZoneToggle {
@@ -380,7 +389,8 @@
   @media (max-width: 640px) {
     .userIdBox { font-size: 12px; }
     .cpCollectionGrid { height: 46vh; min-height: 260px; }
-    .cpPackGroupGrid, .cpDeckSectionBlockGrid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
+    .cpPackGroupGrid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
+    .cpDeckSectionBlockGrid, #cpDeckSourceGrid .cpPackGroupGrid, .cpDeckSearchResults { grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 4px; }
     .cpFilterPopover { width: 220px; right: 0; }
   }
 
@@ -442,13 +452,15 @@
 
 <div class="sub">所持カードの管理ページ</div>
 
-<div class="userIdBox">
-  <span class="userIdLabel">あなたのID:</span>
-  <span class="userIdValue" id="cpUserIdDisplay">••••-••••</span>
-  <button type="button" class="cpSecondaryBtn" id="cpUserIdToggleBtn">表示</button>
-  <button type="button" class="cpSecondaryBtn" id="cpCopyUserIdBtn">IDをコピー</button>
-  <button type="button" class="cpSecondaryBtn" id="cpChangeUserIdBtn">別端末のIDを使う</button>
-  <span class="userIdHint">このIDが所持カード・デッキ情報の保存キーです。他の端末でも同じ内容を見るには、このIDをその端末の「別端末のIDを使う」から入力してください。</span>
+<div class="userIdBar">
+  <button type="button" class="cpSecondaryBtn" id="cpUserIdToggleBtn">🆔 ID</button>
+  <div class="userIdBox" id="userIdBox" style="display:none;">
+    <span class="userIdLabel">あなたのID:</span>
+    <span class="userIdValue" id="cpUserIdDisplay">----</span>
+    <button type="button" class="cpSecondaryBtn" id="cpCopyUserIdBtn">IDをコピー</button>
+    <button type="button" class="cpSecondaryBtn" id="cpChangeUserIdBtn">別端末のIDを使う</button>
+    <span class="userIdHint">このIDが所持カード・デッキ情報の保存キーです。他の端末でも同じ内容を見るには、このIDをその端末の「別端末のIDを使う」から入力してください。</span>
+  </div>
 </div>
 
 <div class="cpTabs">
@@ -508,7 +520,12 @@
     </div>
     <div id="cpDeckEditorView" style="display:none;">
       <button type="button" class="cpSecondaryBtn" id="cpDeckBackBtn">← デッキ一覧に戻る</button>
-      <input type="text" id="cpDeckNameInput" class="cpDeckNameInput" placeholder="デッキ名">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:14px 0;">
+        <input type="text" id="cpDeckNameInput" class="cpDeckNameInput" placeholder="デッキ名" style="flex:1; min-width:160px; margin:0;">
+        <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">このデッキを保存</button>
+        <button type="button" class="cpSecondaryBtn" id="cpBulkAddUnownedBtn">未所持カードを一括追加</button>
+      </div>
+      <div id="cpDeckStatus" class="cpHint" style="padding:0 0 8px;"></div>
       <div class="cpDeckSummaryRow">
         合計 <span id="cpDeckTotalCount">0</span> 枚 ／ 未所持カード <span id="cpDeckUnownedCount" class="cpDeckUnownedCount">0</span> 枚
       </div>
@@ -528,11 +545,6 @@
           <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
         </div>
       </div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">このデッキを保存</button>
-        <button type="button" class="cpSecondaryBtn" id="cpBulkAddUnownedBtn">未所持カードを一括追加</button>
-      </div>
-      <div id="cpDeckStatus" class="cpHint" style="padding:8px 0;"></div>
     </div>
   </div>
 </div>
