@@ -11,9 +11,9 @@ let cpDeckSearchTimer = null;
 
 const CP_DECK_SECTIONS = [
   { key: 'oshi', zone: 'main', label: '推しホロメン', mainLimit: 1, reserveLimit: 10 },
-  { key: 'holomen', zone: 'main', label: 'ホロメン（サポート等含む）', mainLimit: 50, reserveLimit: 20 },
-  { key: 'yell', zone: 'main', label: 'エール', mainLimit: 20, reserveLimit: 0 },
-  { key: 'side', zone: 'side', label: 'サイドデッキ', minLimit: 10, maxLimit: 40 }
+  { key: 'holomen', zone: 'main', label: 'メインデッキ', mainLimit: 50, reserveLimit: 20 },
+  { key: 'side', zone: 'side', label: 'サイドデッキ', minLimit: 10, maxLimit: 40 },
+  { key: 'yell', zone: 'main', label: 'エールデッキ', mainLimit: 20, reserveLimit: 0 }
 ];
 
 // カードタイプからメインデッキ内の区分（推しホロメン/ホロメン/エール）を判定する
@@ -186,89 +186,49 @@ function cpSetupDeckDropZone() {
 cpSetupDeckDropZone();
 
 // 各区分（推しホロメン/ホロメン/エール/サイドデッキ）の合計枚数と上限を、小さな chip テキストで表す
-function cpDeckSectionChipHtml(sec, total) {
-  let limitText, overLimit;
-  if (sec.zone === 'side') {
-    limitText = `${total}枚（目安${sec.minLimit}〜${sec.maxLimit}）`;
-    overLimit = total > sec.maxLimit;
-  } else {
-    const totalLimit = sec.mainLimit + (sec.reserveLimit || 0);
-    limitText = sec.reserveLimit ? `${total}/${sec.mainLimit}枚（上限${totalLimit}）` : `${total}/${sec.mainLimit}枚`;
-    overLimit = total > totalLimit;
-  }
-  return `<span class="cpDeckSummaryChip ${overLimit ? 'over' : ''}">${escapeHtml(sec.label)} ${limitText}</span>`;
+// セクション見出し「ラベル (N枚)」＋区切り線＋カードタイルのグリッド（添付の大会デッキレシピ画像を参考にしたレイアウト）
+function cpDeckSectionBlockHtml(sec, items) {
+  const total = items.reduce((a, r) => a + r.qty, 0);
+  const tilesHtml = items.length
+    ? items.map(r => cpDeckCardTileHtml(r, sec.zone)).join('')
+    : '<div class="cpHint" style="padding:10px 0;">カードがありません</div>';
+  return `
+    <div class="cpDeckSectionBlock">
+      <div class="cpDeckSectionBlockHeader">
+        <span class="cpDeckSectionBlockTitle">${escapeHtml(sec.label)}</span>
+        <span class="cpDeckSectionBlockCount">(${total}枚)</span>
+      </div>
+      <div class="cpDeckSectionBlockGrid">${tilesHtml}</div>
+      <div class="cpDeckSectionDivider"></div>
+    </div>`;
 }
 
-// デッキ内カードは「1枚＝1タイル」でスタックせず横に並べて表示する（参考画像のYu-Gi-Oh!デッキ画面と同じ見た目）。
-// 所持数を超える分（コピー番号がowned以上）のタイルだけモノクロ表示にする。
-// 名前・メイン/サイド切替は同名カードグループの見出しに1つだけ表示し、コピー1枚ごとに×で削除できる
-function cpDeckCardGroupHtml(r, currentZone) {
+// デッキ内カードは同名カード1枚のタイルに枚数バッジ（画像左下）をつけて表示する。
+// 所持数を超えている（デッキ内の枚数 > 所持枚数）場合はタイル全体をモノクロ表示にする
+function cpDeckCardTileHtml(r, currentZone) {
   const owned = ownedCollection[r.key] || 0;
-  const hasUnowned = owned < r.qty;
+  const isUnowned = r.qty > owned;
   const toggleLabel = currentZone === 'side' ? 'メインへ' : 'サイドへ';
   const rarity = r.card.rarity || '';
   const rarityBadge = rarity
     ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>`
     : '';
-
-  const copiesHtml = Array.from({ length: r.qty }).map((_, i) => {
-    const isUnownedCopy = i >= owned;
-    return `
-      <div class="cpDeckCopyTile" data-key="${r.key}">
-        ${rarityBadge}
-        <img src="${r.card.imageUrl}" class="${isUnownedCopy ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(r.card.cardName)}" loading="lazy">
-        <button type="button" class="cpCopyRemoveBtn" data-key="${r.key}" title="この1枚を削除">×</button>
-      </div>`;
-  }).join('');
-
   return `
-    <div class="cpDeckCardGroup">
-      <div class="cpDeckCardGroupHeader">
-        <span class="cpDeckCardGroupName">${escapeHtml(r.card.cardName)}${hasUnowned ? ' <span class="cpUnownedInlineBadge">未所持あり</span>' : ''}</span>
-        <button type="button" class="cpDeckZoneToggle" data-key="${r.key}">${toggleLabel}</button>
+    <div class="cpCard ${isUnowned ? '' : 'owned'}" data-key="${r.key}">
+      <div class="cpCardImgWrap">
+        ${rarityBadge}
+        <img src="${r.card.imageUrl}" class="${isUnowned ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(r.card.cardName)}" loading="lazy">
+        <button type="button" class="cpCardRemoveBtn" data-key="${r.key}" title="デッキから削除">×</button>
+        <span class="cpDeckQtyBadge">${r.qty}</span>
       </div>
-      <div class="cpDeckCopyRow">${copiesHtml}</div>
+      <div class="cpCardName">${escapeHtml(r.card.cardName)}${isUnowned ? ' <span class="cpUnownedInlineBadge">未所持</span>' : ''}</div>
+      <div class="cpQtyRow">
+        <button type="button" class="cpQtyBtn cpDeckQtyMinus" data-key="${r.key}">−</button>
+        <span class="cpQtyValue">${r.qty}</span>
+        <button type="button" class="cpQtyBtn cpDeckQtyPlus" data-key="${r.key}">＋</button>
+      </div>
+      <button type="button" class="cpDeckZoneToggle" data-key="${r.key}">${toggleLabel}</button>
     </div>`;
-}
-
-// デッキ本体の表示は区分ごとの箱で上下に分けず、所持カード画面と同じ「パックごとのグループ表示」でひとつなぎにする
-function cpRenderDeckCardsGrouped(items) {
-  const gridEl = document.getElementById('cpDeckSections');
-  if (!items.length) {
-    gridEl.innerHTML = '<div class="cpHint">まだカードが追加されていません。右側から選ぶか検索して追加してください</div>';
-    return;
-  }
-  const groups = {};
-  items.forEach(it => {
-    const sc = it.card.setCode || '（不明）';
-    if (!groups[sc]) groups[sc] = [];
-    groups[sc].push(it);
-  });
-  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => (a.card.cardName || '').localeCompare(b.card.cardName || '', 'ja')));
-
-  const setOrder = cpSets.map(s => s.setCode);
-  const sortedSetCodes = Object.keys(groups).sort((a, b) => {
-    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ib - ia;
-  });
-
-  gridEl.innerHTML = sortedSetCodes.map(sc => {
-    const setName = cpSetNameMap[sc] || '';
-    const cardsHtml = groups[sc].map(r => cpDeckCardGroupHtml(r, r.zone)).join('');
-    return `
-      <div class="cpPackGroup">
-        <div class="cpPackGroupHeader">
-          <span>${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
-          <span class="cpPackGroupCount">${groups[sc].length}種</span>
-        </div>
-        <div class="cpDeckSectionGroups">${cardsHtml}</div>
-      </div>`;
-  }).join('');
-
-  cpBindDeckEditorCardEvents(gridEl);
 }
 
 // デッキに入っている各カードの情報は、所持カード一覧で読み込み済みのキャッシュを優先し、
@@ -286,8 +246,7 @@ async function cpRenderDeckEditorCards() {
     } catch (e) { /* 取得失敗時はスキップ */ }
   }
 
-  const sectionTotals = { oshi: 0, holomen: 0, yell: 0, side: 0 };
-  const items = [];
+  const grouped = { oshi: [], holomen: [], side: [], yell: [] };
   let totalAll = 0;
   let unownedCount = 0;
 
@@ -296,18 +255,20 @@ async function cpRenderDeckEditorCards() {
     const card = collectionCardsCache[key];
     if (!card) return;
     const sectionKey = entry.zone === 'side' ? 'side' : cpDeckMainCategory(card);
-    sectionTotals[sectionKey] += entry.qty;
+    grouped[sectionKey].push({ key, card, qty: entry.qty, zone: entry.zone });
     totalAll += entry.qty;
     const owned = ownedCollection[key] || 0;
     if (owned < entry.qty) unownedCount += (entry.qty - owned);
-    items.push({ key, card, qty: entry.qty, zone: entry.zone });
   });
 
-  document.getElementById('cpDeckSectionSummary').innerHTML = CP_DECK_SECTIONS.map(sec => cpDeckSectionChipHtml(sec, sectionTotals[sec.key])).join('');
+  Object.keys(grouped).forEach(k => grouped[k].sort((a, b) => (a.card.cardName || '').localeCompare(b.card.cardName || '', 'ja')));
+
+  // 「推しホロメン」→「メイン」→「サイド」→「エール」の順で表示する
+  document.getElementById('cpDeckSections').innerHTML = CP_DECK_SECTIONS.map(sec => cpDeckSectionBlockHtml(sec, grouped[sec.key])).join('');
   document.getElementById('cpDeckTotalCount').textContent = totalAll;
   document.getElementById('cpDeckUnownedCount').textContent = unownedCount;
 
-  cpRenderDeckCardsGrouped(items);
+  cpBindDeckEditorCardEvents(document.getElementById('cpDeckSections'));
 }
 
 function cpBindDeckEditorCardEvents(container) {
@@ -318,10 +279,16 @@ function cpBindDeckEditorCardEvents(container) {
       cpRefreshDeckEditor();
     });
   });
-  container.querySelectorAll('.cpCopyRemoveBtn').forEach(btn => {
+  container.querySelectorAll('.cpDeckQtyPlus').forEach(btn => {
+    btn.addEventListener('click', () => cpChangeDeckQty(btn.dataset.key, 1));
+  });
+  container.querySelectorAll('.cpDeckQtyMinus').forEach(btn => {
+    btn.addEventListener('click', () => cpChangeDeckQty(btn.dataset.key, -1));
+  });
+  container.querySelectorAll('.cpCardRemoveBtn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      cpChangeDeckQty(btn.dataset.key, -1); // 1枚だけ削除（0になれば自動的にカード自体も消える）
+      cpRemoveCardFromDeckEntirely(btn.dataset.key);
     });
   });
 }
@@ -383,6 +350,47 @@ document.getElementById('cpSaveDeckBtn').addEventListener('click', async () => {
   } catch (e) {
     statusEl.textContent = '保存に失敗しました: ' + e.message;
   }
+});
+
+// 「未所持カードを一括追加」：このデッキ内で所持数が足りていないカードについて、
+// 所持カードの枚数をデッキで使う枚数まで引き上げて所持カード側へ保存する
+document.getElementById('cpBulkAddUnownedBtn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('cpDeckStatus');
+  let addedCount = 0;
+  Object.keys(cpEditingDeckCards).forEach(key => {
+    const need = cpEditingDeckCards[key].qty;
+    const owned = ownedCollection[key] || 0;
+    if (need > owned) {
+      addedCount += (need - owned);
+      ownedCollection[key] = need;
+    }
+  });
+
+  if (addedCount === 0) {
+    alert('未所持のカードはありません。');
+    return;
+  }
+
+  statusEl.textContent = '所持カードに反映中...';
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'saveUserCollection', userId, collection: ownedCollection })
+    });
+    const json = await res.json();
+    if (json.error) {
+      statusEl.textContent = '反映に失敗しました: ' + json.error;
+      return;
+    }
+    statusEl.textContent = `${addedCount}枚を所持カードに追加しました`;
+  } catch (e) {
+    statusEl.textContent = '反映に失敗しました: ' + e.message;
+    return;
+  }
+
+  await cpRefreshDeckEditor();
+  if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 });
 
 /* ============ 所持カードタブ：デッキで使用中の未所持カード一覧 ============ */

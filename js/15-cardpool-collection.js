@@ -77,15 +77,16 @@ function cpCardCellHtml(c, pane) {
     const qty = pane === 'deckSource'
       ? ((typeof cpEditingDeckCards !== 'undefined' && cpEditingDeckCards[key] && cpEditingDeckCards[key].qty) || 0)
       : ownedQty;
+    // デッキ編集の「所持カードから選ぶ」パネルでは、デッキ内の枚数が所持枚数を超えている場合に画像をモノクロ表示する
+    const isUnowned = pane === 'deckSource' && qty > ownedQty;
     const removeBtn = qty > 0 ? `<button type="button" class="cpCardRemoveBtn" data-key="${key}" title="まとめて削除">×</button>` : '';
-    // デッキ編集の「所持カードから選ぶ」パネルでは、デッキ内の枚数（ステッパー）とは別に所持枚数もバッジで示す
     const ownedBadge = (pane === 'deckSource' && ownedQty > 0)
       ? `<span class="cpQtyBadge" title="所持枚数">${ownedQty}</span>` : '';
     return `
       <div class="cpCard ${qty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
         <div class="cpCardImgWrap">
           ${rarityBadge}
-          <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+          <img src="${c.imageUrl}" class="${isUnowned ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(c.cardName)}" loading="lazy">
           ${ownedBadge}
           ${removeBtn}
         </div>
