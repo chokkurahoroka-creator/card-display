@@ -286,21 +286,16 @@
     width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
     background: #10182a; color: var(--text); font-size: 15px; font-weight: bold; margin: 14px 0;
   }
-  .cpDeckSearchWrap { position: relative; margin-bottom: 14px; }
+  .cpDeckSearchWrap { margin-bottom: 14px; }
   .cpDeckSearchWrap input {
     width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
     background: #10182a; color: var(--text); font-size: 13px;
   }
   .cpDeckSearchResults {
-    position: absolute; top: 100%; left: 0; right: 0; z-index: 20; max-height: 280px; overflow-y: auto;
-    background: #10182a; border: 1px solid rgba(212,175,106,0.4); border-radius: 8px; margin-top: 4px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    margin-top: 10px; height: 240px; overflow-y: auto; padding: 12px;
+    border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); border-radius: 10px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px;
   }
-  .cpDeckSearchItem {
-    display: flex; align-items: center; gap: 10px; padding: 8px 10px; cursor: pointer; font-size: 13px;
-    border-bottom: 1px solid rgba(212,175,106,0.12);
-  }
-  .cpDeckSearchItem:hover { background: rgba(212,175,106,0.12); }
   .cpDeckCardThumb { width: 40px; aspect-ratio: 5/7; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
   .cpDeckCardThumb.cpUnownedThumb { filter: grayscale(1) brightness(0.7); }
   .cpUnownedBadge {
@@ -449,19 +444,26 @@
 
 <div class="userIdBox">
   <span class="userIdLabel">あなたのID:</span>
-  <span class="userIdValue" id="cpUserIdDisplay">----</span>
+  <span class="userIdValue" id="cpUserIdDisplay">••••-••••</span>
+  <button type="button" class="cpSecondaryBtn" id="cpUserIdToggleBtn">表示</button>
   <button type="button" class="cpSecondaryBtn" id="cpCopyUserIdBtn">IDをコピー</button>
   <button type="button" class="cpSecondaryBtn" id="cpChangeUserIdBtn">別端末のIDを使う</button>
   <span class="userIdHint">このIDが所持カード・デッキ情報の保存キーです。他の端末でも同じ内容を見るには、このIDをその端末の「別端末のIDを使う」から入力してください。</span>
 </div>
 
 <div class="cpTabs">
-  <button type="button" class="cpTabBtn active" data-tab="collection">所持カード</button>
+  <button type="button" class="cpTabBtn active" data-tab="ownedList">所持カード一覧</button>
+  <button type="button" class="cpTabBtn" data-tab="collection">所持カードを追加</button>
   <button type="button" class="cpTabBtn" data-tab="decks">マイデッキ</button>
 </div>
 
 <div class="cpMain">
-  <div id="cpTab_collection" class="cpTabPanel">
+  <div id="cpTab_ownedList" class="cpTabPanel">
+    <div class="hint" style="margin-bottom:8px;">カードをクリックすると、使用中のデッキと残り枚数を確認できます</div>
+    <div id="cpOwnedListGrid" class="cpCollectionGrid cpDropTarget" style="height:75vh; max-height:820px;"></div>
+  </div>
+
+  <div id="cpTab_collection" class="cpTabPanel" style="display:none;">
     <div class="cpUnownedDeckPanelWrap">
       <button type="button" class="cpSecondaryBtn" id="cpUnownedDeckToggleBtn">⚠ デッキで使用中の未所持カード <span id="cpUnownedDeckBadge" class="cpUnownedDeckBadge" style="display:none;">0</span></button>
       <div id="cpUnownedDeckPanel" class="cpUnownedDeckPanel" style="display:none;"></div>
@@ -520,7 +522,7 @@
           <div class="cpPaneHeader"><h3>所持カードから選ぶ</h3></div>
           <div class="cpDeckSearchWrap">
             <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加（未所持カードも追加できます）">
-            <div id="cpDeckSearchResults" class="cpDeckSearchResults" style="display:none;"></div>
+            <div id="cpDeckSearchResults" class="cpDeckSearchResults cpDropTarget" style="display:none;"></div>
           </div>
           <div class="hint" style="margin-bottom:8px;">カードを左へドラッグ＆ドロップ、または＋ボタンでデッキに追加できます</div>
           <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
