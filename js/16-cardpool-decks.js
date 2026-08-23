@@ -190,7 +190,7 @@ cpSetupDeckDropZone();
 function cpDeckSectionBlockHtml(sec, items) {
   const total = items.reduce((a, r) => a + r.qty, 0);
   const tilesHtml = items.length
-    ? items.map(r => cpDeckCardTileHtml(r, sec.zone)).join('')
+    ? items.map(r => cpDeckCardCopiesHtml(r, sec.zone)).join('')
     : '<div class="cpHint" style="padding:10px 0;">カードがありません</div>';
   return `
     <div class="cpDeckSectionBlock">
@@ -203,32 +203,31 @@ function cpDeckSectionBlockHtml(sec, items) {
     </div>`;
 }
 
-// デッキ内カードは同名カード1枚のタイルに枚数バッジ（画像左下）をつけて表示する。
-// 所持数を超えている（デッキ内の枚数 > 所持枚数）場合はタイル全体をモノクロ表示にする
-function cpDeckCardTileHtml(r, currentZone) {
+// デッキ内カードは1枚＝1タイルでスタックせず、ギャラリーのように並べて表示する（添付画像を参考にしたスタイル）。
+// 所持数を超える分（コピー番号がowned以上）のタイルだけモノクロ表示にする。
+// メイン/サイドの切替ボタンは同じカードの最初の1枚だけに表示し、コピーごとにホバー×で1枚ずつ削除できる
+function cpDeckCardCopiesHtml(r, currentZone) {
   const owned = ownedCollection[r.key] || 0;
-  const isUnowned = r.qty > owned;
   const toggleLabel = currentZone === 'side' ? 'メインへ' : 'サイドへ';
   const rarity = r.card.rarity || '';
   const rarityBadge = rarity
     ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>`
     : '';
-  return `
-    <div class="cpCard ${isUnowned ? '' : 'owned'}" data-key="${r.key}">
-      <div class="cpCardImgWrap">
-        ${rarityBadge}
-        <img src="${r.card.imageUrl}" class="${isUnowned ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(r.card.cardName)}" loading="lazy">
-        <button type="button" class="cpCardRemoveBtn" data-key="${r.key}" title="デッキから削除">×</button>
-        <span class="cpDeckQtyBadge">${r.qty}</span>
-      </div>
-      <div class="cpCardName">${escapeHtml(r.card.cardName)}${isUnowned ? ' <span class="cpUnownedInlineBadge">未所持</span>' : ''}</div>
-      <div class="cpQtyRow">
-        <button type="button" class="cpQtyBtn cpDeckQtyMinus" data-key="${r.key}">−</button>
-        <span class="cpQtyValue">${r.qty}</span>
-        <button type="button" class="cpQtyBtn cpDeckQtyPlus" data-key="${r.key}">＋</button>
-      </div>
-      <button type="button" class="cpDeckZoneToggle" data-key="${r.key}">${toggleLabel}</button>
-    </div>`;
+
+  let html = '';
+  for (let i = 0; i < r.qty; i++) {
+    const isUnownedCopy = i >= owned;
+    html += `
+      <div class="cpCard ${isUnownedCopy ? '' : 'owned'}" data-key="${r.key}">
+        <div class="cpCardImgWrap">
+          ${rarityBadge}
+          <img src="${r.card.imageUrl}" class="${isUnownedCopy ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(r.card.cardName)}" loading="lazy">
+          <button type="button" class="cpCardRemoveBtn" data-key="${r.key}" title="この1枚を削除">×</button>
+        </div>
+        ${i === 0 ? `<button type="button" class="cpDeckZoneToggle" data-key="${r.key}">${toggleLabel}</button>` : ''}
+      </div>`;
+  }
+  return html;
 }
 
 // デッキに入っている各カードの情報は、所持カード一覧で読み込み済みのキャッシュを優先し、
@@ -279,16 +278,10 @@ function cpBindDeckEditorCardEvents(container) {
       cpRefreshDeckEditor();
     });
   });
-  container.querySelectorAll('.cpDeckQtyPlus').forEach(btn => {
-    btn.addEventListener('click', () => cpChangeDeckQty(btn.dataset.key, 1));
-  });
-  container.querySelectorAll('.cpDeckQtyMinus').forEach(btn => {
-    btn.addEventListener('click', () => cpChangeDeckQty(btn.dataset.key, -1));
-  });
   container.querySelectorAll('.cpCardRemoveBtn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      cpRemoveCardFromDeckEntirely(btn.dataset.key);
+      cpChangeDeckQty(btn.dataset.key, -1); // 1枚だけ削除（0になれば自動的にカード自体も消える）
     });
   });
 }
