@@ -203,6 +203,17 @@
   }
   .siteStatusSidebarBtn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
 
+  /* ===== 左側ボタン群（カードリスト・統計・サイト状態）の表示/非表示トグル ===== */
+  .sidebarToggleBtn {
+    position: fixed; top: 318px; left: 16px; z-index: 1000;
+    width: 44px; height: 44px; border-radius: 50%; padding: 0;
+    background: rgba(15, 20, 32, 0.85); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,175,106,0.4); cursor: pointer; font-size: 16px; color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35); transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .sidebarToggleBtn:hover { border-color: var(--gold); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+
   .siteStatusOverlayBox {
     width: 480px; max-width: 92vw; max-height: 90vh; overflow-y: auto;
     background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
@@ -286,12 +297,20 @@
     border-radius: 16px; max-width: 1200px; width: 100%; max-height: 92vh; overflow: hidden;
     display: flex; align-items: center; gap: 24px; padding: 28px; position: relative; flex-wrap: wrap;
   }
+  .editModalImageCol { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; align-self: center; }
   .editModalImg {
     width: 400px; max-width: 100%; aspect-ratio: 5/7; object-fit: contain;
-    background: #10182a; border-radius: 12px; flex-shrink: 0; border: 1px solid rgba(212,175,106,0.25);
-    align-self: center; cursor: zoom-in; transition: filter 0.15s;
+    background: #10182a; border-radius: 12px; border: 1px solid rgba(212,175,106,0.25);
+    cursor: zoom-in; transition: filter 0.15s;
   }
   .editModalImg:hover { filter: brightness(1.08); }
+  .editModalImageReplaceBtn {
+    width: 100%; max-width: 400px; padding: 8px 14px; border-radius: 20px;
+    border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.08); color: var(--gold);
+    font-size: 13px; font-weight: bold; cursor: pointer;
+  }
+  .editModalImageReplaceBtn:hover { background: rgba(212,175,106,0.2); }
+  .editModalImageReplaceBtn:disabled { opacity: 0.6; cursor: default; }
   .editModalFieldsSlot {
     flex: 1; min-width: 280px; align-self: stretch;
     max-height: calc(92vh - 56px); overflow-y: auto; padding-right: 6px;
@@ -317,6 +336,7 @@
   @media (max-width: 640px) {
     .editModalBox { padding: 16px; gap: 14px; }
     .editModalImg { width: 100%; max-width: 260px; margin: 0 auto; }
+    .editModalImageReplaceBtn { max-width: 260px; }
     .ratingGrid { grid-template-columns: repeat(2, 1fr); }
   }
   /* ===== 配信モードボタン下のカードリストリンクボタン ===== */
@@ -536,6 +556,30 @@
 
 <button type="button" class="siteStatusSidebarBtn" id="siteStatusSidebarBtn" title="各ページの公開状態（公開/作業中/非公開）を設定">🚧</button>
 
+<button type="button" class="sidebarToggleBtn" id="sidebarToggleBtn" title="左側のボタンを非表示">◀</button>
+<script>
+(function () {
+  const KEY = 'adminSidebarButtonsHidden';
+  const btn = document.getElementById('sidebarToggleBtn');
+  const targets = [
+    document.getElementById('cardListLinkBtn'),
+    document.getElementById('statsSidebarBtn'),
+    document.getElementById('siteStatusSidebarBtn')
+  ];
+  function apply(hidden) {
+    targets.forEach(el => { if (el) el.style.display = hidden ? 'none' : ''; });
+    btn.textContent = hidden ? '▶' : '◀';
+    btn.title = hidden ? '左側のボタンを表示' : '左側のボタンを非表示';
+  }
+  apply(localStorage.getItem(KEY) === 'true');
+  btn.addEventListener('click', () => {
+    const next = !(localStorage.getItem(KEY) === 'true');
+    localStorage.setItem(KEY, next ? 'true' : 'false');
+    apply(next);
+  });
+})();
+</script>
+
 <div class="layout" id="inputLayout">
 
 <!-- ===== 弾（セット）設定 ===== -->
@@ -549,6 +593,20 @@
     <div class="field"><label>新規 収録枚数</label><input id="set_new" type="number" min="0"></div>
     <div class="field"><label>再録 収録枚数</label><input id="set_rerun" type="number" min="0"></div>
     <div class="field"><label>パラレル 収録枚数</label><input id="set_parallel" type="number" min="0"></div>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label>パックの種類</label>
+      <select id="set_pack_type">
+        <option value="">-</option>
+        <option value="ブースターパック">ブースターパック</option>
+        <option value="スタートデッキ">スタートデッキ</option>
+        <option value="プロモーションカード">プロモーションカード</option>
+        <option value="アソートパック">アソートパック</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+    <div class="field"><label>発売日</label><input id="set_release_date" type="date"></div>
   </div>
   <div class="field" style="margin-top:10px;">
     <label>パック画像（一覧画面・管理画面のシリーズ選択にアイコンとして表示されます）</label>
@@ -572,7 +630,7 @@
     <summary>弾ごとの公開ステータス・デフォルト表示・編集（登録済みパック一覧）</summary>
     <div class="hint">「公開終了」にチェックすると表示ページから一括で消えます。「デフォルト表示」は表示ページを開いた時に最初に表示される弾です（1つだけ選べます）</div>
     <table id="setStatusTable">
-      <thead><tr><th>画像</th><th>弾コード</th><th>名称</th><th>公開終了</th><th>デフォルト表示</th><th>操作</th></tr></thead>
+      <thead><tr><th>画像</th><th>弾コード</th><th>名称</th><th>種類</th><th>発売日</th><th>公開終了</th><th>デフォルト表示</th><th>操作</th></tr></thead>
       <tbody></tbody>
     </table>
   </details>
@@ -821,7 +879,11 @@
 <div id="editModalOverlay" class="editModalOverlay">
   <div class="editModalBox">
     <button type="button" id="editModalCloseBtn" class="modalCloseBtn">×</button>
-    <img id="editModalImg" class="editModalImg" alt="">
+    <div class="editModalImageCol">
+      <img id="editModalImg" class="editModalImg" alt="">
+      <button type="button" id="imageReplaceBtn" class="editModalImageReplaceBtn">🖼 画像を差し替え</button>
+      <input type="file" id="imageReplaceInput" accept="image/*" style="display:none;">
+    </div>
     <div class="editModalFieldsSlot">
       <div class="editModalHeadingRow">
         <div id="editModalHeading" class="editModalHeading"></div>
