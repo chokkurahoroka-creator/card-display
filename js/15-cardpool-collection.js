@@ -75,9 +75,9 @@ function cpCardCellHtml(c, pane) {
 
   if (pane === 'owned' || pane === 'deckSource') {
     const qty = pane === 'deckSource'
-      ? ((typeof cpEditingDeckCards !== 'undefined' && cpEditingDeckCards[key] && cpEditingDeckCards[key].qty) || 0)
+      ? (typeof cpTotalDeckQtyForCard === 'function' ? cpTotalDeckQtyForCard(key) : 0)
       : ownedQty;
-    // デッキ編集の「所持カードから選ぶ」パネルでは、デッキ内の枚数が所持枚数を超えている場合に画像をモノクロ表示する
+    // デッキ編集の「所持カードから選ぶ」パネルでは、デッキ内の合計枚数（メイン+サイド）が所持枚数を超えている場合に画像をモノクロ表示する
     const isUnowned = pane === 'deckSource' && qty > ownedQty;
     const removeBtn = qty > 0 ? `<button type="button" class="cpCardRemoveBtn" data-key="${key}" title="まとめて削除">×</button>` : '';
     const ownedBadge = (pane === 'deckSource' && ownedQty > 0)
@@ -190,10 +190,13 @@ function cpOpenCardUsageOverlay(key) {
   let usedTotal = 0;
   (cpDecks || []).forEach(deck => {
     const cards = (typeof cpNormalizeDeckCards === 'function') ? cpNormalizeDeckCards(deck.cards) : {};
-    const entry = cards[key];
-    if (entry && entry.qty > 0) {
-      usageList.push({ deckName: deck.deckName, qty: entry.qty });
-      usedTotal += entry.qty;
+    let qtyInThisDeck = 0;
+    Object.values(cards).forEach(entry => {
+      if (entry.cardKey === key) qtyInThisDeck += entry.qty;
+    });
+    if (qtyInThisDeck > 0) {
+      usageList.push({ deckName: deck.deckName, qty: qtyInThisDeck });
+      usedTotal += qtyInThisDeck;
     }
   });
   const remaining = Math.max(0, owned - usedTotal);
@@ -388,3 +391,70 @@ async function cpInitCollectionTab() {
   const sel = document.getElementById('cpSetSelect');
   if (sel.value) await cpRenderGridForSet(sel.value);
 }
+
+// ===== 所持カードタブ：デッキで使用中の未所持カード一覧 =====
+// 全デッキを横断して、各カードの「デッキ内での最大使用数（メイン+サイド合計）」と「所持数」を比較し、
+// 不足しているカードだけを一覧表示する（同じカードを複数デッキで使っていても、最も多く使うデッキの枚数を基準にする）
+async function cpRenderUnownedDeckCardsPanel() {
+  const badgeEl = document.getElementById('cpUnownedDeckBadge');
+  const panelEl = document.getElementById('cpUnownedDeckPanel');
+  if (!badgeEl || !panelEl) return;
+
+  const usageInfo = {}; // cardKey -> { maxQty, deckNames: [] }
+  (cpDecks || []).forEach(deck => {
+    const cards = (typeof cpNormalizeDeckCards === 'function') ? cpNormalizeDeckCards(deck.cards) : {};
+    const perDeckUsage = {};
+    Object.values(cards).forEach(entry => {
+      perDeckUsage[entry.cardKey] = (perDeckUsage[entry.cardKey] || 0) + entry.qty;
+    });
+    Object.keys(perDeckUsage).forEach(ck => {
+      if (!usageInfo[ck]) usageInfo[ck] = { maxQty: 0, deckNames: [] };
+      if (perDeckUsage[ck] > usageInfo[ck].maxQty) usageInfo[ck].maxQty = perDeckUsage[ck];
+      usageInfo[ck].deckNames.push(deck.deckName);
+    });
+  });
+
+  const shortageKeys = Object.keys(usageInfo).filter(ck => (ownedCollection[ck] || 0) < usageInfo[ck].maxQty);
+
+  if (!shortageKeys.length) {
+    badgeEl.style.display = 'none';
+    panelEl.innerHTML = '<div class="cpHint" style="padding:10px 0;">デッキ内に未所持カードはありません</div>';
+    return;
+  }
+
+  badgeEl.style.display = '';
+  badgeEl.textContent = String(shortageKeys.length);
+
+  for (const key of shortageKeys) {
+    if (collectionCardsCache[key]) continue;
+    const [setCode, type, slot] = key.split('__');
+    try {
+      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+      const card = await res.json();
+      if (card) collectionCardsCache[key] = card;
+    } catch (e) { /* 取得失敗時はスキップ */ }
+  }
+
+  panelEl.innerHTML = shortageKeys.map(key => {
+    const card = collectionCardsCache[key];
+    if (!card) return '';
+    const owned = ownedCollection[key] || 0;
+    const need = usageInfo[key].maxQty;
+    const short = need - owned;
+    const deckNames = [...new Set(usageInfo[key].deckNames)].join('、');
+    return `
+      <div class="cpUnownedDeckRow">
+        <img src="${card.imageUrl}" class="cpUnownedDeckThumb" alt="">
+        <div class="cpUnownedDeckInfo">
+          <div class="cpUnownedDeckName">${escapeHtml(card.cardName)}</div>
+          <div class="cpUnownedDeckMeta">所持${owned} / 必要${need}（使用デッキ: ${escapeHtml(deckNames)}）</div>
+        </div>
+        <span class="cpUnownedDeckShortage">不足 ${short}枚</span>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('cpUnownedDeckToggleBtn').addEventListener('click', () => {
+  const panelEl = document.getElementById('cpUnownedDeckPanel');
+  panelEl.style.display = panelEl.style.display === 'none' ? 'block' : 'none';
+});
