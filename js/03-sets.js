@@ -86,6 +86,8 @@ function loadSetForEdit(s) {
   document.getElementById('set_new').value = s.totalNew || 0;
   document.getElementById('set_rerun').value = s.totalRerun || 0;
   document.getElementById('set_parallel').value = s.totalParallel || 0;
+  document.getElementById('set_pack_type').value = s.packType || '';
+  document.getElementById('set_release_date').value = s.releaseDate || '';
 
   selectedPackImageFile = null;
   document.getElementById('set_pack_image').value = '';
@@ -110,6 +112,8 @@ function clearSetForm() {
   document.getElementById('set_new').value = '';
   document.getElementById('set_rerun').value = '';
   document.getElementById('set_parallel').value = '';
+  document.getElementById('set_pack_type').value = '';
+  document.getElementById('set_release_date').value = '';
   selectedPackImageFile = null;
   document.getElementById('set_pack_image').value = '';
   document.getElementById('set_pack_image_preview').style.display = 'none';
@@ -165,6 +169,8 @@ function renderSetStatusTable() {
       <td>${s.packImageUrl ? `<img src="${s.packImageUrl}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid rgba(212,175,106,0.35);">` : '<span style="opacity:0.4;font-size:28px;">📦</span>'}</td>
       <td>${s.setCode}</td>
       <td>${s.setName}</td>
+      <td>${s.packType || '-'}</td>
+      <td>${s.releaseDate || '-'}</td>
       <td><input type="checkbox" class="setStatusCb" data-setcode="${s.setCode}" ${s.status === '公開終了' ? 'checked' : ''}></td>
       <td><input type="radio" name="defaultSetRadio" class="defaultSetRadio" data-setcode="${s.setCode}" ${defaultSetCode === s.setCode ? 'checked' : ''}></td>
       <td><button type="button" class="secondary setEditBtn" data-setcode="${s.setCode}" style="margin-top:0; padding:4px 10px; font-size:12px;">編集</button></td>
@@ -250,6 +256,8 @@ document.getElementById('saveSetBtn').addEventListener('click', async () => {
     totalNew: Number(document.getElementById('set_new').value) || 0,
     totalRerun: Number(document.getElementById('set_rerun').value) || 0,
     totalParallel: Number(document.getElementById('set_parallel').value) || 0,
+    packType: document.getElementById('set_pack_type').value,
+    releaseDate: document.getElementById('set_release_date').value,
     packImageUrl
   };
   await fetch(gasUrl, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });

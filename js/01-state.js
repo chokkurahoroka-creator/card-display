@@ -24,4 +24,5 @@ function getSetName(setCode) {
 let currentImg = null;
 let currentCropBox = null;
 let editingCard = null; // 編集中のカード（ギャラリーから選択時にセット）
+let editingCardOriginalImageUrl = null; // 画像差し替え機能：更新せずキャンセルした場合に元へ戻すため
 

@@ -140,6 +140,7 @@ async function renderGallery() {
 
 async function startEditCard(card) {
   editingCard = card;
+  editingCardOriginalImageUrl = card.imageUrl;
 
   // 画像はポップアップ左側に表示（既存のものをそのまま使用、切り抜きツールは非表示）
   document.getElementById('editModalImg').src = card.imageUrl;

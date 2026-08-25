@@ -41,7 +41,12 @@ function closeEditModal() {
 }
 
 function exitEditMode() {
+  // 画像を差し替えたが保存せずにキャンセルした場合、表示中のカードデータを元のURLに戻しておく
+  if (editingCard && editingCardOriginalImageUrl && editingCard.imageUrl !== editingCardOriginalImageUrl) {
+    editingCard.imageUrl = editingCardOriginalImageUrl;
+  }
   editingCard = null;
+  editingCardOriginalImageUrl = null;
   allRegisterBtns.forEach(b => { b.textContent = 'この内容で登録する'; });
   closeEditModal();
 }
@@ -87,5 +92,49 @@ document.getElementById('editModalDeleteBtn').addEventListener('click', async ()
 });
 document.getElementById('editModalOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'editModalOverlay') document.getElementById('editModalCloseBtn').click();
+});
+
+// ===== 登録済みカードの画像差し替え（編集ポップアップの画像下のボタンから） =====
+// アップロードした新しい画像をGitHubへ登録し、editingCard.imageUrlとプレビューを差し替える。
+// 実際の保存（スプレッドシートへの反映）は、通常通り「この内容で更新する」を押した時点で行われる。
+document.getElementById('imageReplaceBtn').addEventListener('click', () => {
+  if (!editingCard) return;
+  document.getElementById('imageReplaceInput').click();
+});
+
+document.getElementById('imageReplaceInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  const input = e.target;
+  if (!file || !editingCard) return;
+
+  const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
+  if (!ghUser || !ghRepo || !ghPat) {
+    alert('画像を差し替えるには、先に「初期設定」でGitHubの情報を入力してください');
+    input.value = '';
+    return;
+  }
+
+  const btn = document.getElementById('imageReplaceBtn');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'アップロード中...';
+  try {
+    const img = await loadImage(file);
+    const dataUrl = cropImageToDataUrl(img, { x: 0, y: 0, width: 1, height: 1 }, 900, 0.85);
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const path = `cards/${uniqueId}.jpg`;
+    await uploadToGithub(ghUser, ghRepo, ghPat, path, dataUrl.split(',')[1]);
+    const newUrl = `https://raw.githubusercontent.com/${ghUser.trim()}/${ghRepo.trim()}/main/${path}`;
+
+    editingCard.imageUrl = newUrl;
+    document.getElementById('editModalImg').src = newUrl;
+    setStatus('画像を差し替えました。「この内容で更新する」を押すと保存されます。');
+  } catch (err) {
+    alert('画像の差し替えに失敗しました: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+    input.value = '';
+  }
 });
 
