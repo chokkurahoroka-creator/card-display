@@ -303,20 +303,13 @@ async function cpRenderOwnedGrid() {
     targets.forEach(t => { t.innerHTML = emptyHtml; });
     return;
   }
-  // まだ情報をキャッシュしていないカード（他のタブ・端末で登録済みのもの等）は個別に取得する
+  // まだ情報をキャッシュしていないカード（他のタブ・端末で登録済みのもの等）はまとめて取得する
   const uncachedKeys = keys.filter(k => !collectionCardsCache[k]);
   if (uncachedKeys.length) {
     const loadingHtml = cpLoadingHtml('読み込み中...');
     targets.forEach(t => { t.innerHTML = loadingHtml; });
   }
-  for (const key of uncachedKeys) {
-    const [setCode, type, slot] = key.split('__');
-    try {
-      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
-      const card = await res.json();
-      if (card) collectionCardsCache[key] = card;
-    } catch (e) { /* 取得失敗時はスキップ */ }
-  }
+  await cpFetchCardsByKeys(uncachedKeys);
   const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
   targets.forEach(t => cpRenderGroupedCards(t, cards, 'owned', '所持カードが見つかりませんでした'));
 }
@@ -380,16 +373,18 @@ document.getElementById('cpFilterClearBtn').addEventListener('click', () => {
 });
 
 async function cpInitCollectionTab() {
-  await cpLoadSets();
-  await cpLoadOwnedCollection();
+  // 互いに依存しない初期データ取得は並列に行い、直列待ちの時間を減らす
+  await Promise.all([cpLoadSets(), cpLoadOwnedCollection()]);
   if (!cpDropZonesInitialized) {
     cpSetupDropZone(document.getElementById('cpOwnedGrid'), 'owned');
     cpSetupDropZone(document.getElementById('cpSearchGrid'), 'search');
     cpDropZonesInitialized = true;
   }
-  await cpRenderOwnedGrid();
   const sel = document.getElementById('cpSetSelect');
-  if (sel.value) await cpRenderGridForSet(sel.value);
+  await Promise.all([
+    cpRenderOwnedGrid(),
+    sel.value ? cpRenderGridForSet(sel.value) : Promise.resolve()
+  ]);
 }
 
 // ===== 所持カードタブ：デッキで使用中の未所持カード一覧 =====
@@ -425,16 +420,7 @@ async function cpRenderUnownedDeckCardsPanel() {
   badgeEl.style.display = '';
   badgeEl.textContent = String(shortageKeys.length);
 
-  for (const key of shortageKeys) {
-    if (collectionCardsCache[key]) continue;
-    const [setCode, type, slot] = key.split('__');
-    try {
-      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
-      const card = await res.json();
-      if (card) collectionCardsCache[key] = card;
-    } catch (e) { /* 取得失敗時はスキップ */ }
-  }
-
+  await cpFetchCardsByKeys(shortageKeys);
   panelEl.innerHTML = shortageKeys.map(key => {
     const card = collectionCardsCache[key];
     if (!card) return '';

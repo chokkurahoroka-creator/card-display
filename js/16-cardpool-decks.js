@@ -238,15 +238,7 @@ function cpDeckTileHtml(d) {
 // 各デッキのアイコンに使われているカード画像を、一覧描画前にまとめて取得しておく
 async function cpPreloadDeckIcons() {
   const keys = [...new Set(cpDecks.map(d => cpExtractDeckMeta(d.cards).icon).filter(Boolean))];
-  const uncached = keys.filter(k => !collectionCardsCache[k]);
-  for (const key of uncached) {
-    const [setCode, type, slot] = key.split('__');
-    try {
-      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
-      const card = await res.json();
-      if (card) collectionCardsCache[key] = card;
-    } catch (e) { /* 取得失敗時はプレースホルダーのまま表示 */ }
-  }
+  await cpFetchCardsByKeys(keys);
 }
 
 async function cpLoadDecks() {
@@ -361,14 +353,7 @@ async function cpOpenDeckIconPicker() {
     return;
   }
   const uncached = cardKeys.filter(k => !collectionCardsCache[k]);
-  for (const key of uncached) {
-    const [setCode, type, slot] = key.split('__');
-    try {
-      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
-      const card = await res.json();
-      if (card) collectionCardsCache[key] = card;
-    } catch (e) { /* 取得失敗時はスキップ */ }
-  }
+  if (uncached.length) await cpFetchCardsByKeys(uncached);
   pop.innerHTML = cardKeys.map(key => {
     const card = collectionCardsCache[key];
     if (!card) return '';
@@ -444,14 +429,7 @@ async function cpRenderDeckEditorCards() {
     document.getElementById('cpDeckMainZone').innerHTML = loadingHtml;
     document.getElementById('cpDeckSideZone').innerHTML = '';
   }
-  for (const ck of uncached) {
-    const [setCode, type, slot] = ck.split('__');
-    try {
-      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
-      const card = await res.json();
-      if (card) collectionCardsCache[ck] = card;
-    } catch (e) { /* 取得失敗時はスキップ */ }
-  }
+  await cpFetchCardsByKeys(uncached);
 
   const grouped = { oshi: [], holomen: [], side: [], yell: [] };
   let totalAll = 0;
@@ -517,14 +495,7 @@ async function cpOpenDeckPreview(deck) {
   const entryIds = Object.keys(cardsMap);
   const cardKeysNeeded = [...new Set(entryIds.map(id => cardsMap[id].cardKey))];
   const uncached = cardKeysNeeded.filter(ck => !collectionCardsCache[ck]);
-  for (const ck of uncached) {
-    const [setCode, type, slot] = ck.split('__');
-    try {
-      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
-      const card = await res.json();
-      if (card) collectionCardsCache[ck] = card;
-    } catch (e) { /* 取得失敗時はスキップ */ }
-  }
+  await cpFetchCardsByKeys(uncached);
 
   // 取得中にモーダルを閉じられていた場合は反映しない
   if (overlayEl.style.display !== 'flex') return;
@@ -611,14 +582,7 @@ async function cpRenderDeckSourceGrid() {
   }
   const uncachedKeys = keys.filter(k => !collectionCardsCache[k]);
   if (uncachedKeys.length) gridEl.innerHTML = cpLoadingHtml('読み込み中...');
-  for (const key of uncachedKeys) {
-    const [setCode, type, slot] = key.split('__');
-    try {
-      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
-      const card = await res.json();
-      if (card) collectionCardsCache[key] = card;
-    } catch (e) { /* 取得失敗時はスキップ */ }
-  }
+  await cpFetchCardsByKeys(uncachedKeys);
   const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
   cpRenderGroupedCards(gridEl, cards, 'deckSource', '所持カードが見つかりませんでした');
 }

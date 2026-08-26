@@ -45,8 +45,11 @@ document.getElementById('cpChangeUserIdBtn').addEventListener('click', async () 
 });
 
 // ===== 初期化 =====
+// 所持カードタブとマイデッキタブの初期読み込みは互いに依存しないため、並列に実行して待ち時間を短縮する。
+// ただし「デッキに入っている未所持カード」パネルは所持カードの読み込み完了後の状態が必要なため、
+// 両方が完了してから念のためもう一度描画し直す（並列実行の順序次第で古い状態のまま表示され続けるのを防ぐ）
 (async function cpInit() {
   cpRenderUserIdBox();
-  await cpInitCollectionTab();
-  await cpLoadDecks();
+  await Promise.all([cpInitCollectionTab(), cpLoadDecks()]);
+  if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 })();
