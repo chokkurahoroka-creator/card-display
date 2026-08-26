@@ -283,14 +283,61 @@
   }
   .cpCardRemoveBtn:hover { background: #e05050; }
 
-  /* ===== マイデッキ ===== */
-  .cpDeckList { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
-  .cpDeckRow {
-    display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px;
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.25);
+  /* ===== マイデッキ：デッキ一覧（アイコン表示） ===== */
+  .cpDeckList { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 16px; margin-top: 14px; }
+  .cpDeckTile {
+    display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 10px;
+    border-radius: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.22);
+    cursor: pointer; transition: border-color 0.15s, transform 0.12s;
   }
-  .cpDeckRowName { font-weight: bold; flex: 1; }
-  .cpDeckRowMeta { font-size: 12px; color: #9aa5c0; }
+  .cpDeckTile:hover { border-color: rgba(212,175,106,0.55); transform: translateY(-2px); }
+  .cpDeckTileName {
+    font-weight: bold; font-size: 13px; text-align: center; width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cpDeckTileMeta { font-size: 11px; color: #9aa5c0; }
+  .cpDeckTileActions { display: flex; gap: 6px; margin-top: 2px; }
+  .cpDeckTileActions .cpSecondaryBtn { padding: 4px 10px; font-size: 11px; margin: 0; }
+  /* デッキの「表紙カード＋枠色（最大2色）」フレーム。色はJSからstyle属性で直接指定する */
+  .cpDeckIconFrame {
+    width: 90px; aspect-ratio: 5/7; padding: 4px; border-radius: 12px; box-sizing: border-box;
+    flex-shrink: 0;
+  }
+  .cpDeckIconInner {
+    width: 100%; height: 100%; border-radius: 9px; overflow: hidden; background: #10182a;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cpDeckIconInner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cpDeckIconPlaceholder { font-size: 30px; opacity: 0.35; }
+  /* ===== デッキ編集画面：アイコン用カード＆枠色の設定 ===== */
+  .cpDeckIconSettingRow { display: flex; gap: 16px; align-items: flex-start; margin: 14px 0; flex-wrap: wrap; }
+  .cpDeckIconSettingPreview .cpDeckIconFrame { width: 64px; }
+  .cpDeckIconSettingControls { display: flex; flex-direction: column; gap: 10px; }
+  .cpDeckColorRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; color: #c9d1e0; }
+  .cpDeckColorRow label { display: flex; align-items: center; gap: 6px; }
+  .cpDeckColorRow input[type="color"] {
+    width: 32px; height: 24px; padding: 0; border: 1px solid rgba(212,175,106,0.4);
+    border-radius: 6px; background: none; cursor: pointer;
+  }
+  .cpDeckColorRow input[type="color"]:disabled { opacity: 0.35; cursor: not-allowed; }
+  .cpDeckColor2Label input[type="checkbox"] { width: auto; }
+  .cpDeckIconPickerPopover {
+    margin-top: 2px; padding: 10px; border-radius: 10px; border: 1px solid rgba(212,175,106,0.4);
+    background: #10182a; display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 6px; max-height: 200px; overflow-y: auto; max-width: 420px;
+  }
+  .cpDeckIconPickerThumb {
+    width: 100%; aspect-ratio: 5/7; object-fit: cover; border-radius: 4px; cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .cpDeckIconPickerThumb:hover { border-color: rgba(212,175,106,0.5); }
+  .cpDeckIconPickerThumb.selected { border-color: var(--gold); }
+  /* ===== デッキ一覧タイルクリック時：デッキ内容プレビュー（読み取り専用） ===== */
+  .cpDeckPreviewBox { max-width: 760px; }
+  .cpDeckPreviewHeader { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; padding-right: 24px; gap: 10px; flex-wrap: wrap; }
+  .cpDeckPreviewName { font-size: 16px; font-weight: bold; }
+  .cpDeckPreviewMeta { font-size: 12px; color: #9aa5c0; }
+  .cpDeckPreviewSections { max-height: 65vh; overflow-y: auto; }
   .cpDeckNameInput {
     width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
     background: #10182a; color: var(--text); font-size: 15px; font-weight: bold; margin: 14px 0;
@@ -522,6 +569,18 @@
         <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">このデッキを保存</button>
         <button type="button" class="cpSecondaryBtn" id="cpBulkAddUnownedBtn">未所持カードを一括追加</button>
       </div>
+      <div class="cpDeckIconSettingRow">
+        <div class="cpDeckIconSettingPreview" id="cpDeckIconPreviewWrap"></div>
+        <div class="cpDeckIconSettingControls">
+          <button type="button" class="cpSecondaryBtn" id="cpDeckIconPickBtn" style="margin:0;">🖼 アイコンにするカードを選ぶ</button>
+          <div id="cpDeckIconPickerPopover" class="cpDeckIconPickerPopover" style="display:none;"></div>
+          <div class="cpDeckColorRow">
+            <label>枠の色1 <input type="color" id="cpDeckColor1Input" value="#d4af6a"></label>
+            <label class="cpDeckColor2Label"><input type="checkbox" id="cpDeckColor2Toggle">枠の色2を使う</label>
+            <input type="color" id="cpDeckColor2Input" value="#5a9bd4" disabled>
+          </div>
+        </div>
+      </div>
       <div id="cpDeckStatus" class="cpHint" style="padding:0 0 8px;"></div>
       <div class="cpDeckSummaryRow">
         合計 <span id="cpDeckTotalCount">0</span> 枚 ／ 未所持カード <span id="cpDeckUnownedCount" class="cpDeckUnownedCount">0</span> 枚
@@ -552,6 +611,11 @@
 <!-- ===== 所持カードクリック時：デッキ使用状況の詳細表示 ===== -->
 <div class="cpModalOverlay" id="cpCardUsageOverlay" style="display:none;">
   <div class="cpModalBox" id="cpCardUsageBox"></div>
+</div>
+
+<!-- ===== デッキ一覧のアイコンをクリックした時：デッキ内容プレビュー（読み取り専用） ===== -->
+<div class="cpModalOverlay" id="cpDeckPreviewOverlay" style="display:none;">
+  <div class="cpModalBox cpDeckPreviewBox" id="cpDeckPreviewBox"></div>
 </div>
 
 <script src="js/14-cardpool-config.js"></script>
