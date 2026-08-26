@@ -8,6 +8,24 @@ document.querySelectorAll('.cpTabBtn').forEach(btn => {
   });
 });
 
+// ===== スマホ表示：2ペイン構成（所持カード⇔検索して追加／デッキ⇔カードを選ぶ）を
+//       「切替タブ」で1画面ずつ表示する（900px以下でのみ見た目上有効。PC幅では
+//       CSS側で常に両ペインを表示するため、この切替は影響しない） =====
+document.querySelectorAll('.cpPaneToggle').forEach(toggleEl => {
+  const splitEl = toggleEl.nextElementSibling;
+  if (!splitEl || !splitEl.classList.contains('cpCollectionSplit')) return;
+  const panes = Array.from(splitEl.children).filter(el => el.classList.contains('cpCollectionPane'));
+  const btns = Array.from(toggleEl.querySelectorAll('.cpPaneToggleBtn'));
+  if (panes[0]) panes[0].classList.add('cpPaneActive');
+  btns.forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      panes.forEach((p, pi) => p.classList.toggle('cpPaneActive', pi === i));
+    });
+  });
+});
+
 // ===== ユーザーID表示・端末間の切替 =====
 function cpRenderUserIdBox() {
   document.getElementById('cpUserIdDisplay').textContent = userId;
