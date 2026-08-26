@@ -15,6 +15,12 @@ let cpEditingDeckCards = {};
 let cpDeckSearchTimer = null;
 let cpDeckDropZoneInitialized = false;
 
+// ===== デッキのアイコン（表紙カード）＆枠色（最大2色）設定 =====
+// デッキごとの見た目設定は、専用シート列を増やさずに済むよう cardsJson の中に
+// 予約キー "__meta__" として同居させる（cardKey::zone 形式ではないため cpNormalizeDeckCards 側で除外している）
+let cpEditingDeckIconKey = ''; // アイコンに使うカードキー（未設定なら空文字）
+let cpEditingDeckColors = ['#d4af6a']; // 枠色。1〜2件（2件ならグラデーション表示）
+
 const CP_DECK_SECTIONS = [
   { key: 'oshi', zone: 'main', label: '推しホロメン', mainLimit: 1, reserveLimit: 10 },
   { key: 'holomen', zone: 'main', label: 'メインデッキ', mainLimit: 50, reserveLimit: 20 },
@@ -167,6 +173,7 @@ function cpNormalizeDeckCards(raw) {
   const result = {};
   let orderCounter = 0;
   Object.keys(raw || {}).forEach(k => {
+    if (k === '__meta__') return; // アイコン/枠色の設定用予約キーはカード情報ではないため除外
     const v = raw[k];
     if (k.indexOf('::') !== -1) {
       const idx = k.lastIndexOf('::');
@@ -191,18 +198,55 @@ function cpNormalizeDeckCards(raw) {
   return result;
 }
 
-function cpDeckRowHtml(d) {
+// 保存済みcardsJsonから "__meta__" （アイコン用カードキー・枠色）を取り出す。無ければ既定値を返す
+function cpExtractDeckMeta(raw) {
+  const meta = (raw && raw.__meta__ && typeof raw.__meta__ === 'object') ? raw.__meta__ : {};
+  const icon = typeof meta.icon === 'string' ? meta.icon : '';
+  const colors = Array.isArray(meta.colors) ? meta.colors.filter(c => typeof c === 'string' && c).slice(0, 2) : [];
+  return { icon, colors };
+}
+
+// 表紙カード画像＋枠色（1〜2色）のアイコンフレームHTML。カード画像が未取得/未設定ならプレースホルダーを表示
+function cpDeckIconFrameHtml(meta, imageUrl) {
+  const colors = (meta.colors && meta.colors.length) ? meta.colors : ['#d4af6a'];
+  const bg = colors.length >= 2 ? `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` : colors[0];
+  const inner = imageUrl
+    ? `<img src="${imageUrl}" alt="">`
+    : `<span class="cpDeckIconPlaceholder">🃏</span>`;
+  return `<div class="cpDeckIconFrame" style="background:${bg};"><div class="cpDeckIconInner">${inner}</div></div>`;
+}
+
+function cpDeckTileHtml(d) {
   const cards = cpNormalizeDeckCards(d.cards);
   const entries = Object.values(cards);
   const total = entries.reduce((a, v) => a + v.qty, 0);
   const kinds = new Set(entries.map(v => v.cardKey)).size;
+  const meta = cpExtractDeckMeta(d.cards);
+  const iconCard = meta.icon ? collectionCardsCache[meta.icon] : null;
   return `
-    <div class="cpDeckRow" data-deckid="${d.deckId}">
-      <div class="cpDeckRowName">${escapeHtml(d.deckName)}</div>
-      <div class="cpDeckRowMeta">${kinds}種類 / 計${total}枚</div>
-      <button type="button" class="cpSecondaryBtn cpDeckEditBtn" data-deckid="${d.deckId}">編集</button>
-      <button type="button" class="cpSecondaryBtn cpDeckDeleteBtn" data-deckid="${d.deckId}">削除</button>
+    <div class="cpDeckTile" data-deckid="${d.deckId}">
+      ${cpDeckIconFrameHtml(meta, iconCard ? iconCard.imageUrl : '')}
+      <div class="cpDeckTileName">${escapeHtml(d.deckName)}</div>
+      <div class="cpDeckTileMeta">${kinds}種類 / 計${total}枚</div>
+      <div class="cpDeckTileActions">
+        <button type="button" class="cpSecondaryBtn cpDeckEditBtn" data-deckid="${d.deckId}">編集</button>
+        <button type="button" class="cpSecondaryBtn cpDeckDeleteBtn" data-deckid="${d.deckId}">削除</button>
+      </div>
     </div>`;
+}
+
+// 各デッキのアイコンに使われているカード画像を、一覧描画前にまとめて取得しておく
+async function cpPreloadDeckIcons() {
+  const keys = [...new Set(cpDecks.map(d => cpExtractDeckMeta(d.cards).icon).filter(Boolean))];
+  const uncached = keys.filter(k => !collectionCardsCache[k]);
+  for (const key of uncached) {
+    const [setCode, type, slot] = key.split('__');
+    try {
+      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+      const card = await res.json();
+      if (card) collectionCardsCache[key] = card;
+    } catch (e) { /* 取得失敗時はプレースホルダーのまま表示 */ }
+  }
 }
 
 async function cpLoadDecks() {
@@ -210,6 +254,7 @@ async function cpLoadDecks() {
   if (listEl) listEl.innerHTML = cpLoadingHtml('読み込み中...');
   const res = await fetch(GAS_URL + `?action=listUserDecks&userId=${encodeURIComponent(userId)}`);
   cpDecks = await res.json();
+  await cpPreloadDeckIcons();
   cpRenderDeckList();
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 }
@@ -217,8 +262,16 @@ async function cpLoadDecks() {
 function cpRenderDeckList() {
   const listEl = document.getElementById('cpDeckList');
   if (!cpDecks.length) { listEl.innerHTML = '<div class="cpHint">まだデッキがありません</div>'; return; }
-  listEl.innerHTML = cpDecks.map(cpDeckRowHtml).join('');
+  listEl.innerHTML = cpDecks.map(cpDeckTileHtml).join('');
 
+  // タイル本体のクリック（編集/削除ボタン以外）でデッキ内容のプレビューを開く
+  listEl.querySelectorAll('.cpDeckTile').forEach(tile => {
+    tile.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const deck = cpDecks.find(d => d.deckId === tile.dataset.deckid);
+      if (deck) cpOpenDeckPreview(deck);
+    });
+  });
   listEl.querySelectorAll('.cpDeckEditBtn').forEach(btn => {
     btn.addEventListener('click', () => {
       const deck = cpDecks.find(d => d.deckId === btn.dataset.deckid);
@@ -240,16 +293,30 @@ function cpRenderDeckList() {
   });
 }
 
-function cpOpenDeckEditor(deck) {
+async function cpOpenDeckEditor(deck) {
   cpEditingDeckId = deck ? deck.deckId : null;
   cpEditingDeckCards = deck ? cpNormalizeDeckCards(deck.cards) : {};
+  const meta = deck ? cpExtractDeckMeta(deck.cards) : { icon: '', colors: [] };
+  cpEditingDeckIconKey = meta.icon || '';
+  cpEditingDeckColors = (meta.colors && meta.colors.length) ? meta.colors.slice(0, 2) : ['#d4af6a'];
+
   document.getElementById('cpDeckNameInput').value = deck ? deck.deckName : '';
   document.getElementById('cpDeckStatus').textContent = '';
   document.getElementById('cpDeckSearchInput').value = '';
   document.getElementById('cpDeckSearchResults').style.display = 'none';
+  document.getElementById('cpDeckIconPickerPopover').style.display = 'none';
+
+  const hasColor2 = cpEditingDeckColors.length > 1;
+  document.getElementById('cpDeckColor1Input').value = cpEditingDeckColors[0] || '#d4af6a';
+  document.getElementById('cpDeckColor2Toggle').checked = hasColor2;
+  document.getElementById('cpDeckColor2Input').value = hasColor2 ? cpEditingDeckColors[1] : '#5a9bd4';
+  document.getElementById('cpDeckColor2Input').disabled = !hasColor2;
+  cpRenderDeckIconPreview();
+
   document.getElementById('cpDeckListView').style.display = 'none';
   document.getElementById('cpDeckEditorView').style.display = 'block';
-  cpRefreshDeckEditor();
+  await cpRefreshDeckEditor();
+  cpRenderDeckIconPreview(); // デッキカードの取得後、アイコン用カード画像が読み込まれていれば反映する
 }
 
 function cpCloseDeckEditor() {
@@ -259,11 +326,76 @@ function cpCloseDeckEditor() {
 document.getElementById('cpDeckBackBtn').addEventListener('click', cpCloseDeckEditor);
 document.getElementById('cpNewDeckBtn').addEventListener('click', () => cpOpenDeckEditor(null));
 
+// ===== デッキ編集画面：アイコン用カード＆枠色の設定UI =====
+function cpRenderDeckIconPreview() {
+  const iconCard = cpEditingDeckIconKey ? collectionCardsCache[cpEditingDeckIconKey] : null;
+  document.getElementById('cpDeckIconPreviewWrap').innerHTML =
+    cpDeckIconFrameHtml({ colors: cpEditingDeckColors }, iconCard ? iconCard.imageUrl : '');
+}
+
+function cpApplyDeckColorInputs() {
+  const colors = [document.getElementById('cpDeckColor1Input').value];
+  if (document.getElementById('cpDeckColor2Toggle').checked) {
+    colors.push(document.getElementById('cpDeckColor2Input').value);
+  }
+  cpEditingDeckColors = colors;
+  cpRenderDeckIconPreview();
+}
+document.getElementById('cpDeckColor1Input').addEventListener('input', cpApplyDeckColorInputs);
+document.getElementById('cpDeckColor2Input').addEventListener('input', cpApplyDeckColorInputs);
+document.getElementById('cpDeckColor2Toggle').addEventListener('change', (e) => {
+  document.getElementById('cpDeckColor2Input').disabled = !e.target.checked;
+  cpApplyDeckColorInputs();
+});
+
+// 現在デッキに入っているカードの中から、アイコンに使う1枚を選ぶポップオーバー
+async function cpOpenDeckIconPicker() {
+  const pop = document.getElementById('cpDeckIconPickerPopover');
+  const willOpen = pop.style.display === 'none';
+  if (!willOpen) { pop.style.display = 'none'; return; }
+
+  const cardKeys = [...new Set(Object.values(cpEditingDeckCards).map(e => e.cardKey))];
+  if (!cardKeys.length) {
+    pop.innerHTML = '<div class="cpHint" style="padding:4px; grid-column:1/-1;">先にデッキへカードを追加してください</div>';
+    pop.style.display = 'grid';
+    return;
+  }
+  const uncached = cardKeys.filter(k => !collectionCardsCache[k]);
+  for (const key of uncached) {
+    const [setCode, type, slot] = key.split('__');
+    try {
+      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+      const card = await res.json();
+      if (card) collectionCardsCache[key] = card;
+    } catch (e) { /* 取得失敗時はスキップ */ }
+  }
+  pop.innerHTML = cardKeys.map(key => {
+    const card = collectionCardsCache[key];
+    if (!card) return '';
+    return `<img src="${card.imageUrl}" class="cpDeckIconPickerThumb ${key === cpEditingDeckIconKey ? 'selected' : ''}" data-key="${key}" alt="${escapeHtml(card.cardName)}">`;
+  }).join('');
+  pop.style.display = 'grid';
+  pop.querySelectorAll('.cpDeckIconPickerThumb').forEach(img => {
+    img.addEventListener('click', () => {
+      cpEditingDeckIconKey = img.dataset.key;
+      cpRenderDeckIconPreview();
+      pop.style.display = 'none';
+    });
+  });
+}
+document.getElementById('cpDeckIconPickBtn').addEventListener('click', cpOpenDeckIconPicker);
+document.addEventListener('click', (e) => {
+  const pop = document.getElementById('cpDeckIconPickerPopover');
+  const btn = document.getElementById('cpDeckIconPickBtn');
+  if (pop.style.display !== 'none' && !pop.contains(e.target) && e.target !== btn) pop.style.display = 'none';
+});
+
 // セクション見出し「ラベル (N枚)」＋区切り線＋カードタイルのグリッド
-function cpDeckSectionBlockHtml(sec, items) {
+// readonly=true の場合はデッキ内容プレビュー用の表示となり、ドラッグ・削除ボタンを出さない
+function cpDeckSectionBlockHtml(sec, items, readonly) {
   const total = items.reduce((a, r) => a + r.qty, 0);
   const tilesHtml = items.length
-    ? items.map(r => cpDeckCardCopiesHtml(r)).join('')
+    ? items.map(r => cpDeckCardCopiesHtml(r, readonly)).join('')
     : '<div class="cpHint" style="padding:10px 0;">カードがありません</div>';
   return `
     <div class="cpDeckSectionBlock">
@@ -279,7 +411,7 @@ function cpDeckSectionBlockHtml(sec, items) {
 // デッキ内カードは1枚＝1タイルでスタックせず、ギャラリーのように並べて表示する。
 // 各タイルはドラッグ可能で、他のカードの上にドロップすると並び替え、別ゾーンの枠にドロップするとメイン⇔サイドを移動できる。
 // r.unownedFlags（あらかじめ計算済みの配列）で、所持数を超える分のコピーだけモノクロ表示にする
-function cpDeckCardCopiesHtml(r) {
+function cpDeckCardCopiesHtml(r, readonly) {
   const rarity = r.card.rarity || '';
   const rarityBadge = rarity
     ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>`
@@ -287,12 +419,13 @@ function cpDeckCardCopiesHtml(r) {
   let html = '';
   for (let i = 0; i < r.qty; i++) {
     const isUnownedCopy = !!(r.unownedFlags && r.unownedFlags[i]);
+    const removeBtn = readonly ? '' : `<button type="button" class="cpCardRemoveBtn" data-key="${r.key}" data-zone="${r.zone}" title="この1枚を削除">×</button>`;
     html += `
-      <div class="cpCard ${isUnownedCopy ? '' : 'owned'}" data-key="${r.key}" data-zone="${r.zone}" draggable="true">
+      <div class="cpCard ${isUnownedCopy ? '' : 'owned'}" data-key="${r.key}" data-zone="${r.zone}" ${readonly ? '' : 'draggable="true"'}>
         <div class="cpCardImgWrap">
           ${rarityBadge}
           <img src="${r.card.imageUrl}" class="${isUnownedCopy ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(r.card.cardName)}" loading="lazy">
-          <button type="button" class="cpCardRemoveBtn" data-key="${r.key}" data-zone="${r.zone}" title="この1枚を削除">×</button>
+          ${removeBtn}
         </div>
       </div>`;
   }
@@ -369,6 +502,80 @@ async function cpRenderDeckEditorCards() {
   cpBindDeckEditorCardEvents(document.getElementById('cpDeckMainZone'));
   cpBindDeckEditorCardEvents(document.getElementById('cpDeckSideZone'));
 }
+
+// ===== デッキ一覧のアイコンをクリックした時：デッキ内容プレビュー（読み取り専用） =====
+// 編集画面と同じ区分（推しホロメン/メインデッキ/エールデッキ/サイドデッキ）でカードを並べて表示する。
+// ドラッグ・削除ボタンは出さず、閲覧専用として使う
+async function cpOpenDeckPreview(deck) {
+  const overlayEl = document.getElementById('cpDeckPreviewOverlay');
+  const boxEl = document.getElementById('cpDeckPreviewBox');
+  boxEl.innerHTML = `<button type="button" class="cpModalCloseBtn" id="cpDeckPreviewCloseBtn">×</button>` + cpLoadingHtml('読み込み中...');
+  overlayEl.style.display = 'flex';
+  document.getElementById('cpDeckPreviewCloseBtn').addEventListener('click', cpCloseDeckPreview);
+
+  const cardsMap = cpNormalizeDeckCards(deck.cards);
+  const entryIds = Object.keys(cardsMap);
+  const cardKeysNeeded = [...new Set(entryIds.map(id => cardsMap[id].cardKey))];
+  const uncached = cardKeysNeeded.filter(ck => !collectionCardsCache[ck]);
+  for (const ck of uncached) {
+    const [setCode, type, slot] = ck.split('__');
+    try {
+      const res = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+      const card = await res.json();
+      if (card) collectionCardsCache[ck] = card;
+    } catch (e) { /* 取得失敗時はスキップ */ }
+  }
+
+  // 取得中にモーダルを閉じられていた場合は反映しない
+  if (overlayEl.style.display !== 'flex') return;
+
+  const grouped = { oshi: [], holomen: [], side: [], yell: [] };
+  let totalAll = 0;
+  const usageByCardKey = {};
+  entryIds.forEach(entryId => {
+    const entry = cardsMap[entryId];
+    const card = collectionCardsCache[entry.cardKey];
+    if (!card) return;
+    const sectionKey = entry.zone === 'side' ? 'side' : cpDeckMainCategory(card);
+    grouped[sectionKey].push({ key: entry.cardKey, card, qty: entry.qty, zone: entry.zone, order: entry.order || 0 });
+    totalAll += entry.qty;
+    usageByCardKey[entry.cardKey] = (usageByCardKey[entry.cardKey] || 0) + entry.qty;
+  });
+  Object.keys(grouped).forEach(k => grouped[k].sort((a, b) => a.order - b.order));
+
+  const ownedRemaining = {};
+  Object.keys(usageByCardKey).forEach(ck => { ownedRemaining[ck] = ownedCollection[ck] || 0; });
+  ['oshi', 'holomen', 'yell', 'side'].forEach(sk => {
+    grouped[sk].forEach(r => {
+      const flags = [];
+      for (let i = 0; i < r.qty; i++) {
+        if ((ownedRemaining[r.key] || 0) > 0) { ownedRemaining[r.key]--; flags.push(false); }
+        else flags.push(true);
+      }
+      r.unownedFlags = flags;
+    });
+  });
+
+  const sectionsHtml = CP_DECK_SECTIONS.map(sec => cpDeckSectionBlockHtml(sec, grouped[sec.key], true)).join('');
+  const kinds = new Set(entryIds.map(id => cardsMap[id].cardKey)).size;
+
+  boxEl.innerHTML = `
+    <button type="button" class="cpModalCloseBtn" id="cpDeckPreviewCloseBtn">×</button>
+    <div class="cpDeckPreviewHeader">
+      <div class="cpDeckPreviewName">${escapeHtml(deck.deckName)}</div>
+      <div class="cpDeckPreviewMeta">${kinds}種類 / 計${totalAll}枚</div>
+    </div>
+    <div class="cpDeckPreviewSections">${sectionsHtml}</div>
+  `;
+  document.getElementById('cpDeckPreviewCloseBtn').addEventListener('click', cpCloseDeckPreview);
+}
+
+function cpCloseDeckPreview() {
+  document.getElementById('cpDeckPreviewOverlay').style.display = 'none';
+}
+document.getElementById('cpDeckPreviewOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'cpDeckPreviewOverlay') cpCloseDeckPreview();
+});
 
 // デッキ内タイルのドラッグ開始・並び替え／ゾーン移動用ドロップ・1枚削除ボタンを紐づける
 function cpBindDeckEditorCardEvents(container) {
@@ -480,11 +687,15 @@ document.getElementById('cpSaveDeckBtn').addEventListener('click', async () => {
   const name = document.getElementById('cpDeckNameInput').value.trim() || '新しいデッキ';
   const statusEl = document.getElementById('cpDeckStatus');
   statusEl.textContent = '保存中...';
+  // アイコン用カードキー・枠色は "__meta__" キーとしてカード一覧に同居させて保存する
+  const cardsToSave = Object.assign({}, cpEditingDeckCards, {
+    __meta__: { icon: cpEditingDeckIconKey || '', colors: cpEditingDeckColors || [] }
+  });
   try {
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveDeck', userId, deckId: cpEditingDeckId, deckName: name, cards: cpEditingDeckCards })
+      body: JSON.stringify({ action: 'saveDeck', userId, deckId: cpEditingDeckId, deckName: name, cards: cardsToSave })
     });
     const json = await res.json();
     if (json.error) { statusEl.textContent = '保存に失敗しました: ' + json.error; return; }
