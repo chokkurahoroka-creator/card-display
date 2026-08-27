@@ -297,6 +297,8 @@ async function cpOpenDeckEditor(deck) {
   document.getElementById('cpDeckSearchInput').value = '';
   document.getElementById('cpDeckSearchResults').style.display = 'none';
   document.getElementById('cpDeckIconPickerPopover').style.display = 'none';
+  document.getElementById('cpDeckSettingsPanel').style.display = 'none';
+  document.getElementById('cpDeckSettingsToggleBtn').classList.remove('active');
 
   const hasColor2 = cpEditingDeckColors.length > 1;
   document.getElementById('cpDeckColor1Input').value = cpEditingDeckColors[0] || '#d4af6a';
@@ -375,6 +377,16 @@ document.addEventListener('click', (e) => {
   if (pop.style.display !== 'none' && !pop.contains(e.target) && e.target !== btn) pop.style.display = 'none';
 });
 
+// 表紙カード・枠色・一括追加の設定パネル（🎨ボタン）の開閉。スマホでは邪魔にならないよう普段は畳んでおく
+// （PC幅ではCSS側で常時展開表示にしており、このボタン自体も非表示になる）
+document.getElementById('cpDeckSettingsToggleBtn').addEventListener('click', () => {
+  const panel = document.getElementById('cpDeckSettingsPanel');
+  const toggleBtn = document.getElementById('cpDeckSettingsToggleBtn');
+  const willOpen = panel.style.display === 'none';
+  panel.style.display = willOpen ? 'block' : 'none';
+  toggleBtn.classList.toggle('active', willOpen);
+});
+
 // セクション見出し「ラベル (N枚)」＋区切り線＋カードタイルのグリッド
 // readonly=true の場合はデッキ内容プレビュー用の表示となり、ドラッグ・削除ボタンを出さない
 function cpDeckSectionBlockHtml(sec, items, readonly) {
@@ -414,6 +426,20 @@ function cpDeckCardCopiesHtml(r, readonly) {
         </div>
       </div>`;
   }
+  return html;
+}
+
+// 「所持カードから選ぶ」の上に表示する、デッキ中身のミニプレビュー（1行25枚・閲覧専用・並び順はデッキ本体と同じ）
+function cpDeckMiniPreviewHtml(grouped) {
+  let html = '';
+  ['oshi', 'holomen', 'yell', 'side'].forEach(sectionKey => {
+    grouped[sectionKey].forEach(r => {
+      for (let i = 0; i < r.qty; i++) {
+        const isUnownedCopy = !!(r.unownedFlags && r.unownedFlags[i]);
+        html += `<img src="${r.card.imageUrl}" class="cpDeckMiniPreviewThumb ${isUnownedCopy ? 'cpUnownedThumb' : ''}" alt="${escapeHtml(r.card.cardName)}" loading="lazy">`;
+      }
+    });
+  });
   return html;
 }
 
@@ -476,6 +502,19 @@ async function cpRenderDeckEditorCards() {
   document.getElementById('cpDeckSideZone').innerHTML = sideHtml;
   document.getElementById('cpDeckTotalCount').textContent = totalAll;
   document.getElementById('cpDeckUnownedCount').textContent = unownedCount;
+
+  // パネル切替タブの「🎴 デッキ」バッジ、および「所持カードから選ぶ」上部のミニプレビューを更新
+  // （カードを選ぶ画面に切り替えていても、デッキに何枚入っているかが常に見えるようにする）
+  const paneCountEl = document.getElementById('cpDeckPaneCount');
+  if (paneCountEl) paneCountEl.textContent = totalAll;
+  const miniPreviewCountEl = document.getElementById('cpDeckMiniPreviewCount');
+  if (miniPreviewCountEl) miniPreviewCountEl.textContent = `${totalAll}枚`;
+  const miniPreviewGridEl = document.getElementById('cpDeckMiniPreviewGrid');
+  if (miniPreviewGridEl) {
+    miniPreviewGridEl.innerHTML = totalAll
+      ? cpDeckMiniPreviewHtml(grouped)
+      : '<div class="cpHint" style="padding:6px 0; grid-column:1/-1;">まだカードがありません</div>';
+  }
 
   cpBindDeckEditorCardEvents(document.getElementById('cpDeckMainZone'));
   cpBindDeckEditorCardEvents(document.getElementById('cpDeckSideZone'));
