@@ -339,9 +339,50 @@
   .cpDeckPreviewMeta { font-size: 12px; color: #9aa5c0; }
   .cpDeckPreviewSections { max-height: 65vh; overflow-y: auto; }
   .cpDeckNameInput {
-    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
-    background: #10182a; color: var(--text); font-size: 15px; font-weight: bold; margin: 14px 0;
+    padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
+    background: #10182a; color: var(--text); font-size: 15px; font-weight: bold;
   }
+  /* ===== デッキ編集画面：ヘッダー（戻る・デッキ名・保存・表紙/枠色設定）を1行にまとめる ===== */
+  .cpDeckEditorTopBar { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+  .cpDeckEditorTopBar .cpDeckNameInput { flex: 1; min-width: 120px; margin: 0; }
+  .cpDeckEditorTopBar .cpSecondaryBtn, .cpDeckEditorTopBar .cpPrimaryBtn { flex-shrink: 0; margin: 0; }
+  .cpDeckSettingsToggleBtn { padding: 6px 11px; font-size: 15px; line-height: 1; }
+  .cpDeckSettingsToggleBtn.active { border-color: var(--gold); color: var(--gold); background: rgba(212,175,106,0.14); }
+  /* アイコン・枠色・一括追加は、普段は畳んでおき「🎨」ボタンで開閉する（デッキ名等の視認性を邪魔しないようにするため） */
+  .cpDeckSettingsPanel {
+    margin-bottom: 12px; padding: 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.22);
+  }
+  .cpDeckSettingsPanel .cpDeckIconSettingRow { margin: 0 0 4px; }
+  /* PC幅では常に開いた状態にして、従来通りワンクリックで見える状態を維持する */
+  @media (min-width: 641px) {
+    .cpDeckSettingsToggleBtn { display: none; }
+    .cpDeckSettingsPanel { display: block !important; }
+  }
+  .cpDeckSummaryRow { font-size: 13px; color: #c9d1e0; margin-bottom: 16px; }
+  .cpDeckUnownedCount { color: #e37e7e; font-weight: bold; }
+  /* ===== パネル切替タブに表示する枚数バッジ（現在デッキに入っている枚数を常に見える化） ===== */
+  .cpPaneCountBadge {
+    display: inline-block; min-width: 16px; padding: 0 5px; margin-left: 3px;
+    border-radius: 8px; font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.18); color: inherit;
+  }
+  .cpPaneToggleBtn.active .cpPaneCountBadge { background: rgba(26,19,5,0.25); }
+  /* ===== 「所持カードから選ぶ」の上に表示する、デッキ中身のミニプレビュー（1行25枚・閲覧専用） ===== */
+  .cpDeckMiniPreview {
+    margin-bottom: 14px; padding: 10px; border-radius: 10px;
+    border: 1px solid rgba(212,175,106,0.3); background: rgba(212,175,106,0.04);
+  }
+  .cpDeckMiniPreviewHeader {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--gold); font-weight: bold; margin-bottom: 8px;
+  }
+  .cpDeckMiniPreviewCount { color: #c9d1e0; font-weight: normal; font-size: 11px; }
+  .cpDeckMiniPreviewGrid { display: grid; grid-template-columns: repeat(25, 1fr); gap: 2px; }
+  .cpDeckMiniPreviewThumb {
+    width: 100%; aspect-ratio: 5/7; object-fit: cover; border-radius: 2px;
+    border: 1px solid rgba(212,175,106,0.25); display: block;
+  }
+  .cpDeckMiniPreviewThumb.cpUnownedThumb { filter: grayscale(1) brightness(0.7); }
   .cpDeckSearchWrap { margin-bottom: 14px; }
   .cpDeckSearchWrap input {
     width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
@@ -362,8 +403,6 @@
     display: inline-block; font-size: 8px; color: #e37e7e; border: 1px solid rgba(227,126,126,0.6);
     border-radius: 5px; padding: 0 3px; margin-left: 3px; vertical-align: middle;
   }
-  .cpDeckSummaryRow { font-size: 13px; color: #c9d1e0; margin-bottom: 16px; }
-  .cpDeckUnownedCount { color: #e37e7e; font-weight: bold; }
   /* ===== 所持カードタブ：デッキで使用中の未所持カード一覧 ===== */
   .cpUnownedDeckPanelWrap { margin-bottom: 14px; }
   .cpUnownedDeckBadge {
@@ -552,14 +591,17 @@
     .cpSearchBarWrap input { font-size: 12px; }
     .cpFilterBtn { width: 34px; height: 34px; font-size: 14px; }
     .cpFilterPopover { width: 200px; padding: 10px; }
-    .cpDeckList { grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 10px; margin-top: 10px; }
+    .cpDeckList { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin-top: 10px; }
     .cpDeckTile { padding: 9px 7px; gap: 5px; }
-    .cpDeckIconFrame { width: 72px; }
+    .cpDeckIconFrame { width: 84px; }
     .cpDeckTileName { font-size: 11.5px; }
     .cpDeckTileMeta { font-size: 9.5px; }
     .cpDeckTileActions .cpSecondaryBtn { padding: 3px 8px; font-size: 10px; }
-    .cpDeckNameInput { font-size: 13px; padding: 8px 10px; margin: 10px 0; }
-    .cpDeckIconSettingRow { margin: 10px 0; gap: 10px; }
+    .cpDeckEditorTopBar { margin: 10px 0; gap: 6px; }
+    .cpBackLabel { display: none; }
+    .cpDeckNameInput { font-size: 13px; padding: 8px 10px; }
+    .cpDeckSettingsPanel { padding: 10px; margin-bottom: 10px; }
+    .cpDeckIconSettingRow { margin: 0 0 4px; gap: 10px; }
     .cpDeckIconSettingPreview .cpDeckIconFrame { width: 52px; }
     .cpDeckColorRow { font-size: 11px; gap: 8px; }
     .cpDeckSummaryRow { font-size: 11.5px; margin-bottom: 10px; }
@@ -575,6 +617,9 @@
     .cpDeckSectionDivider { margin: 12px 0; }
     .cpDeckSearchWrap { margin-bottom: 10px; }
     .cpDeckSearchWrap input { font-size: 12px; padding: 7px 10px; }
+    /* デッキタップ時の中身確認プレビューは、一覧の見やすさを優先して1行10枚固定にする */
+    .cpDeckPreviewSections .cpDeckSectionBlockGrid { grid-template-columns: repeat(10, 1fr); gap: 5px; }
+    .cpDeckMiniPreviewGrid { grid-template-columns: repeat(25, 1fr); gap: 2px; }
 
     /* ----- モーダル：下からせり上がるボトムシート風（アプリらしい見た目） ----- */
     .cpModalOverlay { padding: 0; align-items: flex-end; }
@@ -689,30 +734,33 @@
       <div id="cpDeckList" class="cpDeckList"></div>
     </div>
     <div id="cpDeckEditorView" style="display:none;">
-      <button type="button" class="cpSecondaryBtn" id="cpDeckBackBtn">← デッキ一覧に戻る</button>
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:14px 0;">
-        <input type="text" id="cpDeckNameInput" class="cpDeckNameInput" placeholder="デッキ名" style="flex:1; min-width:160px; margin:0;">
-        <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">このデッキを保存</button>
-        <button type="button" class="cpSecondaryBtn" id="cpBulkAddUnownedBtn">未所持カードを一括追加</button>
+      <div class="cpDeckEditorTopBar">
+        <button type="button" class="cpSecondaryBtn cpDeckBackBtn" id="cpDeckBackBtn"><span class="cpBackIcon">←</span><span class="cpBackLabel"> デッキ一覧に戻る</span></button>
+        <input type="text" id="cpDeckNameInput" class="cpDeckNameInput" placeholder="デッキ名">
+        <button type="button" class="cpSecondaryBtn cpDeckSettingsToggleBtn" id="cpDeckSettingsToggleBtn" title="表紙・枠の色・一括追加">🎨</button>
+        <button type="button" class="cpPrimaryBtn" id="cpSaveDeckBtn">保存</button>
       </div>
-      <div class="cpDeckIconSettingRow">
-        <div class="cpDeckIconSettingPreview" id="cpDeckIconPreviewWrap"></div>
-        <div class="cpDeckIconSettingControls">
-          <button type="button" class="cpSecondaryBtn" id="cpDeckIconPickBtn" style="margin:0;">🖼 アイコンにするカードを選ぶ</button>
-          <div id="cpDeckIconPickerPopover" class="cpDeckIconPickerPopover" style="display:none;"></div>
-          <div class="cpDeckColorRow">
-            <label>枠の色1 <input type="color" id="cpDeckColor1Input" value="#d4af6a"></label>
-            <label class="cpDeckColor2Label"><input type="checkbox" id="cpDeckColor2Toggle">枠の色2を使う</label>
-            <input type="color" id="cpDeckColor2Input" value="#5a9bd4" disabled>
+      <div class="cpDeckSettingsPanel" id="cpDeckSettingsPanel" style="display:none;">
+        <div class="cpDeckIconSettingRow">
+          <div class="cpDeckIconSettingPreview" id="cpDeckIconPreviewWrap"></div>
+          <div class="cpDeckIconSettingControls">
+            <button type="button" class="cpSecondaryBtn" id="cpDeckIconPickBtn" style="margin:0;">🖼 アイコンにするカードを選ぶ</button>
+            <div id="cpDeckIconPickerPopover" class="cpDeckIconPickerPopover" style="display:none;"></div>
+            <div class="cpDeckColorRow">
+              <label>枠の色1 <input type="color" id="cpDeckColor1Input" value="#d4af6a"></label>
+              <label class="cpDeckColor2Label"><input type="checkbox" id="cpDeckColor2Toggle">枠の色2を使う</label>
+              <input type="color" id="cpDeckColor2Input" value="#5a9bd4" disabled>
+            </div>
           </div>
         </div>
+        <button type="button" class="cpSecondaryBtn" id="cpBulkAddUnownedBtn" style="margin-top:10px;">未所持カードを一括追加</button>
       </div>
       <div id="cpDeckStatus" class="cpHint" style="padding:0 0 8px;"></div>
       <div class="cpDeckSummaryRow">
         合計 <span id="cpDeckTotalCount">0</span> 枚 ／ 未所持カード <span id="cpDeckUnownedCount" class="cpDeckUnownedCount">0</span> 枚
       </div>
       <div class="cpPaneToggle">
-        <button type="button" class="cpPaneToggleBtn active" data-pane="0">🎴 デッキ</button>
+        <button type="button" class="cpPaneToggleBtn active" data-pane="0">🎴 デッキ <span id="cpDeckPaneCount" class="cpPaneCountBadge">0</span></button>
         <button type="button" class="cpPaneToggleBtn" data-pane="1">🔍 カードを選ぶ</button>
       </div>
       <div class="cpCollectionSplit">
@@ -725,6 +773,13 @@
           </div>
         </div>
         <div class="cpCollectionPane">
+          <div class="cpDeckMiniPreview" id="cpDeckMiniPreview">
+            <div class="cpDeckMiniPreviewHeader">
+              <span>🎴 デッキの中身</span>
+              <span id="cpDeckMiniPreviewCount" class="cpDeckMiniPreviewCount">0枚</span>
+            </div>
+            <div class="cpDeckMiniPreviewGrid" id="cpDeckMiniPreviewGrid"></div>
+          </div>
           <div class="cpPaneHeader"><h3>所持カードから選ぶ</h3></div>
           <div class="cpDeckSearchWrap">
             <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加（未所持カードも追加できます）">
