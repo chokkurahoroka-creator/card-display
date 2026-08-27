@@ -279,19 +279,31 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
     return ib - ia;
   });
 
+  // パックの折りたたみ（▶/▼）は「所持カード一覧」タブでのみ有効にする
+  const collapsible = gridEl.id === 'cpOwnedListGrid';
+
   gridEl.innerHTML = sortedSetCodes.map(sc => {
     const setName = cpSetNameMap[sc] || '';
     const cardsHtml = groups[sc].map(c => cpCardCellHtml(c, pane)).join('');
     return `
-      <div class="cpPackGroup">
+      <div class="cpPackGroup${collapsible ? ' cpPackGroupCollapsible' : ''}">
         <div class="cpPackGroupHeader">
-          <span>${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
+          <span class="cpPackGroupTitleWrap">
+            ${collapsible ? '<span class="cpPackGroupArrow">▶</span>' : ''}
+            <span class="cpPackGroupTitle">${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
+          </span>
           <span class="cpPackGroupCount">${groups[sc].length}種</span>
         </div>
         <div class="cpPackGroupGrid">${cardsHtml}</div>
       </div>`;
   }).join('');
   cpBindGridEvents(gridEl, pane);
+
+  if (collapsible) {
+    gridEl.querySelectorAll('.cpPackGroupCollapsible > .cpPackGroupHeader').forEach(header => {
+      header.addEventListener('click', () => header.parentElement.classList.toggle('cpCollapsed'));
+    });
+  }
 }
 
 async function cpRenderOwnedGrid() {

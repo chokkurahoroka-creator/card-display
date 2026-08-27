@@ -406,18 +406,29 @@ function cpDeckSectionBlockHtml(sec, items, readonly) {
 }
 
 // 推しホロメン＋エールをまとめた表示ブロック（デッキ内容プレビュー専用）。
-// エールは同じカードが大量に入ることが多く、1枚ずつタイル表示すると場所を取るため、
-// 合計枚数だけを推しホロメンカードの右側にチップで表示する
-function cpDeckOshiYellBlockHtml(oshiItems, yellTotal) {
+// エールは同じ絵柄が大量に入ることが多いが、違う絵柄のエールカードが混在することもあるため、
+// 絵柄（カード）ごとに1枚だけ画像を出し、その上に合計枚数をバッジで重ねて表示する
+function cpDeckOshiYellBlockHtml(oshiItems, yellItems) {
   const oshiTotal = oshiItems.reduce((a, r) => a + r.qty, 0);
   const tilesHtml = oshiItems.length
     ? oshiItems.map(r => cpDeckCardCopiesHtml(r, true)).join('')
     : '<div class="cpHint" style="padding:10px 0;">カードがありません</div>';
-  const yellChipHtml = yellTotal > 0 ? `
-    <div class="cpDeckYellChip">
-      <span class="cpDeckYellChipIcon">🎗️</span>
-      <span class="cpDeckYellChipLabel">エール</span>
-      <span class="cpDeckYellChipCount">${yellTotal}枚</span>
+
+  const yellByCard = {};
+  (yellItems || []).forEach(r => {
+    if (!yellByCard[r.key]) yellByCard[r.key] = { card: r.card, qty: 0 };
+    yellByCard[r.key].qty += r.qty;
+  });
+  const yellTotal = Object.values(yellByCard).reduce((a, v) => a + v.qty, 0);
+  const yellCardsHtml = Object.values(yellByCard).map(v => `
+    <div class="cpDeckYellCard">
+      <img src="${v.card.imageUrl}" alt="${escapeHtml(v.card.cardName)}" loading="lazy">
+      <span class="cpDeckYellCardCount">×${v.qty}</span>
+    </div>`).join('');
+  const yellBoxHtml = yellTotal > 0 ? `
+    <div class="cpDeckYellBox">
+      <div class="cpDeckYellBoxLabel">エール <span class="cpDeckYellBoxTotal">${yellTotal}枚</span></div>
+      <div class="cpDeckYellCardsRow">${yellCardsHtml}</div>
     </div>` : '';
   return `
     <div class="cpDeckSectionBlock">
@@ -427,7 +438,7 @@ function cpDeckOshiYellBlockHtml(oshiItems, yellTotal) {
       </div>
       <div class="cpDeckOshiYellRow">
         <div class="cpDeckSectionBlockGrid">${tilesHtml}</div>
-        ${yellChipHtml}
+        ${yellBoxHtml}
       </div>
       <div class="cpDeckSectionDivider"></div>
     </div>`;
@@ -594,24 +605,31 @@ async function cpOpenDeckPreview(deck) {
     });
   });
 
-  const yellTotal = grouped.yell.reduce((a, r) => a + r.qty, 0);
-  const sectionsHtml = cpDeckOshiYellBlockHtml(grouped.oshi, yellTotal)
+  const sectionsHtml = cpDeckOshiYellBlockHtml(grouped.oshi, grouped.yell)
     + CP_DECK_SECTIONS.filter(sec => sec.key !== 'oshi' && sec.key !== 'yell')
       .map(sec => cpDeckSectionBlockHtml(sec, grouped[sec.key], true)).join('');
   const kinds = new Set(entryIds.map(id => cardsMap[id].cardKey)).size;
 
   boxEl.innerHTML = `
     <button type="button" class="cpModalCloseBtn" id="cpDeckPreviewCloseBtn">×</button>
+    <div class="cpModalDragHandle"></div>
     <div class="cpDeckPreviewHeader">
-      <div class="cpDeckPreviewName">${escapeHtml(deck.deckName)}</div>
-      <div class="cpDeckPreviewMeta">${kinds}種類 / 計${totalAll}枚</div>
+      <div class="cpDeckPreviewTitleWrap">
+        <div class="cpDeckPreviewName">${escapeHtml(deck.deckName)}</div>
+        <div class="cpDeckPreviewMeta">${kinds}種類 / 計${totalAll}枚</div>
+      </div>
+      <button type="button" class="cpSecondaryBtn cpDeckPreviewEditBtn" id="cpDeckPreviewEditBtn">✎ 編集</button>
     </div>
     <div class="cpDeckPreviewSections">${sectionsHtml}</div>
   `;
   document.getElementById('cpDeckPreviewCloseBtn').addEventListener('click', cpCloseDeckPreview);
+  document.getElementById('cpDeckPreviewEditBtn').addEventListener('click', () => {
+    cpCloseDeckPreview();
+    cpOpenDeckEditor(deck);
+  });
 
   // カードをタップすると画像を拡大表示する（このプレビューは閲覧専用のため、ドラッグ操作と競合しない）
-  boxEl.querySelectorAll('.cpDeckPreviewSections .cpCard img').forEach(img => {
+  boxEl.querySelectorAll('.cpDeckPreviewSections .cpCard img, .cpDeckPreviewSections .cpDeckYellCard img').forEach(img => {
     img.addEventListener('click', () => cpShowImageZoom(img.src));
   });
 }
@@ -622,6 +640,36 @@ function cpCloseDeckPreview() {
 document.getElementById('cpDeckPreviewOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'cpDeckPreviewOverlay') cpCloseDeckPreview();
 });
+
+// ===== デッキ内容プレビュー：下にスワイプすると閉じる（モバイルのボトムシート表示向け） =====
+(function cpBindDeckPreviewSwipeToClose() {
+  const boxEl = document.getElementById('cpDeckPreviewBox');
+  let startY = 0, currentY = 0, swiping = false;
+
+  boxEl.addEventListener('touchstart', (e) => {
+    if (boxEl.scrollTop > 0 || !e.touches.length) return; // 中身がスクロール中の時は誤動作しないようにする
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    swiping = true;
+    boxEl.style.transition = 'none';
+  }, { passive: true });
+
+  boxEl.addEventListener('touchmove', (e) => {
+    if (!swiping || !e.touches.length) return;
+    currentY = e.touches[0].clientY;
+    const dy = currentY - startY;
+    if (dy > 0) boxEl.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+
+  boxEl.addEventListener('touchend', () => {
+    if (!swiping) return;
+    swiping = false;
+    boxEl.style.transition = '';
+    boxEl.style.transform = '';
+    if (currentY - startY > 90) cpCloseDeckPreview();
+    startY = 0; currentY = 0;
+  });
+})();
 
 // デッキ内タイルのドラッグ開始・並び替え／ゾーン移動用ドロップ・1枚削除ボタンを紐づける
 function cpBindDeckEditorCardEvents(container) {
