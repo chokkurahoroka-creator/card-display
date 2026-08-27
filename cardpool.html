@@ -383,6 +383,28 @@
     border: 1px solid rgba(212,175,106,0.25); display: block;
   }
   .cpDeckMiniPreviewThumb.cpUnownedThumb { filter: grayscale(1) brightness(0.7); }
+  /* ===== デッキ内容プレビュー：推しホロメンの右側にエールの合計枚数だけをチップ表示 ===== */
+  .cpDeckOshiYellRow { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+  .cpDeckOshiYellRow .cpDeckSectionBlockGrid { flex: 1; min-width: 120px; }
+  .cpDeckYellChip {
+    flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 12px 16px; border-radius: 12px; min-width: 78px;
+    border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.08);
+  }
+  .cpDeckYellChipIcon { font-size: 20px; line-height: 1; }
+  .cpDeckYellChipLabel { font-size: 11px; color: #9aa5c0; }
+  .cpDeckYellChipCount { font-size: 17px; font-weight: bold; color: var(--gold); }
+  /* ===== デッキ内容プレビュー：カードタップで画像拡大表示 ===== */
+  .cpDeckPreviewSections .cpCard { cursor: zoom-in; }
+  .cpImageZoomOverlay {
+    display: none; position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,0.9);
+    align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; cursor: zoom-out;
+  }
+  .cpImageZoomOverlay.open { display: flex; }
+  .cpImageZoomOverlay img {
+    max-width: 92vw; max-height: 92vh; width: auto; height: auto;
+    border-radius: 14px; box-shadow: 0 20px 70px rgba(0,0,0,0.8);
+  }
   .cpDeckSearchWrap { margin-bottom: 14px; }
   .cpDeckSearchWrap input {
     width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
@@ -540,6 +562,15 @@
   }
 
   @media (max-width: 640px) {
+    /* ----- サイト共通ヘッダー（トップバー）：上下の余白を詰めてコンパクトにする -----
+       ※ bodyのpaddingを10pxに変更したため、siteNav側のフルブリード用マイナスマージンも
+         それに合わせて再計算している（24px基準のままだと左右にはみ出してしまうため） */
+    .siteNav { margin: -10px -10px 10px; padding: 7px 12px; row-gap: 5px; }
+    .siteNav .siteNavLogo { font-size: 12.5px; margin-right: 0; }
+    .siteNav a.siteNavLink { font-size: 11.5px; padding: 5px 10px; }
+    .siteNavYoutubeBtn { padding: 5px 12px 5px 8px; font-size: 10.5px; }
+    .siteNavYoutubeBtn svg { width: 12px; height: 12px; }
+
     /* ----- 下部固定タブバー（アプリのナビゲーションのような見た目・動作） ----- */
     body { padding: 10px 10px 82px; }
     .cpTabs {
@@ -801,6 +832,11 @@
 <!-- ===== デッキ一覧のアイコンをクリックした時：デッキ内容プレビュー（読み取り専用） ===== -->
 <div class="cpModalOverlay" id="cpDeckPreviewOverlay" style="display:none;">
   <div class="cpModalBox cpDeckPreviewBox" id="cpDeckPreviewBox"></div>
+</div>
+
+<!-- ===== デッキ内容プレビュー：カードタップ時の画像拡大表示 ===== -->
+<div class="cpImageZoomOverlay" id="cpImageZoomOverlay">
+  <img id="cpImageZoomImg" src="" alt="">
 </div>
 
 <script src="js/14-cardpool-config.js"></script>
