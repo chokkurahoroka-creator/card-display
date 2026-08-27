@@ -405,6 +405,34 @@ function cpDeckSectionBlockHtml(sec, items, readonly) {
     </div>`;
 }
 
+// 推しホロメン＋エールをまとめた表示ブロック（デッキ内容プレビュー専用）。
+// エールは同じカードが大量に入ることが多く、1枚ずつタイル表示すると場所を取るため、
+// 合計枚数だけを推しホロメンカードの右側にチップで表示する
+function cpDeckOshiYellBlockHtml(oshiItems, yellTotal) {
+  const oshiTotal = oshiItems.reduce((a, r) => a + r.qty, 0);
+  const tilesHtml = oshiItems.length
+    ? oshiItems.map(r => cpDeckCardCopiesHtml(r, true)).join('')
+    : '<div class="cpHint" style="padding:10px 0;">カードがありません</div>';
+  const yellChipHtml = yellTotal > 0 ? `
+    <div class="cpDeckYellChip">
+      <span class="cpDeckYellChipIcon">🎗️</span>
+      <span class="cpDeckYellChipLabel">エール</span>
+      <span class="cpDeckYellChipCount">${yellTotal}枚</span>
+    </div>` : '';
+  return `
+    <div class="cpDeckSectionBlock">
+      <div class="cpDeckSectionBlockHeader">
+        <span class="cpDeckSectionBlockTitle">推しホロメン</span>
+        <span class="cpDeckSectionBlockCount">(${oshiTotal}枚)</span>
+      </div>
+      <div class="cpDeckOshiYellRow">
+        <div class="cpDeckSectionBlockGrid">${tilesHtml}</div>
+        ${yellChipHtml}
+      </div>
+      <div class="cpDeckSectionDivider"></div>
+    </div>`;
+}
+
 // デッキ内カードは1枚＝1タイルでスタックせず、ギャラリーのように並べて表示する。
 // 各タイルはドラッグ可能で、他のカードの上にドロップすると並び替え、別ゾーンの枠にドロップするとメイン⇔サイドを移動できる。
 // r.unownedFlags（あらかじめ計算済みの配列）で、所持数を超える分のコピーだけモノクロ表示にする
@@ -566,7 +594,10 @@ async function cpOpenDeckPreview(deck) {
     });
   });
 
-  const sectionsHtml = CP_DECK_SECTIONS.map(sec => cpDeckSectionBlockHtml(sec, grouped[sec.key], true)).join('');
+  const yellTotal = grouped.yell.reduce((a, r) => a + r.qty, 0);
+  const sectionsHtml = cpDeckOshiYellBlockHtml(grouped.oshi, yellTotal)
+    + CP_DECK_SECTIONS.filter(sec => sec.key !== 'oshi' && sec.key !== 'yell')
+      .map(sec => cpDeckSectionBlockHtml(sec, grouped[sec.key], true)).join('');
   const kinds = new Set(entryIds.map(id => cardsMap[id].cardKey)).size;
 
   boxEl.innerHTML = `
@@ -578,6 +609,11 @@ async function cpOpenDeckPreview(deck) {
     <div class="cpDeckPreviewSections">${sectionsHtml}</div>
   `;
   document.getElementById('cpDeckPreviewCloseBtn').addEventListener('click', cpCloseDeckPreview);
+
+  // カードをタップすると画像を拡大表示する（このプレビューは閲覧専用のため、ドラッグ操作と競合しない）
+  boxEl.querySelectorAll('.cpDeckPreviewSections .cpCard img').forEach(img => {
+    img.addEventListener('click', () => cpShowImageZoom(img.src));
+  });
 }
 
 function cpCloseDeckPreview() {

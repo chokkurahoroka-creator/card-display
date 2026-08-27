@@ -69,3 +69,14 @@ async function cpFetchCardsByKeys(keys) {
 function cpLoadingHtml(msg) {
   return `<div class="cpHint"><span class="cpSpinner"></span>${escapeHtml(msg || '読み込み中...')}</div>`;
 }
+
+// ===== カード画像の拡大表示（デッキ内容プレビュー等でカードをタップした時に使用） =====
+function cpShowImageZoom(url) {
+  if (!url) return;
+  document.getElementById('cpImageZoomImg').src = url;
+  document.getElementById('cpImageZoomOverlay').classList.add('open');
+}
+function cpCloseImageZoom() {
+  document.getElementById('cpImageZoomOverlay').classList.remove('open');
+}
+document.getElementById('cpImageZoomOverlay').addEventListener('click', cpCloseImageZoom);
