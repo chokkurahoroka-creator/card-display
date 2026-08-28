@@ -295,10 +295,13 @@ async function cpOpenDeckEditor(deck) {
   document.getElementById('cpDeckNameInput').value = deck ? deck.deckName : '';
   document.getElementById('cpDeckStatus').textContent = '';
   document.getElementById('cpDeckSearchInput').value = '';
-  document.getElementById('cpDeckSearchResults').style.display = 'none';
+  document.getElementById('cpDeckSearchResults').innerHTML = '<div class="cpHint" style="grid-column:1/-1;">カード名を2文字以上入力してください</div>';
   document.getElementById('cpDeckIconPickerPopover').style.display = 'none';
   document.getElementById('cpDeckSettingsPanel').style.display = 'none';
   document.getElementById('cpDeckSettingsToggleBtn').classList.remove('active');
+  document.querySelectorAll('.cpDeckAddModeBtn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'owned'));
+  document.getElementById('cpDeckAddModeOwned').style.display = 'block';
+  document.getElementById('cpDeckAddModeSearch').style.display = 'none';
 
   const hasColor2 = cpEditingDeckColors.length > 1;
   document.getElementById('cpDeckColor1Input').value = cpEditingDeckColors[0] || '#d4af6a';
@@ -410,36 +413,41 @@ function cpDeckSectionBlockHtml(sec, items, readonly) {
 // 絵柄（カード）ごとに1枚だけ画像を出し、その上に合計枚数をバッジで重ねて表示する
 function cpDeckOshiYellBlockHtml(oshiItems, yellItems) {
   const oshiTotal = oshiItems.reduce((a, r) => a + r.qty, 0);
-  const tilesHtml = oshiItems.length
-    ? oshiItems.map(r => cpDeckCardCopiesHtml(r, true)).join('')
-    : '<div class="cpHint" style="padding:10px 0;">カードがありません</div>';
+  const oshiTilesHtml = oshiItems.map(r => cpDeckCardCopiesHtml(r, true)).join('');
 
+  // エールは同じ絵柄が大量に入ることが多いが、違う絵柄が混在することもあるため、
+  // 絵柄（カード）ごとに1枚だけ画像を出し、右下に合計枚数をバッジで重ねる。
+  // 推しホロメンと同じグリッド（.cpDeckSectionBlockGrid）に並べることで、カードサイズをメインデッキと完全に揃える
   const yellByCard = {};
   (yellItems || []).forEach(r => {
     if (!yellByCard[r.key]) yellByCard[r.key] = { card: r.card, qty: 0 };
     yellByCard[r.key].qty += r.qty;
   });
-  const yellTotal = Object.values(yellByCard).reduce((a, v) => a + v.qty, 0);
-  const yellCardsHtml = Object.values(yellByCard).map(v => `
-    <div class="cpDeckYellCard">
-      <img src="${v.card.imageUrl}" alt="${escapeHtml(v.card.cardName)}" loading="lazy">
-      <span class="cpDeckYellCardCount">×${v.qty}</span>
+  const yellEntries = Object.values(yellByCard);
+  const yellTotal = yellEntries.reduce((a, v) => a + v.qty, 0);
+  const yellTilesHtml = yellEntries.map(v => `
+    <div class="cpCard owned cpDeckYellTile">
+      <div class="cpCardImgWrap">
+        <img src="${v.card.imageUrl}" alt="${escapeHtml(v.card.cardName)}" loading="lazy">
+        <span class="cpQtyBadge">×${v.qty}</span>
+      </div>
     </div>`).join('');
-  const yellBoxHtml = yellTotal > 0 ? `
-    <div class="cpDeckYellBox">
-      <div class="cpDeckYellBoxLabel">エール <span class="cpDeckYellBoxTotal">${yellTotal}枚</span></div>
-      <div class="cpDeckYellCardsRow">${yellCardsHtml}</div>
-    </div>` : '';
+
+  const combinedTilesHtml = oshiTilesHtml + yellTilesHtml;
+  const bodyHtml = combinedTilesHtml
+    ? `<div class="cpDeckSectionBlockGrid">${combinedTilesHtml}</div>`
+    : '<div class="cpHint" style="padding:10px 0;">カードがありません</div>';
+
+  const countParts = [`推し${oshiTotal}枚`];
+  if (yellTotal > 0) countParts.push(`エール${yellTotal}枚`);
+
   return `
     <div class="cpDeckSectionBlock">
       <div class="cpDeckSectionBlockHeader">
-        <span class="cpDeckSectionBlockTitle">推しホロメン</span>
-        <span class="cpDeckSectionBlockCount">(${oshiTotal}枚)</span>
+        <span class="cpDeckSectionBlockTitle">推しホロメン・エール</span>
+        <span class="cpDeckSectionBlockCount">(${countParts.join(' / ')})</span>
       </div>
-      <div class="cpDeckOshiYellRow">
-        <div class="cpDeckSectionBlockGrid">${tilesHtml}</div>
-        ${yellBoxHtml}
-      </div>
+      ${bodyHtml}
       <div class="cpDeckSectionDivider"></div>
     </div>`;
 }
@@ -542,12 +550,10 @@ async function cpRenderDeckEditorCards() {
   document.getElementById('cpDeckTotalCount').textContent = totalAll;
   document.getElementById('cpDeckUnownedCount').textContent = unownedCount;
 
-  // パネル切替タブの「🎴 デッキ」バッジ、および「所持カードから選ぶ」上部のミニプレビューを更新
+  // パネル切替タブの「🎴 デッキ」バッジ、および「カードを追加」上部のミニプレビューを更新
   // （カードを選ぶ画面に切り替えていても、デッキに何枚入っているかが常に見えるようにする）
   const paneCountEl = document.getElementById('cpDeckPaneCount');
   if (paneCountEl) paneCountEl.textContent = totalAll;
-  const miniPreviewCountEl = document.getElementById('cpDeckMiniPreviewCount');
-  if (miniPreviewCountEl) miniPreviewCountEl.textContent = `${totalAll}枚`;
   const miniPreviewGridEl = document.getElementById('cpDeckMiniPreviewGrid');
   if (miniPreviewGridEl) {
     miniPreviewGridEl.innerHTML = totalAll
@@ -629,7 +635,7 @@ async function cpOpenDeckPreview(deck) {
   });
 
   // カードをタップすると画像を拡大表示する（このプレビューは閲覧専用のため、ドラッグ操作と競合しない）
-  boxEl.querySelectorAll('.cpDeckPreviewSections .cpCard img, .cpDeckPreviewSections .cpDeckYellCard img').forEach(img => {
+  boxEl.querySelectorAll('.cpDeckPreviewSections .cpCard img').forEach(img => {
     img.addEventListener('click', () => cpShowImageZoom(img.src));
   });
 }
@@ -753,21 +759,31 @@ document.getElementById('cpDeckSearchInput').addEventListener('input', (e) => {
   const q = e.target.value.trim();
   clearTimeout(cpDeckSearchTimer);
   const resultsEl = document.getElementById('cpDeckSearchResults');
-  if (q.length < 2) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; return; }
-  resultsEl.style.display = 'block';
+  if (q.length < 2) {
+    resultsEl.innerHTML = '<div class="cpHint" style="grid-column:1/-1;">カード名を2文字以上入力してください</div>';
+    return;
+  }
   resultsEl.innerHTML = cpLoadingHtml('検索中...');
   cpDeckSearchTimer = setTimeout(async () => {
     const res = await fetch(GAS_URL + `?action=searchCards&q=${encodeURIComponent(q)}`);
     const list = await res.json();
-    resultsEl.style.display = 'grid';
     if (!list.length) {
-      resultsEl.style.display = 'block';
-      resultsEl.innerHTML = '<div class="cpHint">該当するカードが見つかりませんでした</div>';
+      resultsEl.innerHTML = '<div class="cpHint" style="grid-column:1/-1;">該当するカードが見つかりませんでした</div>';
       return;
     }
     resultsEl.innerHTML = list.map(c => cpDeckSearchResultTileHtml(c)).join('');
     cpBindDeckSearchResultEvents(resultsEl);
   }, 300);
+});
+
+// ===== 「カードを追加」：所持カードから追加／検索して追加の切替 =====
+document.querySelectorAll('.cpDeckAddModeBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cpDeckAddModeBtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('cpDeckAddModeOwned').style.display = btn.dataset.mode === 'owned' ? 'block' : 'none';
+    document.getElementById('cpDeckAddModeSearch').style.display = btn.dataset.mode === 'search' ? 'block' : 'none';
+  });
 });
 
 document.getElementById('cpSaveDeckBtn').addEventListener('click', async () => {
