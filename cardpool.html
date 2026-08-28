@@ -127,6 +127,11 @@
     .comingSoonWrap { margin-top: 40px; padding: 40px 20px; }
   }
 
+  /* ===== 所持カード一覧上部：「ID」「デッキで使用中の未所持カード」を横並びにする ===== */
+  .cpOwnedListTopRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 16px; }
+  .cpOwnedListTopRow .userIdBar { margin: 0; max-width: none; }
+  .cpOwnedListTopRow .cpUnownedDeckPanelWrap { margin: 0; }
+
   /* ===== ユーザーIDボタン／パネル（普段は非表示、ボタンを押した時だけ枠を表示） ===== */
   .userIdBar { max-width: 1700px; margin: 0 auto 18px; }
   .userIdBox {
@@ -600,7 +605,6 @@
     body.maintenanceMode .pageZoomWidget { bottom: 132px; }
 
     /* ----- フォント・余白のコンパクト化 ----- */
-    .userIdBar { margin-bottom: 12px; }
     .userIdBox { font-size: 11px; padding: 9px 12px; gap: 8px; }
     .cpPrimaryBtn, .cpSecondaryBtn { padding: 5px 11px; font-size: 11px; }
     .hint, .cpHint { font-size: 11px; padding: 0 0 8px; }
@@ -638,6 +642,14 @@
     .cpDeckEditorTopBar { margin: 10px 0; gap: 6px; }
     .cpBackLabel { display: none; }
     .cpDeckNameInput { font-size: 13px; padding: 8px 10px; }
+    /* 「デッキ」「カードを選ぶ」「所持カードから追加」「検索して追加」の切替ボタンをコンパクトにする */
+    .cpPaneToggle { padding: 2px; gap: 4px; margin-bottom: 8px; }
+    .cpPaneToggleBtn { padding: 5px 4px; font-size: 10.5px; border-radius: 7px; }
+    .cpPaneCountBadge { font-size: 9px; padding: 0 4px; min-width: 13px; margin-left: 2px; }
+    .cpDeckAddModeToggle { gap: 4px; margin-bottom: 8px; }
+    .cpDeckAddModeBtn { padding: 5px 4px; font-size: 10.5px; border-radius: 7px; }
+    /* デッキの中身プレビューは枠(背景・境界線・内側の余白)をなくし、画面幅を目一杯使ってカードを表示する */
+    .cpDeckMiniPreview { border: none; background: none; padding: 0; margin-bottom: 12px; }
     .cpDeckSettingsPanel { padding: 10px; margin-bottom: 10px; }
     .cpDeckIconSettingRow { margin: 0 0 4px; gap: 10px; }
     .cpDeckIconSettingPreview .cpDeckIconFrame { width: 52px; }
@@ -712,19 +724,21 @@
 
 <div class="cpMain">
   <div id="cpTab_ownedList" class="cpTabPanel">
-    <div class="userIdBar">
-      <button type="button" class="cpSecondaryBtn" id="cpUserIdToggleBtn">🆔 ID</button>
-      <div class="userIdBox" id="userIdBox" style="display:none;">
-        <span class="userIdLabel">あなたのID:</span>
-        <span class="userIdValue" id="cpUserIdDisplay">----</span>
-        <button type="button" class="cpSecondaryBtn" id="cpCopyUserIdBtn">IDをコピー</button>
-        <button type="button" class="cpSecondaryBtn" id="cpChangeUserIdBtn">別端末のIDを使う</button>
-        <span class="userIdHint">このIDが所持カード・デッキ情報の保存キーです。他の端末でも同じ内容を見るには、このIDをその端末の「別端末のIDを使う」から入力してください。</span>
+    <div class="cpOwnedListTopRow">
+      <div class="userIdBar">
+        <button type="button" class="cpSecondaryBtn" id="cpUserIdToggleBtn">🆔 ID</button>
+        <div class="userIdBox" id="userIdBox" style="display:none;">
+          <span class="userIdLabel">あなたのID:</span>
+          <span class="userIdValue" id="cpUserIdDisplay">----</span>
+          <button type="button" class="cpSecondaryBtn" id="cpCopyUserIdBtn">IDをコピー</button>
+          <button type="button" class="cpSecondaryBtn" id="cpChangeUserIdBtn">別端末のIDを使う</button>
+          <span class="userIdHint">このIDが所持カード・デッキ情報の保存キーです。他の端末でも同じ内容を見るには、このIDをその端末の「別端末のIDを使う」から入力してください。</span>
+        </div>
       </div>
-    </div>
-    <div class="cpUnownedDeckPanelWrap">
-      <button type="button" class="cpSecondaryBtn" id="cpUnownedDeckToggleBtn">⚠ デッキで使用中の未所持カード <span id="cpUnownedDeckBadge" class="cpUnownedDeckBadge" style="display:none;">0</span></button>
-      <div id="cpUnownedDeckPanel" class="cpUnownedDeckPanel" style="display:none;"></div>
+      <div class="cpUnownedDeckPanelWrap">
+        <button type="button" class="cpSecondaryBtn" id="cpUnownedDeckToggleBtn">⚠ デッキで使用中の未所持カード <span id="cpUnownedDeckBadge" class="cpUnownedDeckBadge" style="display:none;">0</span></button>
+        <div id="cpUnownedDeckPanel" class="cpUnownedDeckPanel" style="display:none;"></div>
+      </div>
     </div>
     <div id="cpOwnedListGrid" class="cpCollectionGrid cpDropTarget" style="height:75vh; max-height:820px;"></div>
   </div>
