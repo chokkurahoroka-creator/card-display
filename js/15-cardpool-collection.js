@@ -99,18 +99,24 @@ function cpCardCellHtml(c, pane) {
       </div>`;
   }
 
-  // 検索パネル側：所持している場合は画像右下に枚数バッジ、追加は＋ボタン1つ
+  // 検索パネル側：未所持なら「＋ 追加」ボタン、所持していれば所持カード一覧と同じ＋/－の数量行に切り替える
   const removeBtn = ownedQty > 0 ? `<button type="button" class="cpCardRemoveBtn" data-key="${key}" title="まとめて削除">×</button>` : '';
+  const actionHtml = ownedQty > 0
+    ? `<div class="cpQtyRow">
+        <button type="button" class="cpQtyBtn cpQtyMinus" data-key="${key}">−</button>
+        <span class="cpQtyValue">${ownedQty}</span>
+        <button type="button" class="cpQtyBtn cpQtyPlus" data-key="${key}">＋</button>
+      </div>`
+    : `<button type="button" class="cpAddBtn" data-key="${key}" title="追加">＋ 追加</button>`;
   return `
     <div class="cpCard ${ownedQty > 0 ? 'owned' : ''}" data-key="${key}" draggable="true">
       <div class="cpCardImgWrap">
         ${rarityBadge}
         <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
-        <span class="cpQtyBadge" id="cpBadge_${key}" style="${ownedQty > 0 ? '' : 'display:none;'}">${ownedQty}</span>
         ${removeBtn}
       </div>
       <div class="cpCardName">${escapeHtml(c.cardName)}</div>
-      <button type="button" class="cpAddBtn" data-key="${key}" title="追加">＋ 追加</button>
+      ${actionHtml}
     </div>`;
 }
 
@@ -120,61 +126,73 @@ function cpChangeQty(key, delta) {
   if (next === 0) delete ownedCollection[key]; else ownedCollection[key] = next;
 
   cpRenderOwnedGrid();
-  cpUpdateSearchBadge(key, next);
+  cpUpdateSearchCard(key);
   cpScheduleSave();
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 }
 
-// 検索パネル側に同じカードが表示中であれば、所持数バッジと枠の色だけを軽く更新する（再検索はしない）
-function cpUpdateSearchBadge(key, qty) {
-  const badge = document.getElementById('cpBadge_' + key);
-  if (!badge) return;
-  if (qty > 0) { badge.style.display = ''; badge.textContent = String(qty); }
-  else { badge.style.display = 'none'; badge.textContent = ''; }
-  const cardEl = badge.closest('.cpCard');
-  if (cardEl) cardEl.classList.toggle('owned', qty > 0);
+// 検索パネル側に同じカードが表示中であれば、そのカード1枚だけを再描画して差し替える
+// （所持数が0⇔1以上をまたぐと「＋ 追加」ボタン⇔＋/－の数量行でボタン構成そのものが変わるため、
+//   グリッド全体ではなく該当カードだけを作り直して再バインドする）
+function cpUpdateSearchCard(key) {
+  const gridEl = document.getElementById('cpSearchGrid');
+  if (!gridEl) return;
+  const cardEl = gridEl.querySelector(`.cpCard[data-key="${key}"]`);
+  const card = collectionCardsCache[key];
+  if (!cardEl || !card) return;
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = cpCardCellHtml(card, 'search').trim();
+  const newCardEl = wrapper.firstElementChild;
+  cpBindCardElEvents(newCardEl, 'search');
+  cardEl.replaceWith(newCardEl);
 }
 
 function cpBindGridEvents(container, pane) {
-  container.querySelectorAll('.cpCard').forEach(el => {
-    el.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', JSON.stringify({ key: el.dataset.key, pane }));
-      e.dataTransfer.effectAllowed = 'move';
-    });
+  container.querySelectorAll('.cpCard').forEach(el => cpBindCardElEvents(el, pane));
+}
+
+// 1枚のカード要素にイベントを紐づける（cpBindGridEventsから全カード分呼ばれるほか、
+// 検索パネルでカードの状態（＋追加⇔＋/－）が切り替わった際、その1枚だけ再バインドする時にも使う）
+function cpBindCardElEvents(el, pane) {
+  el.addEventListener('dragstart', (e) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ key: el.dataset.key, pane }));
+    e.dataTransfer.effectAllowed = 'move';
   });
-  container.querySelectorAll('.cpQtyPlus').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (pane === 'deckSource') cpChangeDeckQty(btn.dataset.key, 1);
-      else cpChangeQty(btn.dataset.key, 1);
+  const qtyPlus = el.querySelector('.cpQtyPlus');
+  if (qtyPlus) {
+    qtyPlus.addEventListener('click', () => {
+      if (pane === 'deckSource') cpChangeDeckQty(qtyPlus.dataset.key, 1);
+      else cpChangeQty(qtyPlus.dataset.key, 1);
     });
-  });
-  container.querySelectorAll('.cpQtyMinus').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (pane === 'deckSource') cpChangeDeckQty(btn.dataset.key, -1);
-      else cpChangeQty(btn.dataset.key, -1);
+  }
+  const qtyMinus = el.querySelector('.cpQtyMinus');
+  if (qtyMinus) {
+    qtyMinus.addEventListener('click', () => {
+      if (pane === 'deckSource') cpChangeDeckQty(qtyMinus.dataset.key, -1);
+      else cpChangeQty(qtyMinus.dataset.key, -1);
     });
-  });
-  container.querySelectorAll('.cpAddBtn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (pane === 'deckSource') cpChangeDeckQty(btn.dataset.key, 1);
-      else cpChangeQty(btn.dataset.key, 1);
+  }
+  const addBtn = el.querySelector('.cpAddBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      if (pane === 'deckSource') cpChangeDeckQty(addBtn.dataset.key, 1);
+      else cpChangeQty(addBtn.dataset.key, 1);
     });
-  });
-  container.querySelectorAll('.cpCardRemoveBtn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  }
+  const removeBtn = el.querySelector('.cpCardRemoveBtn');
+  if (removeBtn) {
+    removeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (pane === 'deckSource') cpRemoveCardFromDeckEntirely(btn.dataset.key);
-      else cpChangeQty(btn.dataset.key, -(ownedCollection[btn.dataset.key] || 0));
+      if (pane === 'deckSource') cpRemoveCardFromDeckEntirely(removeBtn.dataset.key);
+      else cpChangeQty(removeBtn.dataset.key, -(ownedCollection[removeBtn.dataset.key] || 0));
     });
-  });
+  }
   // 所持カードタブのカードをクリックすると、どのデッキに何枚入っているかの詳細を表示する
   // （＋/－/×ボタンのクリックはここでは無視する）
   if (pane === 'owned') {
-    container.querySelectorAll('.cpCard').forEach(el => {
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('button')) return;
-        cpOpenCardUsageOverlay(el.dataset.key);
-      });
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      cpOpenCardUsageOverlay(el.dataset.key);
     });
   }
 }
