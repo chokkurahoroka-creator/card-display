@@ -380,43 +380,27 @@
     border-radius: 8px; font-size: 10px; font-weight: bold; background: rgba(255,255,255,0.18); color: inherit;
   }
   .cpPaneToggleBtn.active .cpPaneCountBadge { background: rgba(26,19,5,0.25); }
-  /* ===== 「所持カードから選ぶ」の上に表示する、デッキ中身のミニプレビュー（1行25枚・閲覧専用） ===== */
+  /* ===== 「カードを追加」の上に表示する、デッキ中身のミニプレビュー（テキスト・枚数なし、1行20枚・閲覧専用） ===== */
   .cpDeckMiniPreview {
     margin-bottom: 14px; padding: 10px; border-radius: 10px;
     border: 1px solid rgba(212,175,106,0.3); background: rgba(212,175,106,0.04);
   }
-  .cpDeckMiniPreviewHeader {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 12px; color: var(--gold); font-weight: bold; margin-bottom: 8px;
-  }
-  .cpDeckMiniPreviewCount { color: #c9d1e0; font-weight: normal; font-size: 11px; }
-  .cpDeckMiniPreviewGrid { display: grid; grid-template-columns: repeat(25, 1fr); gap: 2px; }
+  .cpDeckMiniPreviewGrid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
   .cpDeckMiniPreviewThumb {
     width: 100%; aspect-ratio: 5/7; object-fit: cover; border-radius: 2px;
     border: 1px solid rgba(212,175,106,0.25); display: block;
   }
   .cpDeckMiniPreviewThumb.cpUnownedThumb { filter: grayscale(1) brightness(0.7); }
-  /* ===== デッキ内容プレビュー：推しホロメンの右側にエールカードの写真＋枚数バッジを表示 =====
-     （違う絵柄のエールカードが混在することがあるため、絵柄ごとに1枚ずつ画像を出す） */
-  .cpDeckOshiYellRow { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
-  .cpDeckOshiYellRow .cpDeckSectionBlockGrid { flex: 1; min-width: 120px; }
-  .cpDeckYellBox {
-    flex-shrink: 0; padding: 10px 12px; border-radius: 12px; max-width: 220px;
-    border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.08);
+  /* ===== 「カードを追加」：所持カードから追加／検索して追加の切替タブ ===== */
+  .cpDeckAddModeToggle { display: flex; gap: 6px; margin-bottom: 12px; }
+  .cpDeckAddModeBtn {
+    flex: 1; padding: 8px 6px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.3);
+    background: rgba(255,255,255,0.02); color: #9aa5c0; font-size: 12px; font-weight: bold; cursor: pointer;
   }
-  .cpDeckYellBoxLabel { font-size: 11px; color: #9aa5c0; margin-bottom: 8px; text-align: center; }
-  .cpDeckYellBoxTotal { color: var(--gold); font-weight: bold; }
-  .cpDeckYellCardsRow { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-  .cpDeckYellCard { position: relative; width: 52px; cursor: zoom-in; }
-  .cpDeckYellCard img {
-    width: 100%; aspect-ratio: 5/7; object-fit: cover; border-radius: 5px; display: block;
-    border: 1px solid rgba(212,175,106,0.3);
-  }
-  .cpDeckYellCardCount {
-    position: absolute; bottom: 2px; right: 2px; padding: 1px 4px; border-radius: 6px;
-    background: rgba(10,14,26,0.88); color: var(--gold); font-size: 10px; font-weight: bold;
-    border: 1px solid rgba(212,175,106,0.5); line-height: 1.4;
-  }
+  .cpDeckAddModeBtn.active { background: var(--gold); color: #1a1305; border-color: var(--gold); }
+  /* ===== デッキ内容プレビュー：推しホロメン＋エールを同じグリッドに並べ、メインデッキと同じカードサイズに揃える =====
+     （エールは違う絵柄が混在することがあるため、絵柄ごとに1枚だけ画像を出し、右下に枚数バッジを重ねる） */
+  .cpDeckYellTile .cpQtyBadge { font-size: 10px; padding: 1px 5px; }
   /* ===== デッキ内容プレビュー：カードタップで画像拡大表示 ===== */
   .cpDeckPreviewSections .cpCard { cursor: zoom-in; }
   .cpImageZoomOverlay {
@@ -673,7 +657,7 @@
     .cpDeckSearchWrap input { font-size: 12px; padding: 7px 10px; }
     /* デッキタップ時の中身確認プレビューは、一覧の見やすさを優先して1行10枚固定にする */
     .cpDeckPreviewSections .cpDeckSectionBlockGrid { grid-template-columns: repeat(10, 1fr); gap: 5px; }
-    .cpDeckMiniPreviewGrid { grid-template-columns: repeat(25, 1fr); gap: 2px; }
+    .cpDeckMiniPreviewGrid { grid-template-columns: repeat(20, 1fr); gap: 2px; }
 
     /* ----- モーダル：下からせり上がるボトムシート風（アプリらしい見た目） ----- */
     .cpModalOverlay { padding: 0; align-items: flex-end; }
@@ -694,8 +678,6 @@
     .cpDeckPreviewName { font-size: 14.5px; }
     .cpDeckPreviewMeta { font-size: 11px; }
     .cpDeckPreviewEditBtn { padding: 5px 12px; font-size: 11px; }
-    .cpDeckYellBox { padding: 8px 10px; max-width: 160px; }
-    .cpDeckYellCard { width: 44px; }
   }
 </style>
 </head>
@@ -828,18 +810,22 @@
         </div>
         <div class="cpCollectionPane">
           <div class="cpDeckMiniPreview" id="cpDeckMiniPreview">
-            <div class="cpDeckMiniPreviewHeader">
-              <span>🎴 デッキの中身</span>
-              <span id="cpDeckMiniPreviewCount" class="cpDeckMiniPreviewCount">0枚</span>
-            </div>
             <div class="cpDeckMiniPreviewGrid" id="cpDeckMiniPreviewGrid"></div>
           </div>
-          <div class="cpPaneHeader"><h3>所持カードから選ぶ</h3></div>
-          <div class="cpDeckSearchWrap">
-            <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索して追加（未所持カードも追加できます）">
-            <div id="cpDeckSearchResults" class="cpDeckSearchResults cpDropTarget" style="display:none;"></div>
+          <div class="cpPaneHeader"><h3>カードを追加</h3></div>
+          <div class="cpDeckAddModeToggle">
+            <button type="button" class="cpDeckAddModeBtn active" id="cpDeckAddModeOwnedBtn" data-mode="owned">📋 所持カードから追加</button>
+            <button type="button" class="cpDeckAddModeBtn" id="cpDeckAddModeSearchBtn" data-mode="search">🔍 検索して追加</button>
           </div>
-          <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
+          <div class="cpDeckAddModePane" id="cpDeckAddModeOwned">
+            <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
+          </div>
+          <div class="cpDeckAddModePane" id="cpDeckAddModeSearch" style="display:none;">
+            <div class="cpDeckSearchWrap">
+              <input type="text" id="cpDeckSearchInput" placeholder="カード名で検索（未所持カードも追加できます）">
+            </div>
+            <div id="cpDeckSearchResults" class="cpDeckSearchResults cpDropTarget"><div class="cpHint" style="grid-column:1/-1;">カード名を2文字以上入力してください</div></div>
+          </div>
         </div>
       </div>
     </div>
