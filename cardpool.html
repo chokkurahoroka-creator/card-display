@@ -717,9 +717,9 @@
 </div>
 
 <div class="cpTabs">
-  <button type="button" class="cpTabBtn active" data-tab="ownedList"><span class="cpTabIcon">📋</span><span class="cpTabLabel">所持カード一覧</span></button>
-  <button type="button" class="cpTabBtn" data-tab="collection"><span class="cpTabIcon">➕</span><span class="cpTabLabel">所持カードを追加</span></button>
-  <button type="button" class="cpTabBtn" data-tab="decks"><span class="cpTabIcon">🎴</span><span class="cpTabLabel">マイデッキ</span></button>
+  <button type="button" class="cpTabBtn active" data-tab="ownedList"><span class="cpTabIcon">📋</span><span class="cpTabLabel">所持カード</span></button>
+  <button type="button" class="cpTabBtn" data-tab="collection"><span class="cpTabIcon">➕</span><span class="cpTabLabel">追加</span></button>
+  <button type="button" class="cpTabBtn" data-tab="decks"><span class="cpTabIcon">🎴</span><span class="cpTabLabel">デッキ</span></button>
 </div>
 
 <div class="cpMain">
@@ -746,7 +746,7 @@
   <div id="cpTab_collection" class="cpTabPanel" style="display:none;">
     <div class="cpPaneToggle">
       <button type="button" class="cpPaneToggleBtn active" data-pane="0">📋 所持カード</button>
-      <button type="button" class="cpPaneToggleBtn" data-pane="1">🔍 検索して追加</button>
+      <button type="button" class="cpPaneToggleBtn" data-pane="1">🔍 検索・追加</button>
     </div>
     <div class="cpCollectionSplit">
       <div class="cpCollectionPane">
@@ -758,7 +758,7 @@
       </div>
       <div class="cpCollectionPane">
         <div class="cpPaneHeader">
-          <h3>カードを検索して追加</h3>
+          <h3>カードを検索・追加</h3>
         </div>
         <div class="cpCollectionControls">
           <div class="cpSearchBarWrap">
@@ -812,7 +812,7 @@
       </div>
       <div class="cpPaneToggle">
         <button type="button" class="cpPaneToggleBtn active" data-pane="0">🎴 デッキ <span id="cpDeckPaneCount" class="cpPaneCountBadge">0</span></button>
-        <button type="button" class="cpPaneToggleBtn" data-pane="1">🔍 カードを選ぶ</button>
+        <button type="button" class="cpPaneToggleBtn" data-pane="1">🔍 追加</button>
       </div>
       <div class="cpCollectionSplit">
         <div class="cpCollectionPane">
@@ -829,7 +829,7 @@
           <div class="cpPaneHeader"><h3>カードを追加</h3></div>
           <div class="cpDeckAddModeToggle">
             <button type="button" class="cpDeckAddModeBtn active" id="cpDeckAddModeOwnedBtn" data-mode="owned">📋 所持カードから追加</button>
-            <button type="button" class="cpDeckAddModeBtn" id="cpDeckAddModeSearchBtn" data-mode="search">🔍 検索して追加</button>
+            <button type="button" class="cpDeckAddModeBtn" id="cpDeckAddModeSearchBtn" data-mode="search">🔍 検索・追加</button>
           </div>
           <div class="cpDeckAddModePane" id="cpDeckAddModeOwned">
             <div id="cpDeckSourceGrid" class="cpCollectionGrid cpDropTarget"></div>
