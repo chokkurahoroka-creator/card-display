@@ -16,10 +16,21 @@ function isValidUserIdFormat(v) {
   return /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test((v || '').trim().toUpperCase());
 }
 
-let userId = localStorage.getItem('cardpool_userId');
-if (!userId) {
-  userId = generateSimpleUserId();
-  localStorage.setItem('cardpool_userId', userId);
+// 初回訪問時はここで自動生成はせず、cpIsFirstVisitフラグを見て
+// 17-cardpool-boot.js側で「新規IDを作成」／「既存のIDを入力」を選ばせるオンボーディングを表示する
+let userId = localStorage.getItem('cardpool_userId') || '';
+const cpIsFirstVisit = !userId;
+
+// userIdを更新してlocalStorageへ保存する。保存後に読み直して実際に反映されたかを確認し、
+// 失敗していればfalseを返す（プライベートブラウジング等でストレージが使えない場合の保険）
+function cpSaveUserId(newId) {
+  userId = newId;
+  try {
+    localStorage.setItem('cardpool_userId', newId);
+    return localStorage.getItem('cardpool_userId') === newId;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ===== 共通ユーティリティ =====

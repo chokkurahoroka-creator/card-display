@@ -48,18 +48,82 @@ document.getElementById('cpCopyUserIdBtn').addEventListener('click', async () =>
   setTimeout(() => { btn.textContent = original; }, 1500);
 });
 
-document.getElementById('cpChangeUserIdBtn').addEventListener('click', async () => {
-  const input = (prompt('別の端末で表示されているIDを入力してください（例: K3F9-72QX）\n※この端末に保存されている現在のデータは上書きされず、入力したIDのデータに切り替わります。', '') || '').trim().toUpperCase();
-  if (!input) return;
-  if (!isValidUserIdFormat(input)) { alert('IDの形式が正しくありません（例: K3F9-72QX）'); return; }
-
-  userId = input;
-  localStorage.setItem('cardpool_userId', userId);
+document.getElementById('cpChangeUserIdBtn').addEventListener('click', () => {
+  document.getElementById('cpChangeIdInput').value = '';
+  document.getElementById('cpChangeIdError').style.display = 'none';
+  document.getElementById('cpChangeIdOverlay').style.display = 'flex';
+});
+document.getElementById('cpChangeIdCloseBtn').addEventListener('click', () => {
+  document.getElementById('cpChangeIdOverlay').style.display = 'none';
+});
+document.getElementById('cpChangeIdOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'cpChangeIdOverlay') document.getElementById('cpChangeIdOverlay').style.display = 'none';
+});
+document.getElementById('cpChangeIdInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('cpChangeIdConfirmBtn').click();
+});
+document.getElementById('cpChangeIdConfirmBtn').addEventListener('click', async () => {
+  const errEl = document.getElementById('cpChangeIdError');
+  const input = document.getElementById('cpChangeIdInput').value.trim().toUpperCase();
+  if (!isValidUserIdFormat(input)) {
+    errEl.textContent = 'IDの形式が正しくありません（例: K3F9-72QX）';
+    errEl.style.display = 'block';
+    return;
+  }
+  // 入力されたID（＝他端末のID）をこの端末の保存先として優先的に採用する
+  const saved = cpSaveUserId(input);
+  if (!saved) {
+    errEl.textContent = '保存に失敗しました。ブラウザでこのサイトのデータ保存が許可されているかご確認ください。';
+    errEl.style.display = 'block';
+    return;
+  }
+  document.getElementById('cpChangeIdOverlay').style.display = 'none';
   document.getElementById('userIdBox').style.display = 'flex';
   cpRenderUserIdBox();
   await cpInitCollectionTab();
   await cpLoadDecks();
   alert('IDを切り替えました');
+});
+
+// ===== 初回訪問時のオンボーディング（新規IDを作るか、既存のIDを引き継ぐかを選ばせる） =====
+document.getElementById('cpIdOnboardNewBtn').addEventListener('click', async () => {
+  cpSaveUserId(generateSimpleUserId());
+  cpRenderUserIdBox();
+  document.getElementById('cpIdOnboardOverlay').style.display = 'none';
+  await Promise.all([cpInitCollectionTab(), cpLoadDecks()]);
+  if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
+});
+document.getElementById('cpIdOnboardExistingBtn').addEventListener('click', () => {
+  document.getElementById('cpIdOnboardChoices').style.display = 'none';
+  document.getElementById('cpIdOnboardForm').style.display = 'flex';
+  document.getElementById('cpIdOnboardInput').focus();
+});
+document.getElementById('cpIdOnboardInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('cpIdOnboardConfirmBtn').click();
+});
+document.getElementById('cpIdOnboardBackBtn').addEventListener('click', () => {
+  document.getElementById('cpIdOnboardForm').style.display = 'none';
+  document.getElementById('cpIdOnboardError').style.display = 'none';
+  document.getElementById('cpIdOnboardChoices').style.display = 'flex';
+});
+document.getElementById('cpIdOnboardConfirmBtn').addEventListener('click', async () => {
+  const errEl = document.getElementById('cpIdOnboardError');
+  const input = document.getElementById('cpIdOnboardInput').value.trim().toUpperCase();
+  if (!isValidUserIdFormat(input)) {
+    errEl.textContent = 'IDの形式が正しくありません（例: K3F9-72QX）';
+    errEl.style.display = 'block';
+    return;
+  }
+  const saved = cpSaveUserId(input);
+  if (!saved) {
+    errEl.textContent = '保存に失敗しました。ブラウザでこのサイトのデータ保存が許可されているかご確認ください。';
+    errEl.style.display = 'block';
+    return;
+  }
+  cpRenderUserIdBox();
+  document.getElementById('cpIdOnboardOverlay').style.display = 'none';
+  await Promise.all([cpInitCollectionTab(), cpLoadDecks()]);
+  if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 });
 
 // ===== 初期化 =====
@@ -68,6 +132,11 @@ document.getElementById('cpChangeUserIdBtn').addEventListener('click', async () 
 // 両方が完了してから念のためもう一度描画し直す（並列実行の順序次第で古い状態のまま表示され続けるのを防ぐ）
 (async function cpInit() {
   cpRenderUserIdBox();
+  if (cpIsFirstVisit) {
+    // 初回訪問時はオンボーディングでIDが決まるまで待ち、以降の読み込みは各ボタンのハンドラ側で行う
+    document.getElementById('cpIdOnboardOverlay').style.display = 'flex';
+    return;
+  }
   await Promise.all([cpInitCollectionTab(), cpLoadDecks()]);
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
 })();
