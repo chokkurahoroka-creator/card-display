@@ -630,7 +630,7 @@
     .cpCardRemoveBtn { width: 14px; height: 14px; font-size: 9px; }
     .cpCollectionControls { gap: 6px; }
     .cpSearchBarWrap { padding: 6px 10px; }
-    .cpSearchBarWrap input { font-size: 12px; }
+    .cpSearchBarWrap input { font-size: 16px; }
     .cpFilterBtn { width: 34px; height: 34px; font-size: 14px; }
     .cpFilterPopover { width: 200px; padding: 10px; }
     .cpDeckList { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; margin-top: 10px; }
@@ -641,7 +641,7 @@
     .cpDeckTileActions .cpSecondaryBtn { padding: 3px 8px; font-size: 10px; }
     .cpDeckEditorTopBar { margin: 10px 0; gap: 6px; }
     .cpBackLabel { display: none; }
-    .cpDeckNameInput { font-size: 13px; padding: 8px 10px; }
+    .cpDeckNameInput { font-size: 16px; padding: 8px 10px; }
     /* 「デッキ」「カードを選ぶ」「所持カードから追加」「検索して追加」の切替ボタンをコンパクトにする */
     .cpPaneToggle { padding: 2px; gap: 4px; margin-bottom: 8px; }
     .cpPaneToggleBtn { padding: 5px 4px; font-size: 10.5px; border-radius: 7px; }
@@ -666,7 +666,7 @@
     .cpDeckSectionBlockCount { font-size: 10.5px; }
     .cpDeckSectionDivider { margin: 12px 0; }
     .cpDeckSearchWrap { margin-bottom: 10px; }
-    .cpDeckSearchWrap input { font-size: 12px; padding: 7px 10px; }
+    .cpDeckSearchWrap input { font-size: 16px; padding: 7px 10px; }
     /* デッキタップ時の中身確認プレビューは、一覧の見やすさを優先して1行10枚固定にする */
     .cpDeckPreviewSections .cpDeckSectionBlockGrid { grid-template-columns: repeat(10, 1fr); gap: 5px; }
     .cpDeckMiniPreviewGrid { grid-template-columns: repeat(20, 1fr); gap: 2px; }
@@ -690,6 +690,19 @@
     .cpDeckPreviewName { font-size: 14.5px; }
     .cpDeckPreviewMeta { font-size: 11px; }
     .cpDeckPreviewEditBtn { padding: 5px 12px; font-size: 11px; }
+
+    /* ----- カードが1枚も入っていない状態の枠：横幅は画面に合わせ、縦幅は必要以上に大きくしない ----- */
+    /* シンプルに「カードがありません」の一文だけが入っている枠（所持カード・検索結果など）は、
+       縦幅を内容に合わせて縮め、メッセージを中央表示にする */
+    .cpCollectionGrid:has(> .cpHint:only-child) {
+      height: auto; min-height: 120px; max-height: none; width: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #cpOwnedListGrid:has(> .cpHint:only-child) { height: auto !important; max-height: none !important; }
+    .cpDeckSearchResults:has(> .cpHint:only-child) { min-height: 90px; }
+    /* デッキ編集の「デッキ」エリアは、各セクション見出し等を含む複数要素で構成されるため上とは別扱いにし、
+       デッキ内にカードが1枚も無い場合のみ固定の縦幅をやめて内容に合わせる（横幅・レイアウトはそのまま） */
+    .cpDeckSections:not(:has(.cpCard)) { height: auto; min-height: 140px; max-height: none; }
   }
 </style>
 </head>
