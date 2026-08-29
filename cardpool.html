@@ -417,6 +417,21 @@
     max-width: 92vw; max-height: 92vh; width: auto; height: auto;
     border-radius: 14px; box-shadow: 0 20px 70px rgba(0,0,0,0.8);
   }
+  /* ===== ユーザーID：初回オンボーディング／別端末IDへの切り替えモーダル ===== */
+  .cpIdModalOverlay { z-index: 950; }
+  .cpIdModalBox { max-width: 420px; text-align: center; }
+  .cpIdModalTitle { font-size: 17px; margin: 0 0 10px; }
+  .cpIdModalDesc { font-size: 12.5px; color: #9aa5c0; line-height: 1.6; margin: 0 0 18px; }
+  .cpIdModalChoices { display: flex; flex-direction: column; gap: 10px; }
+  .cpIdModalChoices .cpPrimaryBtn, .cpIdModalChoices .cpSecondaryBtn { padding: 12px; font-size: 14px; margin: 0; }
+  .cpIdModalForm { display: flex; flex-direction: column; gap: 10px; }
+  .cpIdModalForm input {
+    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.4);
+    background: #10182a; color: var(--text); font-size: 16px; text-align: center;
+    letter-spacing: 1px; font-family: 'Courier New', monospace; box-sizing: border-box;
+  }
+  .cpIdModalForm .cpPrimaryBtn, .cpIdModalForm .cpSecondaryBtn { padding: 10px; font-size: 13px; margin: 0; }
+  .cpIdModalError { color: #e37e7e; font-size: 12px; }
   .cpDeckSearchWrap { margin-bottom: 14px; }
   .cpDeckSearchWrap input {
     width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
@@ -872,6 +887,38 @@
 <!-- ===== デッキ内容プレビュー：カードタップ時の画像拡大表示 ===== -->
 <div class="cpImageZoomOverlay" id="cpImageZoomOverlay">
   <img id="cpImageZoomImg" src="" alt="">
+</div>
+
+<!-- ===== 初回訪問時：新規IDを作るか、既存のIDを引き継ぐかを選ばせるオンボーディング ===== -->
+<div class="cpModalOverlay cpIdModalOverlay" id="cpIdOnboardOverlay" style="display:none;">
+  <div class="cpModalBox cpIdModalBox">
+    <h3 class="cpIdModalTitle">ようこそ！</h3>
+    <p class="cpIdModalDesc">所持カード・デッキの情報は、あなた専用の「ID」に保存されます。<br>他の端末で既に使ったことがある場合は、そのIDを引き継げます。</p>
+    <div class="cpIdModalChoices" id="cpIdOnboardChoices">
+      <button type="button" class="cpPrimaryBtn" id="cpIdOnboardNewBtn">🆕 新しいIDを作成する</button>
+      <button type="button" class="cpSecondaryBtn" id="cpIdOnboardExistingBtn">🔑 既存のIDを入力する</button>
+    </div>
+    <div class="cpIdModalForm" id="cpIdOnboardForm" style="display:none;">
+      <input type="text" id="cpIdOnboardInput" placeholder="例: K3F9-72QX" maxlength="9">
+      <button type="button" class="cpPrimaryBtn" id="cpIdOnboardConfirmBtn">このIDを使う</button>
+      <button type="button" class="cpSecondaryBtn" id="cpIdOnboardBackBtn">戻る</button>
+      <div class="cpIdModalError" id="cpIdOnboardError" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 別端末のIDへ切り替え ===== -->
+<div class="cpModalOverlay cpIdModalOverlay" id="cpChangeIdOverlay" style="display:none;">
+  <div class="cpModalBox cpIdModalBox">
+    <button type="button" class="cpModalCloseBtn" id="cpChangeIdCloseBtn">×</button>
+    <h3 class="cpIdModalTitle">別端末のIDに切り替え</h3>
+    <p class="cpIdModalDesc">他の端末で表示されているIDを入力してください。<br>この端末に保存されている現在のデータは消えず、入力したIDのデータに切り替わります。</p>
+    <div class="cpIdModalForm">
+      <input type="text" id="cpChangeIdInput" placeholder="例: K3F9-72QX" maxlength="9">
+      <button type="button" class="cpPrimaryBtn" id="cpChangeIdConfirmBtn">このIDに切り替える</button>
+      <div class="cpIdModalError" id="cpChangeIdError" style="display:none;"></div>
+    </div>
+  </div>
 </div>
 
 <script src="js/14-cardpool-config.js"></script>
