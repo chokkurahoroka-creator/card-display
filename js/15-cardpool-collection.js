@@ -303,6 +303,10 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
   gridEl.innerHTML = sortedSetCodes.map(sc => {
     const setName = cpSetNameMap[sc] || '';
     const cardsHtml = groups[sc].map(c => cpCardCellHtml(c, pane)).join('');
+    // 所持カード関連のパネルは「枚数(種類)」、それ以外（検索結果など）は従来通り「種類」のみ表示する
+    const countLabel = (pane === 'owned' || pane === 'deckSource')
+      ? `${groups[sc].reduce((a, c) => a + (ownedCollection[cardKey(c)] || 0), 0)}枚(${groups[sc].length}種)`
+      : `${groups[sc].length}種`;
     return `
       <div class="cpPackGroup${collapsible ? ' cpPackGroupCollapsible' : ''}">
         <div class="cpPackGroupHeader">
@@ -310,7 +314,7 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
             ${collapsible ? '<span class="cpPackGroupArrow">▶</span>' : ''}
             <span class="cpPackGroupTitle">${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
           </span>
-          <span class="cpPackGroupCount">${groups[sc].length}種</span>
+          <span class="cpPackGroupCount">${countLabel}</span>
         </div>
         <div class="cpPackGroupGrid">${cardsHtml}</div>
       </div>`;
