@@ -129,6 +129,8 @@ function cpChangeQty(key, delta) {
   cpUpdateSearchCard(key);
   cpScheduleSave();
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
+  const zukanView = document.getElementById('cpOwnedViewZukan');
+  if (zukanView && zukanView.style.display !== 'none') cpRenderZukan();
 }
 
 // 検索パネル側に同じカードが表示中であれば、そのカード1枚だけを再描画して差し替える
@@ -248,6 +250,131 @@ document.getElementById('cpCardUsageOverlay').addEventListener('click', (e) => {
   if (e.target.id === 'cpCardUsageOverlay') cpCloseCardUsageOverlay();
 });
 
+// ===== 所持カード一覧：図鑑表示 =====
+// 各パックの「全カード」（所持・未所持問わず）を表示する。所持カードは
+// カラー表示＋右上に枚数バッジ、未所持は白黒表示にする。データ量が多いため、
+// 初めて図鑑タブを開いた時に全パック分をまとめて取得してキャッシュし、以降は再取得しない
+let cpZukanCardsBySet = null; // { setCode: [card, ...] }
+let cpZukanLoading = false;
+
+async function cpEnsureZukanData() {
+  if (cpZukanCardsBySet || cpZukanLoading) return;
+  cpZukanLoading = true;
+  const gridEl = document.getElementById('cpZukanGrid');
+  gridEl.innerHTML = cpLoadingHtml('図鑑を読み込み中...');
+  try {
+    const results = await Promise.all(cpSets.map(async (s) => {
+      const res = await fetch(GAS_URL + `?action=list&setCode=${encodeURIComponent(s.setCode)}`);
+      const cards = await res.json();
+      return [s.setCode, Array.isArray(cards) ? cards : []];
+    }));
+    cpZukanCardsBySet = Object.fromEntries(results);
+    // 取得したカード情報は他の画面（デッキ編集の詳細表示等）でも使い回せるようキャッシュしておく
+    results.forEach(([, cards]) => cards.forEach(c => { collectionCardsCache[cardKey(c)] = c; }));
+  } catch (e) {
+    gridEl.innerHTML = '<div class="cpHint">図鑑の読み込みに失敗しました</div>';
+  } finally {
+    cpZukanLoading = false;
+  }
+}
+
+// 標準順：新規→再録→パラレルの順、各区分内は枠番号順（カード登録時の並びに準じる）
+function cpSortZukanCards(cards, sortKey) {
+  const list = cards.slice();
+  if (sortKey === 'rarity') {
+    list.sort((a, b) => cpRarityOrderIndex(a.rarity) - cpRarityOrderIndex(b.rarity) || (a.cardName || '').localeCompare(b.cardName || '', 'ja'));
+  } else if (sortKey === 'name') {
+    list.sort((a, b) => (a.cardName || '').localeCompare(b.cardName || '', 'ja'));
+  } else {
+    const typeOrder = { '新規': 0, '再録': 1, 'パラレル': 2 };
+    list.sort((a, b) => (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9) || Number(a.slot) - Number(b.slot));
+  }
+  return list;
+}
+
+function cpZukanCardCellHtml(c) {
+  const key = cardKey(c);
+  const qty = ownedCollection[key] || 0;
+  const rarity = c.rarity || '';
+  const rarityBadge = rarity ? `<span class="cpRarityBadge" style="background:${cpRarityColor(rarity)};">${escapeHtml(rarity)}</span>` : '';
+  const qtyBadge = qty > 0 ? `<span class="cpZukanQtyBadge">${qty}</span>` : '';
+  return `
+    <div class="cpZukanCard cpCard ${qty > 0 ? 'owned' : ''}" data-key="${key}">
+      <div class="cpCardImgWrap">
+        ${rarityBadge}
+        <img src="${c.imageUrl}" alt="${escapeHtml(c.cardName)}" loading="lazy">
+        ${qtyBadge}
+      </div>
+      <div class="cpCardName">${escapeHtml(c.cardName)}</div>
+    </div>`;
+}
+
+async function cpRenderZukan() {
+  await cpEnsureZukanData();
+  if (!cpZukanCardsBySet) return;
+  const gridEl = document.getElementById('cpZukanGrid');
+  const sortKey = document.getElementById('cpZukanSortSelect').value;
+  const filterKey = document.getElementById('cpZukanFilterSelect').value;
+
+  const setOrder = cpSets.map(s => s.setCode);
+  const sortedSetCodes = Object.keys(cpZukanCardsBySet).sort((a, b) => {
+    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ib - ia; // 新しい弾を上に表示
+  });
+
+  const packsHtml = sortedSetCodes.map(sc => {
+    const allCardsInPack = cpZukanCardsBySet[sc] || [];
+    if (!allCardsInPack.length) return '';
+    let cards = allCardsInPack;
+    if (filterKey === 'owned') cards = cards.filter(c => (ownedCollection[cardKey(c)] || 0) > 0);
+    else if (filterKey === 'unowned') cards = cards.filter(c => !(ownedCollection[cardKey(c)] || 0));
+    if (!cards.length) return '';
+    cards = cpSortZukanCards(cards, sortKey);
+
+    const total = allCardsInPack.length;
+    const ownedCount = allCardsInPack.filter(c => (ownedCollection[cardKey(c)] || 0) > 0).length;
+    const setInfo = cpSets.find(s => s.setCode === sc);
+    const setName = setInfo ? setInfo.setName : (cpSetNameMap[sc] || '');
+    const packImageUrl = setInfo ? setInfo.packImageUrl : '';
+    const bannerImgHtml = packImageUrl ? `<img src="${packImageUrl}" alt="" loading="lazy">` : '';
+
+    return `
+      <div class="cpZukanPack">
+        <div class="cpZukanPackBanner">
+          ${bannerImgHtml}
+          <div class="cpZukanPackBannerOverlay">
+            <span class="cpZukanPackName">${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
+            <span class="cpZukanPackProgress">${ownedCount}/${total}種</span>
+          </div>
+        </div>
+        <div class="cpZukanPackGrid">${cards.map(c => cpZukanCardCellHtml(c)).join('')}</div>
+      </div>`;
+  }).join('');
+
+  gridEl.innerHTML = packsHtml || '<div class="cpHint">該当するカードがありません</div>';
+  gridEl.querySelectorAll('.cpZukanCard').forEach(el => {
+    el.addEventListener('click', () => cpOpenCardUsageOverlay(el.dataset.key));
+  });
+}
+
+document.getElementById('cpZukanSortSelect').addEventListener('change', cpRenderZukan);
+document.getElementById('cpZukanFilterSelect').addEventListener('change', cpRenderZukan);
+
+// 「一覧」⇔「図鑑」の表示切替（所持カード一覧タブ内、PC・スマホ共通で常時表示）
+document.querySelectorAll('#cpOwnedViewToggle .cpViewToggleBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#cpOwnedViewToggle .cpViewToggleBtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const isZukan = btn.dataset.view === 'zukan';
+    document.getElementById('cpOwnedViewList').style.display = isZukan ? 'none' : 'block';
+    document.getElementById('cpOwnedViewZukan').style.display = isZukan ? 'block' : 'none';
+    if (isZukan) cpRenderZukan();
+  });
+});
+
 // pane='owned'の枠に検索パネルのカードをドロップ→追加(+1) / pane='search'の枠に所持カードをドロップ→削除(-1)
 function cpSetupDropZone(el, pane) {
   el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('dragOver'); });
@@ -311,7 +438,7 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
       <div class="cpPackGroup${collapsible ? ' cpPackGroupCollapsible' : ''}">
         <div class="cpPackGroupHeader">
           <span class="cpPackGroupTitleWrap">
-            ${collapsible ? '<span class="cpPackGroupArrow">▶</span>' : ''}
+            ${collapsible ? `<span class="cpPackGroupArrow">${cpIcon('chevronRight', 11)}</span>` : ''}
             <span class="cpPackGroupTitle">${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
           </span>
           <span class="cpPackGroupCount">${countLabel}</span>
