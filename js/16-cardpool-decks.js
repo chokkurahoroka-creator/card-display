@@ -212,7 +212,7 @@ function cpDeckIconFrameHtml(meta, imageUrl) {
   const bg = colors.length >= 2 ? `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` : colors[0];
   const inner = imageUrl
     ? `<img src="${imageUrl}" alt="">`
-    : `<span class="cpDeckIconPlaceholder">🃏</span>`;
+    : `<span class="cpDeckIconPlaceholder">${cpIcon('card', 24)}</span>`;
   return `<div class="cpDeckIconFrame" style="background:${bg};"><div class="cpDeckIconInner">${inner}</div></div>`;
 }
 
@@ -244,8 +244,18 @@ async function cpPreloadDeckIcons() {
 async function cpLoadDecks() {
   const listEl = document.getElementById('cpDeckList');
   if (listEl) listEl.innerHTML = cpLoadingHtml('読み込み中...');
-  const res = await fetch(GAS_URL + `?action=listUserDecks&userId=${encodeURIComponent(userId)}`);
-  cpDecks = await res.json();
+  try {
+    const res = await cpFetchWithTimeout(GAS_URL + `?action=listUserDecks&userId=${encodeURIComponent(userId)}`, {}, 20000);
+    cpDecks = await res.json();
+  } catch (e) {
+    console.error('デッキ一覧の取得に失敗しました:', e);
+    if (listEl) {
+      listEl.innerHTML = '<div class="cpHint">読み込みに失敗しました（通信エラー）。<button type="button" class="cpSecondaryBtn cpRetryDecksBtn" style="margin-left:8px;">再読み込み</button></div>';
+      const btn = listEl.querySelector('.cpRetryDecksBtn');
+      if (btn) btn.addEventListener('click', cpLoadDecks);
+    }
+    return;
+  }
   await cpPreloadDeckIcons();
   cpRenderDeckList();
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
@@ -624,7 +634,7 @@ async function cpOpenDeckPreview(deck) {
         <div class="cpDeckPreviewName">${escapeHtml(deck.deckName)}</div>
         <div class="cpDeckPreviewMeta">${kinds}種類 / 計${totalAll}枚</div>
       </div>
-      <button type="button" class="cpSecondaryBtn cpDeckPreviewEditBtn" id="cpDeckPreviewEditBtn">✎ 編集</button>
+      <button type="button" class="cpSecondaryBtn cpDeckPreviewEditBtn" id="cpDeckPreviewEditBtn"><span class="cpBtnIcon">${cpIcon('edit', 13)}</span> 編集</button>
     </div>
     <div class="cpDeckPreviewSections">${sectionsHtml}</div>
   `;

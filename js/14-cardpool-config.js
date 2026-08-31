@@ -1,6 +1,32 @@
 // ===== 設定 =====
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxDQ0iJY8067G9hSLi-u2pvby54EBuhjiPo0inpIaS-8gIiOSEVZmxO8RwHZ00YqlYf/exec';
 
+// ===== アイコン（絵文字ではなく、マテリアルUI風のシンプルな線画アイコンで統一する） =====
+// キー: アイコン名、値: <svg>の中身（pathなど）のみ。実際の<svg>タグはcpIcon()が組み立てる
+const CP_ICON_PATHS = {
+  search: '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  add: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  addCircle: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  list: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+  badge: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2"/><line x1="14" y1="10" x2="18" y2="10"/><line x1="14" y1="14" x2="18" y2="14"/>',
+  warning: '<path d="M12 2L22 20H2Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  palette: '<circle cx="12" cy="12" r="9"/><circle cx="7.5" cy="10" r="1.3"/><circle cx="12" cy="7" r="1.3"/><circle cx="16.5" cy="10" r="1.3"/><circle cx="10" cy="16" r="1.3"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
+  tune: '<line x1="4" y1="6" x2="14" y2="6"/><circle cx="17" cy="6" r="2"/><line x1="10" y1="12" x2="20" y2="12"/><circle cx="7" cy="12" r="2"/><line x1="4" y1="18" x2="14" y2="18"/><circle cx="17" cy="18" r="2"/>',
+  arrowBack: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+  close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  chevronRight: '<polyline points="9 6 15 12 9 18"/>',
+  key: '<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2L20 3"/><path d="M16 7l3 3"/>',
+  card: '<rect x="6" y="3" width="12" height="18" rx="2"/>'
+};
+function cpIcon(name, size) {
+  const px = size || 16;
+  return `<svg class="cpIconSvg" viewBox="0 0 24 24" width="${px}" height="${px}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${CP_ICON_PATHS[name] || ''}</svg>`;
+}
+
 // ===== ユーザーID管理 =====
 // ログイン機能は作らず、「XXXX-XXXX」形式のシンプルなIDをブラウザに保持し、これをキーにスプレッドシート側の
 // 所持カード・デッキ情報を保存/取得する。別端末で同じ内容を見たい場合は、このIDを手入力してもらう想定。
@@ -39,6 +65,18 @@ function escapeHtml(s) {
 }
 function cardKey(c) { return `${c.setCode}__${c.type}__${c.slot}`; }
 
+// 通信がまれに応答なく固まった場合の保険として、タイムアウト付きでfetchするヘルパー。
+// 「読み込み中」のまま画面が固まってしまう不具合の対策として、一定時間で必ず失敗扱いにする
+async function cpFetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 20000);
+  try {
+    return await fetch(url, Object.assign({}, options || {}, { signal: controller.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // カード情報のキャッシュ（所持カード一覧・デッキ編集の両方で同じカードを何度も取得しないための共有キャッシュ）
 const collectionCardsCache = {};
 
@@ -47,15 +85,16 @@ const collectionCardsCache = {};
 // 表示が遅くなる（N回の往復が直列に発生する）。GAS側の action=getCardsByKeys（バッチ取得用）を
 // まとめて1回だけ呼ぶことで、この待ち時間をほぼ1回分に短縮する。
 // ※ GAS側にaction=getCardsByKeysが無い場合（未反映時）は自動的に個別取得へフォールバックする
+// ※ 通信が固まって「読み込み中」から進まなくなる不具合の対策として、各fetchにタイムアウトを設定している
 async function cpFetchCardsByKeys(keys) {
   const uncached = [...new Set((keys || []).filter(Boolean))].filter(k => !collectionCardsCache[k]);
   if (!uncached.length) return;
   try {
-    const res = await fetch(GAS_URL, {
+    const res = await cpFetchWithTimeout(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'getCardsByKeys', keys: uncached })
-    });
+    }, 20000);
     const json = await res.json();
     if (Array.isArray(json)) {
       json.forEach(c => { if (c) collectionCardsCache[cardKey(c)] = c; });
@@ -68,7 +107,7 @@ async function cpFetchCardsByKeys(keys) {
       if (collectionCardsCache[key]) return;
       const [setCode, type, slot] = key.split('__');
       try {
-        const r = await fetch(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`);
+        const r = await cpFetchWithTimeout(GAS_URL + `?action=getCard&setCode=${encodeURIComponent(setCode)}&type=${encodeURIComponent(type)}&slot=${encodeURIComponent(slot)}`, {}, 15000);
         const card = await r.json();
         if (card) collectionCardsCache[key] = card;
       } catch (e2) { /* 取得失敗時はスキップ（該当カードは表示から欠ける） */ }

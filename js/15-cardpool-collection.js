@@ -7,7 +7,7 @@ let cpSaveTimer = null;
 let cpDropZonesInitialized = false;
 
 async function cpLoadSets() {
-  const res = await fetch(GAS_URL + '?action=listSets');
+  const res = await cpFetchWithTimeout(GAS_URL + '?action=listSets', {}, 20000);
   const all = await res.json();
   cpSetNameMap = {};
   all.forEach(s => { cpSetNameMap[s.setCode] = s.setName; });
@@ -18,7 +18,7 @@ async function cpLoadSets() {
 }
 
 async function cpLoadOwnedCollection() {
-  const res = await fetch(GAS_URL + `?action=getUserCollection&userId=${encodeURIComponent(userId)}`);
+  const res = await cpFetchWithTimeout(GAS_URL + `?action=getUserCollection&userId=${encodeURIComponent(userId)}`, {}, 20000);
   const data = await res.json();
   ownedCollection = data.collection || {};
 }
@@ -264,7 +264,7 @@ async function cpEnsureZukanData() {
   gridEl.innerHTML = cpLoadingHtml('図鑑を読み込み中...');
   try {
     const results = await Promise.all(cpSets.map(async (s) => {
-      const res = await fetch(GAS_URL + `?action=list&setCode=${encodeURIComponent(s.setCode)}`);
+      const res = await cpFetchWithTimeout(GAS_URL + `?action=list&setCode=${encodeURIComponent(s.setCode)}`, {}, 20000);
       const cards = await res.json();
       return [s.setCode, Array.isArray(cards) ? cards : []];
     }));
@@ -272,7 +272,10 @@ async function cpEnsureZukanData() {
     // 取得したカード情報は他の画面（デッキ編集の詳細表示等）でも使い回せるようキャッシュしておく
     results.forEach(([, cards]) => cards.forEach(c => { collectionCardsCache[cardKey(c)] = c; }));
   } catch (e) {
-    gridEl.innerHTML = '<div class="cpHint">図鑑の読み込みに失敗しました</div>';
+    console.error('図鑑の読み込みに失敗しました:', e);
+    gridEl.innerHTML = '<div class="cpHint">図鑑の読み込みに失敗しました（通信エラー）。<button type="button" class="cpSecondaryBtn cpRetryZukanBtn" style="margin-left:8px;">再読み込み</button></div>';
+    const btn = gridEl.querySelector('.cpRetryZukanBtn');
+    if (btn) btn.addEventListener('click', cpRenderZukan);
   } finally {
     cpZukanLoading = false;
   }
@@ -470,8 +473,32 @@ async function cpRenderOwnedGrid() {
     const loadingHtml = cpLoadingHtml('読み込み中...');
     targets.forEach(t => { t.innerHTML = loadingHtml; });
   }
-  await cpFetchCardsByKeys(uncachedKeys);
+  // 通信エラーやタイムアウトが起きた場合に「読み込み中」のまま固まらないよう、
+  // 失敗時はエラーメッセージ＋再読み込みボタンを表示する
+  try {
+    await cpFetchCardsByKeys(uncachedKeys);
+  } catch (e) {
+    console.error('所持カードの取得に失敗しました:', e);
+    const errorHtml = '<div class="cpHint">読み込みに失敗しました（通信エラー）。<button type="button" class="cpSecondaryBtn cpRetryOwnedGridBtn" style="margin-left:8px;">再読み込み</button></div>';
+    targets.forEach(t => { t.innerHTML = errorHtml; });
+    targets.forEach(t => {
+      const btn = t.querySelector('.cpRetryOwnedGridBtn');
+      if (btn) btn.addEventListener('click', cpRenderOwnedGrid);
+    });
+    return;
+  }
   const cards = keys.map(k => collectionCardsCache[k]).filter(Boolean);
+  if (!cards.length && keys.length) {
+    // カードキーはあるのに1件も取得できなかった場合（GAS側のデータ不整合等）も、
+    // 空のまま黙って終わらせず、状況が分かるメッセージ＋再読み込みボタンを出す
+    const failHtml = '<div class="cpHint">カード情報を取得できませんでした。<button type="button" class="cpSecondaryBtn cpRetryOwnedGridBtn" style="margin-left:8px;">再読み込み</button></div>';
+    targets.forEach(t => { t.innerHTML = failHtml; });
+    targets.forEach(t => {
+      const btn = t.querySelector('.cpRetryOwnedGridBtn');
+      if (btn) btn.addEventListener('click', cpRenderOwnedGrid);
+    });
+    return;
+  }
   targets.forEach(t => cpRenderGroupedCards(t, cards, 'owned', '所持カードが見つかりませんでした'));
 }
 
@@ -534,8 +561,23 @@ document.getElementById('cpFilterClearBtn').addEventListener('click', () => {
 });
 
 async function cpInitCollectionTab() {
-  // 互いに依存しない初期データ取得は並列に行い、直列待ちの時間を減らす
-  await Promise.all([cpLoadSets(), cpLoadOwnedCollection()]);
+  // 互いに依存しない初期データ取得は並列に行い、直列待ちの時間を減らす。
+  // 失敗時（通信エラー・タイムアウト等）は「読み込み中」のまま固まらないよう、
+  // エラー表示＋再読み込みボタンを出して抜ける
+  try {
+    await Promise.all([cpLoadSets(), cpLoadOwnedCollection()]);
+  } catch (e) {
+    console.error('初期データの読み込みに失敗しました:', e);
+    const errorHtml = '<div class="cpHint">読み込みに失敗しました（通信エラー）。<button type="button" class="cpSecondaryBtn cpRetryInitBtn" style="margin-left:8px;">再読み込み</button></div>';
+    ['cpOwnedGrid', 'cpOwnedListGrid'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = errorHtml;
+      const btn = el.querySelector('.cpRetryInitBtn');
+      if (btn) btn.addEventListener('click', cpInitCollectionTab);
+    });
+    return;
+  }
   if (!cpDropZonesInitialized) {
     cpSetupDropZone(document.getElementById('cpOwnedGrid'), 'owned');
     cpSetupDropZone(document.getElementById('cpSearchGrid'), 'search');
