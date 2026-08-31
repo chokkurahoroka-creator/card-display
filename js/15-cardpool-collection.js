@@ -401,60 +401,69 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
     return;
   }
 
-  const groups = {};
-  cards.forEach(c => {
-    const sc = c.setCode || '（不明）';
-    if (!groups[sc]) groups[sc] = [];
-    groups[sc].push(c);
-  });
-  // 所持カード関連のパネル（所持カードタブ・デッキ編集の「所持カードから選ぶ」）はレア度順、
-  // 検索結果パネルは従来通りカード名順に並べる
-  const sortByRarity = (pane === 'owned' || pane === 'deckSource');
-  Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => {
-    if (sortByRarity) {
-      const diff = cpRarityOrderIndex(a.rarity) - cpRarityOrderIndex(b.rarity);
-      if (diff !== 0) return diff;
-    }
-    return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
-  }));
-
-  const setOrder = cpSets.map(s => s.setCode);
-  const sortedSetCodes = Object.keys(groups).sort((a, b) => {
-    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ib - ia;
-  });
-
-  // パックの折りたたみ（▶/▼）は「所持カード一覧」タブでのみ有効にする
-  const collapsible = gridEl.id === 'cpOwnedListGrid';
-
-  gridEl.innerHTML = sortedSetCodes.map(sc => {
-    const setName = cpSetNameMap[sc] || '';
-    const cardsHtml = groups[sc].map(c => cpCardCellHtml(c, pane)).join('');
-    // 所持カード関連のパネルは「枚数(種類)」、それ以外（検索結果など）は従来通り「種類」のみ表示する
-    const countLabel = (pane === 'owned' || pane === 'deckSource')
-      ? `${groups[sc].reduce((a, c) => a + (ownedCollection[cardKey(c)] || 0), 0)}枚(${groups[sc].length}種)`
-      : `${groups[sc].length}種`;
-    return `
-      <div class="cpPackGroup${collapsible ? ' cpPackGroupCollapsible' : ''}">
-        <div class="cpPackGroupHeader">
-          <span class="cpPackGroupTitleWrap">
-            ${collapsible ? `<span class="cpPackGroupArrow">${cpIcon('chevronRight', 11)}</span>` : ''}
-            <span class="cpPackGroupTitle">${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
-          </span>
-          <span class="cpPackGroupCount">${countLabel}</span>
-        </div>
-        <div class="cpPackGroupGrid">${cardsHtml}</div>
-      </div>`;
-  }).join('');
-  cpBindGridEvents(gridEl, pane);
-
-  if (collapsible) {
-    gridEl.querySelectorAll('.cpPackGroupCollapsible > .cpPackGroupHeader').forEach(header => {
-      header.addEventListener('click', () => header.parentElement.classList.toggle('cpCollapsed'));
+  try {
+    const groups = {};
+    cards.forEach(c => {
+      const sc = c.setCode || '（不明）';
+      if (!groups[sc]) groups[sc] = [];
+      groups[sc].push(c);
     });
+    // 所持カード関連のパネル（所持カードタブ・デッキ編集の「所持カードから選ぶ」）はレア度順、
+    // 検索結果パネルは従来通りカード名順に並べる
+    const sortByRarity = (pane === 'owned' || pane === 'deckSource');
+    Object.keys(groups).forEach(sc => groups[sc].sort((a, b) => {
+      if (sortByRarity) {
+        const diff = cpRarityOrderIndex(a.rarity) - cpRarityOrderIndex(b.rarity);
+        if (diff !== 0) return diff;
+      }
+      return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
+    }));
+
+    const setOrder = cpSets.map(s => s.setCode);
+    const sortedSetCodes = Object.keys(groups).sort((a, b) => {
+      const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ib - ia;
+    });
+
+    // パックの折りたたみ（▶/▼）は「所持カード一覧」タブでのみ有効にする
+    const collapsible = gridEl.id === 'cpOwnedListGrid';
+    const arrowHtml = collapsible ? `<span class="cpPackGroupArrow">${cpIcon('chevronRight', 11)}</span>` : '';
+
+    gridEl.innerHTML = sortedSetCodes.map(sc => {
+      const setName = cpSetNameMap[sc] || '';
+      const cardsHtml = groups[sc].map(c => cpCardCellHtml(c, pane)).join('');
+      // 所持カード関連のパネルは「枚数(種類)」、それ以外（検索結果など）は従来通り「種類」のみ表示する
+      const countLabel = (pane === 'owned' || pane === 'deckSource')
+        ? `${groups[sc].reduce((a, c) => a + (ownedCollection[cardKey(c)] || 0), 0)}枚(${groups[sc].length}種)`
+        : `${groups[sc].length}種`;
+      return `
+        <div class="cpPackGroup${collapsible ? ' cpPackGroupCollapsible' : ''}">
+          <div class="cpPackGroupHeader">
+            <span class="cpPackGroupTitleWrap">
+              ${arrowHtml}
+              <span class="cpPackGroupTitle">${escapeHtml(sc)}${setName ? '（' + escapeHtml(setName) + '）' : ''}</span>
+            </span>
+            <span class="cpPackGroupCount">${countLabel}</span>
+          </div>
+          <div class="cpPackGroupGrid">${cardsHtml}</div>
+        </div>`;
+    }).join('');
+    cpBindGridEvents(gridEl, pane);
+
+    if (collapsible) {
+      gridEl.querySelectorAll('.cpPackGroupCollapsible > .cpPackGroupHeader').forEach(header => {
+        header.addEventListener('click', () => header.parentElement.classList.toggle('cpCollapsed'));
+      });
+    }
+  } catch (e) {
+    // ここで失敗すると「読み込み中」のまま止まって見えてしまうため、必ず何かしら表示して復帰できるようにする
+    console.error(`cpRenderGroupedCards failed for #${gridEl.id || '(no id)'}:`, e);
+    gridEl.innerHTML = `<div class="cpHint">表示に失敗しました（${escapeHtml(e.message || String(e))}）。<button type="button" class="cpSecondaryBtn cpRetryGroupedBtn" style="margin-left:8px;">再読み込み</button></div>`;
+    const btn = gridEl.querySelector('.cpRetryGroupedBtn');
+    if (btn) btn.addEventListener('click', () => cpRenderGroupedCards(gridEl, cards, pane, emptyMessage));
   }
 }
 
