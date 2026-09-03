@@ -1,6 +1,7 @@
 // ===== 弾(sets)管理 =====
 let defaultSetCode = '';
 let selectedPackImageFile = null; // 弾保存時にアップロードするパック画像（未選択ならnull）
+let selectedBannerImageFile = null; // 弾保存時にアップロードするバナー画像（横長・未選択ならnull）
 
 // ===== パック画像アイコン付きの弾選択ドロップダウン =====
 // 既存の<select id="activeSet">はそのままvalue/changeイベントを使い続け、
@@ -75,6 +76,20 @@ document.getElementById('set_pack_image').addEventListener('change', (e) => {
   reader.readAsDataURL(file);
 });
 
+// 選択中のバナー画像（横長）をプレビューに反映
+document.getElementById('set_banner_image').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  selectedBannerImageFile = file;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const previewEl = document.getElementById('set_banner_image_preview');
+    previewEl.src = reader.result;
+    previewEl.style.display = 'inline-block';
+  };
+  reader.readAsDataURL(file);
+});
+
 // ===== 既存の弾（パック）を選んで編集 =====
 let editingSetCode = null; // 編集中の弾コード（nullなら新規作成モード）
 
@@ -100,6 +115,17 @@ function loadSetForEdit(s) {
     previewEl.src = '';
   }
 
+  selectedBannerImageFile = null;
+  document.getElementById('set_banner_image').value = '';
+  const bannerPreviewEl = document.getElementById('set_banner_image_preview');
+  if (s.bannerImageUrl) {
+    bannerPreviewEl.src = s.bannerImageUrl;
+    bannerPreviewEl.style.display = 'inline-block';
+  } else {
+    bannerPreviewEl.style.display = 'none';
+    bannerPreviewEl.src = '';
+  }
+
   updateSetEditModeUI();
   document.querySelector('.panelSet').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -118,6 +144,10 @@ function clearSetForm() {
   document.getElementById('set_pack_image').value = '';
   document.getElementById('set_pack_image_preview').style.display = 'none';
   document.getElementById('set_pack_image_preview').src = '';
+  selectedBannerImageFile = null;
+  document.getElementById('set_banner_image').value = '';
+  document.getElementById('set_banner_image_preview').style.display = 'none';
+  document.getElementById('set_banner_image_preview').src = '';
   updateSetEditModeUI();
 }
 
@@ -221,30 +251,52 @@ document.getElementById('saveSetBtn').addEventListener('click', async () => {
   if (!setCode) { alert('弾コードを入力してください'); return; }
 
   const saveBtn = document.getElementById('saveSetBtn');
-  // 新しい画像が選ばれていなければ、既存のパック画像URLをそのまま引き継ぐ
+  // 新しい画像が選ばれていなければ、既存のパック画像URL・バナー画像URLをそのまま引き継ぐ
   const existing = sets.find(s => s.setCode === setCode);
   let packImageUrl = (existing && existing.packImageUrl) || '';
+  let bannerImageUrl = (existing && existing.bannerImageUrl) || '';
 
-  if (selectedPackImageFile) {
+  if (selectedPackImageFile || selectedBannerImageFile) {
     const ghUser = getCfg('user'), ghRepo = getCfg('repo'), ghPat = getCfg('pat');
     if (!ghUser || !ghRepo || !ghPat) {
-      alert('パック画像をアップロードするには、先に「初期設定」でGitHubの情報を入力してください');
+      alert('画像をアップロードするには、先に「初期設定」でGitHubの情報を入力してください');
       return;
     }
     saveBtn.disabled = true;
-    saveBtn.textContent = 'パック画像をアップロード中...';
-    try {
-      const packImg = await loadImage(selectedPackImageFile);
-      const packDataUrl = cropImageToDataUrl(packImg, { x: 0, y: 0, width: 1, height: 1 }, 400, 0.85);
-      const path = `packs/${setCode}.jpg`;
-      await uploadToGithub(ghUser, ghRepo, ghPat, path, packDataUrl.split(',')[1]);
-      packImageUrl = `https://raw.githubusercontent.com/${ghUser.trim()}/${ghRepo.trim()}/main/${path}`;
-    } catch (err) {
-      alert('パック画像のアップロードに失敗しました: ' + err.message);
-      saveBtn.disabled = false;
-      updateSetEditModeUI();
-      return;
+
+    if (selectedPackImageFile) {
+      saveBtn.textContent = 'パック画像をアップロード中...';
+      try {
+        const packImg = await loadImage(selectedPackImageFile);
+        const packDataUrl = cropImageToDataUrl(packImg, { x: 0, y: 0, width: 1, height: 1 }, 400, 0.85);
+        const path = `packs/${setCode}.jpg`;
+        await uploadToGithub(ghUser, ghRepo, ghPat, path, packDataUrl.split(',')[1]);
+        packImageUrl = `https://raw.githubusercontent.com/${ghUser.trim()}/${ghRepo.trim()}/main/${path}`;
+      } catch (err) {
+        alert('パック画像のアップロードに失敗しました: ' + err.message);
+        saveBtn.disabled = false;
+        updateSetEditModeUI();
+        return;
+      }
     }
+
+    if (selectedBannerImageFile) {
+      saveBtn.textContent = 'バナー画像をアップロード中...';
+      try {
+        const bannerImg = await loadImage(selectedBannerImageFile);
+        // バナーは横長で大きく表示されるため、パック画像より広めの最大幅で保存する（切り抜き自体は表示側のCSSで行う）
+        const bannerDataUrl = cropImageToDataUrl(bannerImg, { x: 0, y: 0, width: 1, height: 1 }, 1200, 0.85);
+        const path = `packs/${setCode}_banner.jpg`;
+        await uploadToGithub(ghUser, ghRepo, ghPat, path, bannerDataUrl.split(',')[1]);
+        bannerImageUrl = `https://raw.githubusercontent.com/${ghUser.trim()}/${ghRepo.trim()}/main/${path}`;
+      } catch (err) {
+        alert('バナー画像のアップロードに失敗しました: ' + err.message);
+        saveBtn.disabled = false;
+        updateSetEditModeUI();
+        return;
+      }
+    }
+
     saveBtn.disabled = false;
     updateSetEditModeUI();
   }
@@ -258,7 +310,8 @@ document.getElementById('saveSetBtn').addEventListener('click', async () => {
     totalParallel: Number(document.getElementById('set_parallel').value) || 0,
     packType: document.getElementById('set_pack_type').value,
     releaseDate: document.getElementById('set_release_date').value,
-    packImageUrl
+    packImageUrl,
+    bannerImageUrl
   };
   await fetch(gasUrl, { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(body) });
   const wasEditing = !!editingSetCode;

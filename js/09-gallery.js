@@ -29,8 +29,24 @@ function hasCardRating(c) {
 }
 
 // カードを「推しホロメン」「ホロメン」「サポート」「その他」の4カテゴリに分類し、各カテゴリ内をソートする
+// sortModeが指定されていれば（'slot'/'rarity'/'name'）そちらを優先し、未指定（'default'）なら
+// これまで通り属性別（推しホロメン/ホロメン）・サブタイプ別（サポート）の並び順を使う
 // 戻り値は [{ label, cards }, ...]（該当カードが無いカテゴリは含めない）
-function categorizeCards(cardsOfType) {
+const GALLERY_RARITY_ORDER = ['SEC', 'OUR', 'OSR', 'OC', 'HR', 'SY', 'UR', 'SR', 'RR', 'U', 'S', 'R', 'C', 'P', '判別不能', 'その他'];
+function galleryRarityOrderIndex(rarity) {
+  const r = (rarity || '').toUpperCase().trim();
+  if (!r) return GALLERY_RARITY_ORDER.indexOf('その他');
+  const idx = GALLERY_RARITY_ORDER.indexOf(r);
+  return idx === -1 ? GALLERY_RARITY_ORDER.indexOf('判別不能') : idx;
+}
+function getGalleryComparator(sortMode) {
+  if (sortMode === 'slot') return (a, b) => Number(a.slot) - Number(b.slot);
+  if (sortMode === 'rarity') return (a, b) => galleryRarityOrderIndex(a.rarity) - galleryRarityOrderIndex(b.rarity) || byNameJa(a, b);
+  if (sortMode === 'name') return byNameJa;
+  return null;
+}
+
+function categorizeCards(cardsOfType, sortMode) {
   const oshiCards = cardsOfType.filter(c => (c.cardType || '').indexOf('推しホロメン') !== -1);
   const holomenCards = cardsOfType.filter(c => (c.cardType || '').indexOf('推しホロメン') === -1 && (c.cardType || '').indexOf('ホロメン') !== -1);
   const supportCards = cardsOfType.filter(c => (c.cardType || '').indexOf('サポート') !== -1);
@@ -38,17 +54,23 @@ function categorizeCards(cardsOfType) {
     oshiCards.indexOf(c) === -1 && holomenCards.indexOf(c) === -1 && supportCards.indexOf(c) === -1
   );
 
-  const byAttrThenName = (a, b) => {
-    const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
-    return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b) || (stageOrderIndex(a.stage) - stageOrderIndex(b.stage));
-  };
-  oshiCards.sort(byAttrThenName);
-  holomenCards.sort(byAttrThenName);
-  supportCards.sort((a, b) => {
-    const ai = getSupportSubtypeIndex(a.cardType); const bi = getSupportSubtypeIndex(b.cardType);
-    return (ai - bi) || byNameJa(a, b);
-  });
-  otherCards.sort(byNameJa);
+  const overrideCmp = getGalleryComparator(sortMode);
+  if (overrideCmp) {
+    // 枠番号順・レアリティ順・カード名順が選ばれている場合は、カテゴリごとの既定の並びより優先する
+    [oshiCards, holomenCards, supportCards, otherCards].forEach(arr => arr.sort(overrideCmp));
+  } else {
+    const byAttrThenName = (a, b) => {
+      const ai = ATTR_ORDER.indexOf(a.attribute); const bi = ATTR_ORDER.indexOf(b.attribute);
+      return ((ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)) || byNameJa(a, b) || (stageOrderIndex(a.stage) - stageOrderIndex(b.stage));
+    };
+    oshiCards.sort(byAttrThenName);
+    holomenCards.sort(byAttrThenName);
+    supportCards.sort((a, b) => {
+      const ai = getSupportSubtypeIndex(a.cardType); const bi = getSupportSubtypeIndex(b.cardType);
+      return (ai - bi) || byNameJa(a, b);
+    });
+    otherCards.sort(byNameJa);
+  }
 
   const groups = [
     { label: '推しホロメン', cards: oshiCards },
@@ -60,7 +82,7 @@ function categorizeCards(cardsOfType) {
 }
 // 新規/再録/パラレルそれぞれを「推しホロメン/ホロメン/サポート/その他」に分類したセクション構成を返す
 // 戻り値: [{ typeLabel, label, cards }, ...]
-function buildGallerySections(cards) {
+function buildGallerySections(cards, sortMode) {
   const sections = [];
   [
     { type: '新規', typeLabel: '新規' },
@@ -68,11 +90,15 @@ function buildGallerySections(cards) {
     { type: 'パラレル', typeLabel: 'パラレル' },
   ].forEach(({ type, typeLabel }) => {
     const cardsOfType = cards.filter(c => c.type === type);
-    const groups = categorizeCards(cardsOfType);
+    const groups = categorizeCards(cardsOfType, sortMode);
     groups.forEach(g => sections.push({ typeLabel, label: g.label, cards: g.cards }));
   });
   return sections;
 }
+
+// 直近にfetchしたカード一覧をキャッシュしておき、検索・並び替えの変更時は再取得せず
+// クライアント側だけで再描画できるようにする（renderGalleryFromCacheが実際の描画を担当）
+let galleryCardsCache = [];
 
 async function renderGallery() {
   const gasUrl = getCfg('gas');
@@ -83,14 +109,33 @@ async function renderGallery() {
 
   gridEl.innerHTML = '<div class="hint">読み込み中...</div>';
   const res = await fetch(gasUrl + `?action=list&setCode=${encodeURIComponent(setCode)}`);
-  let cards = await res.json();
+  galleryCardsCache = await res.json();
+  renderGalleryFromCache();
+}
 
-  if (!cards.length) {
+// パック内検索・並び替えの状態に応じて、キャッシュ済みのカード一覧から再描画する
+function renderGalleryFromCache() {
+  const gasUrl = getCfg('gas');
+  const setCode = document.getElementById('activeSet').value;
+  const gridEl = document.getElementById('galleryGrid');
+
+  if (!galleryCardsCache.length) {
     gridEl.innerHTML = '<div class="hint">この弾にはまだカードが登録されていません</div>';
     return;
   }
 
-  const sections = buildGallerySections(cards);
+  const query = (document.getElementById('gallerySearchInput').value || '').trim().toLowerCase();
+  let cards = query
+    ? galleryCardsCache.filter(c => (c.cardName || '').toLowerCase().indexOf(query) !== -1)
+    : galleryCardsCache;
+
+  if (!cards.length) {
+    gridEl.innerHTML = `<div class="hint">「${escapeAttr(query)}」に一致するカードが見つかりませんでした</div>`;
+    return;
+  }
+
+  const sortMode = document.getElementById('gallerySortSelect').value;
+  const sections = buildGallerySections(cards, sortMode);
   let cardCounter = 0;
 
   gridEl.innerHTML = sections.map(sec => `
@@ -137,6 +182,8 @@ async function renderGallery() {
     });
   });
 }
+document.getElementById('gallerySearchInput').addEventListener('input', renderGalleryFromCache);
+document.getElementById('gallerySortSelect').addEventListener('change', renderGalleryFromCache);
 
 async function startEditCard(card) {
   editingCard = card;

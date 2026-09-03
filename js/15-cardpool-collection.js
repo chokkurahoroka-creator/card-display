@@ -341,8 +341,9 @@ async function cpRenderZukan() {
     const ownedCount = allCardsInPack.filter(c => (ownedCollection[cardKey(c)] || 0) > 0).length;
     const setInfo = cpSets.find(s => s.setCode === sc);
     const setName = setInfo ? setInfo.setName : (cpSetNameMap[sc] || '');
-    const packImageUrl = setInfo ? setInfo.packImageUrl : '';
-    const bannerImgHtml = packImageUrl ? `<img src="${packImageUrl}" alt="" loading="lazy">` : '';
+    // 専用の横長バナー画像があればそれを使い、無ければ従来のパック画像（アイコン用）を代用する
+    const bannerImageUrl = setInfo ? (setInfo.bannerImageUrl || setInfo.packImageUrl) : '';
+    const bannerImgHtml = bannerImageUrl ? `<img src="${bannerImageUrl}" alt="" loading="lazy">` : '';
 
     return `
       <div class="cpZukanPack">
@@ -361,6 +362,7 @@ async function cpRenderZukan() {
   gridEl.querySelectorAll('.cpZukanCard').forEach(el => {
     el.addEventListener('click', () => cpOpenCardUsageOverlay(el.dataset.key));
   });
+  cpScheduleFitGridHeights();
 }
 
 document.getElementById('cpZukanSortSelect').addEventListener('change', cpRenderZukan);
@@ -375,6 +377,7 @@ document.querySelectorAll('#cpOwnedViewToggle .cpViewToggleBtn').forEach(btn => 
     document.getElementById('cpOwnedViewList').style.display = isZukan ? 'none' : 'block';
     document.getElementById('cpOwnedViewZukan').style.display = isZukan ? 'block' : 'none';
     if (isZukan) cpRenderZukan();
+    cpScheduleFitGridHeights();
   });
 });
 
@@ -398,6 +401,7 @@ function cpSetupDropZone(el, pane) {
 function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
   if (!cards.length) {
     gridEl.innerHTML = `<div class="cpHint">${emptyMessage}</div>`;
+    cpScheduleFitGridHeights();
     return;
   }
 
@@ -455,15 +459,20 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
 
     if (collapsible) {
       gridEl.querySelectorAll('.cpPackGroupCollapsible > .cpPackGroupHeader').forEach(header => {
-        header.addEventListener('click', () => header.parentElement.classList.toggle('cpCollapsed'));
+        header.addEventListener('click', () => {
+          header.parentElement.classList.toggle('cpCollapsed');
+          cpScheduleFitGridHeights(); // 折りたたみで上のパックの高さが変わるため再計算する
+        });
       });
     }
+    cpScheduleFitGridHeights();
   } catch (e) {
     // ここで失敗すると「読み込み中」のまま止まって見えてしまうため、必ず何かしら表示して復帰できるようにする
     console.error(`cpRenderGroupedCards failed for #${gridEl.id || '(no id)'}:`, e);
     gridEl.innerHTML = `<div class="cpHint">表示に失敗しました（${escapeHtml(e.message || String(e))}）。<button type="button" class="cpSecondaryBtn cpRetryGroupedBtn" style="margin-left:8px;">再読み込み</button></div>`;
     const btn = gridEl.querySelector('.cpRetryGroupedBtn');
     if (btn) btn.addEventListener('click', () => cpRenderGroupedCards(gridEl, cards, pane, emptyMessage));
+    cpScheduleFitGridHeights();
   }
 }
 
@@ -655,4 +664,5 @@ async function cpRenderUnownedDeckCardsPanel() {
 document.getElementById('cpUnownedDeckToggleBtn').addEventListener('click', () => {
   const panelEl = document.getElementById('cpUnownedDeckPanel');
   panelEl.style.display = panelEl.style.display === 'none' ? 'block' : 'none';
+  cpScheduleFitGridHeights(); // パネルの開閉で下の一覧の高さが変わるため再計算する
 });

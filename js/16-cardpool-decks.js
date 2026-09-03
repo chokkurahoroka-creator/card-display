@@ -398,6 +398,7 @@ document.getElementById('cpDeckSettingsToggleBtn').addEventListener('click', () 
   const willOpen = panel.style.display === 'none';
   panel.style.display = willOpen ? 'block' : 'none';
   toggleBtn.classList.toggle('active', willOpen);
+  cpScheduleFitGridHeights(); // パネルの開閉で下のデッキ枠の高さが変わるため再計算する
 });
 
 // セクション見出し「ラベル (N枚)」＋区切り線＋カードタイルのグリッド
@@ -573,6 +574,7 @@ async function cpRenderDeckEditorCards() {
 
   cpBindDeckEditorCardEvents(document.getElementById('cpDeckMainZone'));
   cpBindDeckEditorCardEvents(document.getElementById('cpDeckSideZone'));
+  cpScheduleFitGridHeights();
 }
 
 // ===== デッキ一覧のアイコンをクリックした時：デッキ内容プレビュー（読み取り専用） =====
@@ -793,6 +795,7 @@ document.querySelectorAll('.cpDeckAddModeBtn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('cpDeckAddModeOwned').style.display = btn.dataset.mode === 'owned' ? 'block' : 'none';
     document.getElementById('cpDeckAddModeSearch').style.display = btn.dataset.mode === 'search' ? 'block' : 'none';
+    cpScheduleFitGridHeights();
   });
 });
 

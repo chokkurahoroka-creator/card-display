@@ -130,3 +130,29 @@ function cpCloseImageZoom() {
   document.getElementById('cpImageZoomOverlay').classList.remove('open');
 }
 document.getElementById('cpImageZoomOverlay').addEventListener('click', cpCloseImageZoom);
+
+// ===== スマホ表示：カード一覧の枠を、下部固定タブバーの上端まで届くように動的に調整する =====
+// 画面上部にある要素（検索欄・切替ボタン・ID/未所持カードパネルの開閉状態など）によって
+// 使える縦幅がその都度変わるため、固定のvh指定ではなく実際のレイアウトから逆算して高さを設定する。
+// カードが1枚も無い（読み込み中・空の状態）場合は、CSS側の自動サイズ調整に任せて何もしない
+const CP_FIT_GRID_SELECTORS = ['#cpOwnedListGrid', '#cpOwnedGrid', '#cpSearchGrid', '#cpZukanGrid', '#cpDeckSections', '#cpDeckSourceGrid', '#cpDeckSearchResults'];
+function cpFitVisibleGridHeights() {
+  if (window.innerWidth > 640) return; // スマホ表示時のみ
+  const tabBar = document.querySelector('.cpTabs');
+  const tabBarHeight = tabBar ? tabBar.getBoundingClientRect().height : 0;
+  CP_FIT_GRID_SELECTORS.forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el || el.offsetParent === null) return; // 非表示中の枠は計算しない
+    if (!el.querySelector('.cpCard')) { el.style.height = ''; return; } // 空の枠はCSS側の自動サイズに任せる
+    const rect = el.getBoundingClientRect();
+    const available = window.innerHeight - rect.top - tabBarHeight - 10;
+    el.style.height = Math.max(160, Math.round(available)) + 'px';
+  });
+}
+let cpFitGridHeightsTimer = null;
+function cpScheduleFitGridHeights() {
+  clearTimeout(cpFitGridHeightsTimer);
+  cpFitGridHeightsTimer = setTimeout(cpFitVisibleGridHeights, 60);
+}
+window.addEventListener('resize', cpScheduleFitGridHeights);
+window.addEventListener('orientationchange', cpScheduleFitGridHeights);

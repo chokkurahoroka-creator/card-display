@@ -5,6 +5,7 @@ document.querySelectorAll('.cpTabBtn').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.cpTabPanel').forEach(p => p.style.display = 'none');
     document.getElementById('cpTab_' + btn.dataset.tab).style.display = 'block';
+    cpScheduleFitGridHeights();
   });
 });
 
@@ -22,6 +23,7 @@ document.querySelectorAll('.cpPaneToggle').forEach(toggleEl => {
       btns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       panes.forEach((p, pi) => p.classList.toggle('cpPaneActive', pi === i));
+      cpScheduleFitGridHeights();
     });
   });
 });
@@ -34,6 +36,7 @@ document.getElementById('cpUserIdToggleBtn').addEventListener('click', () => {
   const box = document.getElementById('userIdBox');
   const isOpen = box.style.display !== 'none';
   box.style.display = isOpen ? 'none' : 'flex';
+  cpScheduleFitGridHeights(); // ID欄の開閉で上部の高さが変わるため、グリッドの高さを再計算する
 });
 
 document.getElementById('cpCopyUserIdBtn').addEventListener('click', async () => {
@@ -82,6 +85,7 @@ document.getElementById('cpChangeIdConfirmBtn').addEventListener('click', async 
   cpRenderUserIdBox();
   await cpInitCollectionTab();
   await cpLoadDecks();
+  cpScheduleFitGridHeights();
   alert('IDを切り替えました');
 });
 
@@ -92,6 +96,7 @@ document.getElementById('cpIdOnboardNewBtn').addEventListener('click', async () 
   document.getElementById('cpIdOnboardOverlay').style.display = 'none';
   await Promise.all([cpInitCollectionTab(), cpLoadDecks()]);
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
+  cpScheduleFitGridHeights();
 });
 document.getElementById('cpIdOnboardExistingBtn').addEventListener('click', () => {
   document.getElementById('cpIdOnboardChoices').style.display = 'none';
@@ -124,6 +129,7 @@ document.getElementById('cpIdOnboardConfirmBtn').addEventListener('click', async
   document.getElementById('cpIdOnboardOverlay').style.display = 'none';
   await Promise.all([cpInitCollectionTab(), cpLoadDecks()]);
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
+  cpScheduleFitGridHeights();
 });
 
 // ===== 初期化 =====
@@ -139,4 +145,5 @@ document.getElementById('cpIdOnboardConfirmBtn').addEventListener('click', async
   }
   await Promise.all([cpInitCollectionTab(), cpLoadDecks()]);
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
+  cpScheduleFitGridHeights();
 })();
