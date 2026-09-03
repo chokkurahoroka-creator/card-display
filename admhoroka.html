@@ -616,6 +616,14 @@
     </div>
     <div class="hint">未選択のまま保存すると、既存のパック画像がそのまま維持されます</div>
   </div>
+  <div class="field" style="margin-top:10px;">
+    <label>パックバナー画像（横長・カードプール管理の図鑑機能でパック見出しに表示されます）</label>
+    <div class="row" style="align-items:center; flex-wrap:nowrap;">
+      <img id="set_banner_image_preview" alt="" style="display:none; width:96px; height:48px; object-fit:cover; border-radius:8px; border:1px solid rgba(212,175,106,0.4); flex-shrink:0;">
+      <input type="file" id="set_banner_image" accept="image/*" style="display:block; width:auto; flex:1;">
+    </div>
+    <div class="hint">横長の画像を推奨します（表示時は横幅に合わせて自動的に切り抜かれます）。未選択のまま保存すると、既存のバナー画像がそのまま維持されます</div>
+  </div>
   <button class="secondary" id="saveSetBtn">この弾を保存</button>
   <div style="display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap;">
     <span id="setEditingBadge" class="hint" style="display:none; color:var(--gold);"></span>
@@ -815,6 +823,19 @@
 <div class="panel galleryPanel" id="galleryPanel">
   <div id="streamPackTitle" class="streamPackTitle" style="display:none;"></div>
   <h2>一覧画面表示 <span class="hint" style="display:inline;">（カードをクリックするとポップアップで編集できます）</span></h2>
+  <div class="row" style="align-items:center; margin-bottom:14px; flex-wrap:wrap;">
+    <div class="field" style="flex:2; min-width:200px; margin:0;">
+      <input type="text" id="gallerySearchInput" placeholder="🔍 このパック内のカードを名前で検索">
+    </div>
+    <div class="field" style="flex:1; min-width:160px; margin:0;">
+      <select id="gallerySortSelect">
+        <option value="default">標準順（属性・カテゴリ順）</option>
+        <option value="slot">枠番号順</option>
+        <option value="rarity">レアリティ順</option>
+        <option value="name">カード名順</option>
+      </select>
+    </div>
+  </div>
   <div id="galleryGrid" class="galleryGrid"></div>
 </div>
 

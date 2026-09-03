@@ -218,6 +218,7 @@
     overflow-y: auto; overflow-x: hidden;
     padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.015);
   }
+  #cpOwnedListGrid { height: 75vh; max-height: 820px; }
   /* 所持カード枠と検索枠を色・枠線太さで見分けやすくする */
   #cpOwnedGrid { border: 3px solid rgba(212,175,106,0.6); background: rgba(212,175,106,0.035); }
   #cpSearchGrid { border: 1px solid rgba(90,155,212,0.45); background: rgba(90,155,212,0.03); }
@@ -672,7 +673,7 @@
     .cpPaneHeader h3 { font-size: 12.5px; }
     .cpCollectionSplit { gap: 0; }
     .cpCollectionGrid { height: 60vh; min-height: 320px; padding: 8px; border-radius: 8px; }
-    #cpOwnedListGrid { height: 68vh !important; }
+    #cpOwnedListGrid { height: 68vh; }
     .cpPackGroup { margin-bottom: 14px; }
     .cpPackGroupHeader { font-size: 11.5px; padding: 2px 2px 6px; margin-bottom: 7px; }
     .cpPackGroupCount { font-size: 10px; }
@@ -830,7 +831,7 @@
       <button type="button" class="cpViewToggleBtn" data-view="zukan"><svg class="cpIconSvg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> 図鑑</button>
     </div>
     <div id="cpOwnedViewList">
-      <div id="cpOwnedListGrid" class="cpCollectionGrid cpDropTarget" style="height:75vh; max-height:820px;"></div>
+      <div id="cpOwnedListGrid" class="cpCollectionGrid cpDropTarget"></div>
     </div>
     <div id="cpOwnedViewZukan" style="display:none;">
       <div class="cpZukanControls">
