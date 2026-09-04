@@ -28,6 +28,30 @@ function hasCardRating(c) {
   }
 }
 
+// カード名だけでなく、タグ・アーツ効果・固有スキル効果のテキストも対象に検索できるようにする
+function cardMatchesGalleryQuery(c, query) {
+  if ((c.cardName || '').toLowerCase().indexOf(query) !== -1) return true;
+  if ((c.tags || '').toLowerCase().indexOf(query) !== -1) return true;
+
+  try {
+    const arts = JSON.parse(c.artsJson || '[]');
+    if (Array.isArray(arts) && arts.some(a =>
+      (a.name || '').toLowerCase().indexOf(query) !== -1 ||
+      (a.effectText || '').toLowerCase().indexOf(query) !== -1
+    )) return true;
+  } catch (e) { /* artsJsonが壊れている場合はスキップ */ }
+
+  try {
+    const skills = JSON.parse(c.skillsJson || '[]');
+    if (Array.isArray(skills) && skills.some(s =>
+      (s.title || '').toLowerCase().indexOf(query) !== -1 ||
+      (s.text || '').toLowerCase().indexOf(query) !== -1
+    )) return true;
+  } catch (e) { /* skillsJsonが壊れている場合はスキップ */ }
+
+  return false;
+}
+
 // カードを「推しホロメン」「ホロメン」「サポート」「その他」の4カテゴリに分類し、各カテゴリ内をソートする
 // sortModeが指定されていれば（'slot'/'rarity'/'name'）そちらを優先し、未指定（'default'）なら
 // これまで通り属性別（推しホロメン/ホロメン）・サブタイプ別（サポート）の並び順を使う
@@ -126,7 +150,7 @@ function renderGalleryFromCache() {
 
   const query = (document.getElementById('gallerySearchInput').value || '').trim().toLowerCase();
   let cards = query
-    ? galleryCardsCache.filter(c => (c.cardName || '').toLowerCase().indexOf(query) !== -1)
+    ? galleryCardsCache.filter(c => cardMatchesGalleryQuery(c, query))
     : galleryCardsCache;
 
   if (!cards.length) {
@@ -252,4 +276,3 @@ async function startEditCard(card) {
   applyStreamModeDetailsCollapse();
   openEditModal();
 }
-
