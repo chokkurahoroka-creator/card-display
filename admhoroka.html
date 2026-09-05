@@ -929,7 +929,15 @@
       <label>抽選するパック</label>
       <select id="bingoSetSelect"><option value="">選択してください</option></select>
     </div>
-    <div id="bingoRarityRows" class="hint" style="margin-top:10px;">パックを選択すると、収録されているレアリティごとに候補プール（パック内総合番号）が表示されます</div>
+    <div id="bingoRarityRows" class="hint" style="margin-top:10px;">パックを選択すると、レア度を複数選択して候補プール（パック内総合番号）を組み立てられます</div>
+    <button type="button" class="secondary" id="bingoAddGroupBtn" style="margin-top:0; display:none;">＋ 抽選グループを追加</button>
+
+    <div class="field" style="margin-top:16px;">
+      <label>特殊マス（手入力）</label>
+      <textarea id="bingoSpecialInput" rows="2" placeholder="例: ラッキーナンバー枠, 記念品プレゼント枠" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:12px;"></textarea>
+      <div class="hint" style="margin:4px 0 0;">カード抽選プールとは別に、そのまま結果へ含めます。カンマまたは改行区切りで複数入力可（画像は無くテキストのみ表示されます）</div>
+    </div>
+
     <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
       <button type="button" id="bingoDrawBtn" style="margin-top:0;">🎲 抽選する</button>
       <button type="button" class="secondary" id="bingoDownloadBtn" style="margin-top:0; display:none;">当選カード画像を一括ダウンロード（ZIP）</button>
