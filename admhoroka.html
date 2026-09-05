@@ -585,6 +585,11 @@
 <!-- ===== 弾（セット）設定 ===== -->
 <div class="panel panelSet">
   <h2>① 弾の設定</h2>
+  <div class="field" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed rgba(212,175,106,0.3);">
+    <label>作業者名</label>
+    <input id="worker_name" placeholder="例: うる">
+    <div class="hint">入力した名前はブラウザに保存され、次回以降も表示されます。カード登録時に「登録者」として記録されます</div>
+  </div>
   <div class="row">
     <div class="field"><label>弾コード（例: hSD06）</label><input id="set_code"></div>
     <div class="field"><label>弾の名称</label><input id="set_name" placeholder="サマー・ホログラム"></div>
@@ -647,6 +652,10 @@
 <!-- ===== アップロード ===== -->
 <div class="panel panelUpload">
   <h2 id="uploadPanelTitle">② カード画像アップロード</h2>
+  <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; margin-bottom:12px;">
+    <input type="checkbox" id="continuousModeToggle" style="width:16px; height:16px;">
+    <span>連続登録モード（登録後、カード番号・配置スロットを自動で+1して次のカードを続けて登録）</span>
+  </label>
   <div class="drop" id="dropZone">
     <div>ここをクリックまたはドラッグ&ドロップ（AIで自動解析）</div>
     <input type="file" id="fileInput" accept="image/*">
