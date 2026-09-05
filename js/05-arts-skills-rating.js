@@ -5,6 +5,13 @@ function escapeAttr(s) {
   return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// テキスト量に合わせてtextareaの高さを自動調整する（アーツ効果・固有スキル効果の入力欄用）
+function autoGrowTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
 function addYellRowTo(container, color, count) {
   const div = document.createElement('div');
   div.className = 'row';
@@ -29,8 +36,10 @@ function addArtsRow(art) {
   const wrap = document.getElementById('artsRows');
   const box = document.createElement('div');
   box.className = 'artsBox';
-  box.style.cssText = 'border:1px solid rgba(212,175,106,0.25); border-radius:8px; padding:10px; margin-bottom:10px;';
+  // アーツ＝攻撃技のイメージで暖色（オレンジ系）の左アクセントバーを付け、固有スキルと見分けやすくする
+  box.style.cssText = 'border:1px solid rgba(229,140,90,0.35); border-left:4px solid #e88c4d; border-radius:8px; padding:10px; margin-bottom:10px; background:rgba(229,140,90,0.06);';
   box.innerHTML = `
+    <div style="font-size:11px; font-weight:bold; color:#e88c4d; letter-spacing:0.05em; margin-bottom:8px;">⚔ アーツ</div>
     <div class="row">
       <div class="field"><label>アーツ名</label><input class="artsName" value="${escapeAttr(art.name || '')}"></div>
       <div class="field"><label>ダメージ</label><input class="artsDamage" value="${escapeAttr(art.damage || '')}"></div>
@@ -52,7 +61,7 @@ function addArtsRow(art) {
     </div>
     <div class="field">
       <label>アーツ効果テキスト</label>
-      <textarea class="artsEffect" rows="2" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:12px;">${escapeAttr(art.effectText || '')}</textarea>
+      <textarea class="artsEffect" rows="2" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:12px;overflow:hidden;resize:none;">${escapeAttr(art.effectText || '')}</textarea>
     </div>
     <button type="button" class="secondary removeArtsBtn">このアーツを削除</button>
   `;
@@ -61,6 +70,11 @@ function addArtsRow(art) {
   box.querySelector('.addArtsYellBtn').addEventListener('click', () => addYellRowTo(yellRowsEl, '無色', 1));
   box.querySelector('.removeArtsBtn').addEventListener('click', () => box.remove());
   wrap.appendChild(box);
+
+  // テキスト量に応じて効果テキスト欄の高さを自動調整（入力時＋編集データ復元時の初期表示の両方に対応）
+  const artsEffectEl = box.querySelector('.artsEffect');
+  artsEffectEl.addEventListener('input', () => autoGrowTextarea(artsEffectEl));
+  autoGrowTextarea(artsEffectEl);
 }
 
 function getArtsRows() {
@@ -96,8 +110,10 @@ function addSkillRow(skill) {
   const wrap = document.getElementById('skillsRows');
   const box = document.createElement('div');
   box.className = 'skillBox';
-  box.style.cssText = 'border:1px solid rgba(212,175,106,0.25); border-radius:8px; padding:10px; margin-bottom:10px;';
+  // 固有スキル＝補助・特殊効果のイメージで寒色（ブルー系）の左アクセントバーを付け、アーツと見分けやすくする
+  box.style.cssText = 'border:1px solid rgba(100,181,246,0.35); border-left:4px solid #64b5f6; border-radius:8px; padding:10px; margin-bottom:10px; background:rgba(100,181,246,0.06);';
   box.innerHTML = `
+    <div style="font-size:11px; font-weight:bold; color:#64b5f6; letter-spacing:0.05em; margin-bottom:8px;">✨ 固有スキル</div>
     <div class="row">
       <div class="field">
         <label>スキル種別</label>
@@ -109,12 +125,17 @@ function addSkillRow(skill) {
     </div>
     <div class="field">
       <label>スキル効果テキスト</label>
-      <textarea class="skillText" rows="2" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:12px;">${escapeAttr(skill.text || '')}</textarea>
+      <textarea class="skillText" rows="2" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:12px;overflow:hidden;resize:none;">${escapeAttr(skill.text || '')}</textarea>
     </div>
     <button type="button" class="secondary removeSkillBtn">この固有スキルを削除</button>
   `;
   box.querySelector('.removeSkillBtn').addEventListener('click', () => box.remove());
   wrap.appendChild(box);
+
+  // テキスト量に応じてスキル効果テキスト欄の高さを自動調整（入力時＋編集データ復元時の初期表示の両方に対応）
+  const skillTextEl = box.querySelector('.skillText');
+  skillTextEl.addEventListener('input', () => autoGrowTextarea(skillTextEl));
+  autoGrowTextarea(skillTextEl);
 }
 
 function getSkillRows() {

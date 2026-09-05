@@ -7,6 +7,20 @@ function loadCfg() {
   });
 }
 function getCfg(k) { return localStorage.getItem('cfg_'+k) || ''; }
+
+// ===== 作業者名（カード登録時に「登録者」として記録する） =====
+// 初期設定と同様、入力値はlocalStorageに保存し、次回以降も自動で表示される
+const workerNameInput = document.getElementById('worker_name');
+if (workerNameInput) {
+  workerNameInput.value = localStorage.getItem('workerName') || '';
+  workerNameInput.addEventListener('input', () => {
+    localStorage.setItem('workerName', workerNameInput.value.trim());
+  });
+}
+function getWorkerName() {
+  const el = document.getElementById('worker_name');
+  return (el && el.value.trim()) || localStorage.getItem('workerName') || '';
+}
 document.getElementById('saveCfgBtn').addEventListener('click', () => {
   CFG_KEYS.forEach(k => localStorage.setItem('cfg_'+k, document.getElementById('cfg_'+k).value.trim()));
   alert('設定を保存しました');

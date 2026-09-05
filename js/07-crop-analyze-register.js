@@ -69,6 +69,31 @@ cropStage.addEventListener('pointermove', (e) => {
   });
 });
 
+// ===== 連続登録モード =====
+// ONの間、登録が成功するたびに「次のカード番号」「次の配置スロット」「区分」を自動計算して保持しておき、
+// 次の画像を読み込んだ時点でその値を自動セットする（毎回番号・スロットを手打ちする手間を省く）
+const continuousModeToggle = document.getElementById('continuousModeToggle');
+let continuousNextNum = null;
+let continuousNextSlot = null;
+let continuousNextType = null;
+if (continuousModeToggle) {
+  continuousModeToggle.checked = localStorage.getItem('continuousMode') === 'true';
+  continuousModeToggle.addEventListener('change', () => {
+    localStorage.setItem('continuousMode', continuousModeToggle.checked ? 'true' : 'false');
+    if (!continuousModeToggle.checked) { continuousNextNum = null; continuousNextSlot = null; continuousNextType = null; }
+  });
+}
+
+// カード番号の末尾の数字だけを+1する（先頭の文字列・ゼロ埋め桁数は維持。例: "038" -> "039"）
+function incrementNumberString(str) {
+  const s = String(str || '');
+  const m = s.match(/^(.*?)(\d+)$/);
+  if (!m) return s;
+  const digits = m[2];
+  const next = String(Number(digits) + 1).padStart(digits.length, '0');
+  return m[1] + next;
+}
+
 // AIを使わず、画像だけ読み込んで全項目を空欄で手入力させるフロー
 async function handleFileManual(e) {
   const file = e.target.files[0];
@@ -85,7 +110,7 @@ async function handleFileManual(e) {
 
   // 各項目を空欄にリセット
   document.getElementById('f_setcode').value = '';
-  document.getElementById('f_num').value = '';
+  document.getElementById('f_num').value = continuousNextNum || '';
   document.getElementById('f_rarity').value = '';
   document.getElementById('f_tag').value = '';
   document.getElementById('f_tags').value = '';
@@ -95,6 +120,7 @@ async function handleFileManual(e) {
   document.getElementById('f_stage').value = '';
   document.getElementById('f_baton').value = '';
   document.getElementById('f_limited').checked = false;
+  setArtsRows([]); // ※以前はここが抜けていて、手動登録を繰り返すと前のカードのアーツが残ってしまっていた
   setSkillRows([]);
   resetRatingFields();
   updateHolomenVisibility();
@@ -105,13 +131,16 @@ async function handleFileManual(e) {
   const croppedDataUrl = cropImageToDataUrl(currentImg, currentCropBox);
   document.getElementById('cropPreview').innerHTML = `<img src="${croppedDataUrl}">`;
 
-  document.getElementById('f_type').value = '新規';
+  document.getElementById('f_type').value = continuousNextType || '新規';
   clearLinkedCards();
   updateLinkedCardVisibility();
   fieldsEl.style.display = 'block';
   document.getElementById('cropPanel').style.display = 'block';
   allRegisterBtns.forEach(b => b.style.display = 'block');
   await onTypeChange();
+  // 連続登録モードで算出しておいた次のスロット番号があれば、自動サジェストより優先して反映する
+  if (continuousNextSlot !== null) { document.getElementById('f_slot').value = continuousNextSlot; }
+  continuousNextNum = null; continuousNextSlot = null; continuousNextType = null;
   setStatus('画像を読み込みました。全ての項目を手入力し、切り抜き枠を調整してから登録してください。');
 }
 document.getElementById('manualUploadBtn').addEventListener('click', () => {
@@ -155,7 +184,8 @@ async function handleFile(e) {
     }
 
     document.getElementById('f_setcode').value = data.setCode || '';
-    document.getElementById('f_num').value = data.cardNumber || '';
+    // 連続登録モードで次の番号が算出済みなら、AIの読み取り結果より優先する
+    document.getElementById('f_num').value = continuousNextNum || data.cardNumber || '';
     document.getElementById('f_rarity').value = data.rarity || '';
     document.getElementById('f_tag').value = data.cardType || '';
     document.getElementById('f_tags').value = data.tags || '';
@@ -187,13 +217,16 @@ async function handleFile(e) {
       }
     }
 
-    document.getElementById('f_type').value = '新規';
+    document.getElementById('f_type').value = continuousNextType || '新規';
     clearLinkedCards();
     updateLinkedCardVisibility();
     fieldsEl.style.display = 'block';
     document.getElementById('cropPanel').style.display = 'block';
     allRegisterBtns.forEach(b => b.style.display = 'block');
     await onTypeChange();
+    // 連続登録モードで算出しておいた次のスロット番号があれば、自動サジェストより優先して反映する
+    if (continuousNextSlot !== null) { document.getElementById('f_slot').value = continuousNextSlot; }
+    continuousNextNum = null; continuousNextSlot = null; continuousNextType = null;
     setStatus('解析完了。区分と配置スロットを確認して登録してください。' + setMismatchNote);
   } catch (err) {
     setStatus('通信エラー: ' + err.message);
@@ -282,6 +315,12 @@ async function handleRegisterClick() {
     }
 
     try {
+      // パック内通し番号を計算：新規→スロットそのまま／再録→スロット+新規収録枚数／パラレル→スロット+新規収録枚数+再録収録枚数
+      const setInfo = sets.find(s => s.setCode === setCode) || { totalNew: 0, totalRerun: 0 };
+      let overallNumber = Number(slot) || 0;
+      if (type === '再録') overallNumber = (Number(slot) || 0) + (Number(setInfo.totalNew) || 0);
+      else if (type === 'パラレル') overallNumber = (Number(slot) || 0) + (Number(setInfo.totalNew) || 0) + (Number(setInfo.totalRerun) || 0);
+
       const gasBody = JSON.stringify({
         action: 'addCard',
         setCode, type, slot,
@@ -304,7 +343,9 @@ async function handleRegisterClick() {
         syncSourceKey: (syncSourceIdx !== -1 && linkedCards[syncSourceIdx]) ? `${linkedCards[syncSourceIdx].setCode}__${linkedCards[syncSourceIdx].type}__${linkedCards[syncSourceIdx].slot}` : '',
         imageUrl,
         status: editingCard ? editingCard.status : '公開中',
-        featured: editingCard ? editingCard.featured : undefined
+        featured: editingCard ? editingCard.featured : undefined,
+        registeredBy: getWorkerName(),
+        overallNumber
       });
 
       let gasRes;
@@ -323,12 +364,25 @@ async function handleRegisterClick() {
     }
 
     const doneMsg = (editingCard ? '更新完了: ' : '登録完了: ') + document.getElementById('f_name').value;
-    setStatus(doneMsg);
-    alert(doneMsg);
+    const wasEditing = !!editingCard;
+
+    // 連続登録モード：新規登録（編集ではない）かつトグルONの場合、次のカード番号・配置スロット・区分を
+    // 算出して保持しておく。次に画像を読み込んだ時点でhandleFile/handleFileManualがこの値を自動セットする
+    const continuousOn = !!(continuousModeToggle && continuousModeToggle.checked) && !wasEditing;
+    if (continuousOn) {
+      continuousNextType = type;
+      continuousNextNum = incrementNumberString(document.getElementById('f_num').value);
+      continuousNextSlot = String((Number(slot) || 0) + 1);
+    }
+
+    setStatus(continuousOn
+      ? `${doneMsg}\n連続登録モード: 次は カード番号「${continuousNextNum}」/ 配置スロット「${continuousNextSlot}」を自動セットします。次のカード画像をアップロードしてください。`
+      : doneMsg);
+    if (!continuousOn) alert(doneMsg);
+
     fieldsEl.style.display = 'none';
     document.getElementById('cropPanel').style.display = 'none';
     allRegisterBtns.forEach(b => b.style.display = 'none');
-    const wasEditing = !!editingCard;
     exitEditMode();
     await renderGallery();
   } catch (err) {
