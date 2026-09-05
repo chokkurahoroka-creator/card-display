@@ -58,6 +58,7 @@ async function loadBingoPackData() {
   const setCode = document.getElementById('bingoSetSelect').value;
   const containerEl = document.getElementById('bingoRarityRows');
   document.getElementById('bingoResultGrid').innerHTML = '';
+  document.getElementById('bingoNumberSequenceRow').innerHTML = '';
   document.getElementById('bingoResultStatus').textContent = '';
   document.getElementById('bingoDownloadBtn').style.display = 'none';
   document.getElementById('bingoAddGroupBtn').style.display = 'none';
@@ -166,7 +167,9 @@ function bingoShuffle(arr) {
 document.getElementById('bingoDrawBtn').addEventListener('click', () => {
   const statusEl = document.getElementById('bingoResultStatus');
   const gridEl = document.getElementById('bingoResultGrid');
+  const numberRowEl = document.getElementById('bingoNumberSequenceRow');
   gridEl.innerHTML = '';
+  numberRowEl.innerHTML = '';
   bingoLastResults = [];
 
   const groupBoxes = Array.from(document.querySelectorAll('.bingoGroupBox'));
@@ -211,6 +214,12 @@ document.getElementById('bingoDrawBtn').addEventListener('click', () => {
 
   allWinners = bingoShuffle(allWinners); // カードの当選結果と特殊マスをまとめてシャッフルし、ランダムな並び順で出力する
   bingoLastResults = allWinners;
+
+  // 抜き出したカード番号（特殊マスを除く）だけを、シャッフル後の並び順のままテキスト行として表示する
+  const numberSequence = allWinners.filter(w => !w.special).map(w => w.overallNumber);
+  numberRowEl.innerHTML = numberSequence.length
+    ? `<div style="font-size:22px; font-weight:bold; letter-spacing:0.06em; text-align:center; padding:16px; border:1px solid rgba(212,175,106,0.4); border-radius:10px; background:rgba(212,175,106,0.08); color:var(--gold);">${numberSequence.join('　→　')}</div>`
+    : '';
 
   gridEl.innerHTML = allWinners.map(w => {
     if (w.special) {
