@@ -203,9 +203,21 @@
   }
   .siteStatusSidebarBtn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
 
-  /* ===== 左側ボタン群（カードリスト・統計・サイト状態）の表示/非表示トグル ===== */
+  /* ===== ビンゴ番号抽選アイコン（サイト状態アイコンの直下に固定配置） ===== */
+  .bingoSidebarBtn {
+    position: fixed; top: 324px; left: 16px; z-index: 1000;
+    width: 72px; height: 72px; border-radius: 50%; padding: 0;
+    background: rgba(15, 20, 32, 0.85); backdrop-filter: blur(6px);
+    border: 1px solid rgba(212,175,106,0.4); cursor: pointer; font-size: 30px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .bingoSidebarBtn:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+
+  /* ===== 左側ボタン群（カードリスト・統計・サイト状態・ビンゴ抽選）の表示/非表示トグル ===== */
   .sidebarToggleBtn {
-    position: fixed; top: 318px; left: 16px; z-index: 1000;
+    position: fixed; top: 406px; left: 16px; z-index: 1000;
     width: 44px; height: 44px; border-radius: 50%; padding: 0;
     background: rgba(15, 20, 32, 0.85); backdrop-filter: blur(6px);
     border: 1px solid rgba(212,175,106,0.4); cursor: pointer; font-size: 16px; color: var(--gold);
@@ -556,6 +568,8 @@
 
 <button type="button" class="siteStatusSidebarBtn" id="siteStatusSidebarBtn" title="各ページの公開状態（公開/作業中/非公開）を設定">🚧</button>
 
+<button type="button" class="bingoSidebarBtn" id="bingoSidebarBtn" title="ビンゴ番号抽選">🎱</button>
+
 <button type="button" class="sidebarToggleBtn" id="sidebarToggleBtn" title="左側のボタンを非表示">◀</button>
 <script>
 (function () {
@@ -564,7 +578,8 @@
   const targets = [
     document.getElementById('cardListLinkBtn'),
     document.getElementById('statsSidebarBtn'),
-    document.getElementById('siteStatusSidebarBtn')
+    document.getElementById('siteStatusSidebarBtn'),
+    document.getElementById('bingoSidebarBtn')
   ];
   function apply(hidden) {
     targets.forEach(el => { if (el) el.style.display = hidden ? 'none' : ''; });
@@ -905,6 +920,25 @@
   </div>
 </div>
 
+<!-- ===== ビンゴ番号抽選パネル ===== -->
+<div class="statsOverlay" id="bingoOverlay">
+  <div class="statsOverlayBox">
+    <button type="button" id="bingoOverlayCloseBtn" class="modalCloseBtn">×</button>
+    <h2>🎱 ビンゴ番号抽選 <span class="hint" style="display:inline;">（レアリティごとに候補プールから指定枚数をランダム抽選／パラレルは対象外）</span></h2>
+    <div class="field" style="max-width:360px;">
+      <label>抽選するパック</label>
+      <select id="bingoSetSelect"><option value="">選択してください</option></select>
+    </div>
+    <div id="bingoRarityRows" class="hint" style="margin-top:10px;">パックを選択すると、収録されているレアリティごとに候補プール（パック内総合番号）が表示されます</div>
+    <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <button type="button" id="bingoDrawBtn" style="margin-top:0;">🎲 抽選する</button>
+      <button type="button" class="secondary" id="bingoDownloadBtn" style="margin-top:0; display:none;">当選カード画像を一括ダウンロード（ZIP）</button>
+    </div>
+    <div id="bingoResultStatus" class="hint" style="margin-top:10px;"></div>
+    <div id="bingoResultGrid" class="galleryGrid galleryGridInner" style="margin-top:14px;"></div>
+  </div>
+</div>
+
 <!-- ===== カード編集ポップアップ（表示画面の詳細ポップに近いUI） ===== -->
 <div id="editModalOverlay" class="editModalOverlay">
   <div class="editModalBox">
@@ -952,5 +986,7 @@
 <script src="js/12-page-zoom-admin.js"></script>
 <script src="js/13-stats-admin.js"></script>
 <script src="js/14-site-status-admin.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="js/15-bingo-admin.js"></script>
 </body>
 </html>
