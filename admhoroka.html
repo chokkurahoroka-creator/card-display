@@ -76,6 +76,25 @@
     width: 100%; padding: 8px 10px; border-radius: 6px;
     border: 1px solid rgba(212,175,106,0.3); background: #10182a; color: var(--text); font-size: 14px;
   }
+
+  /* ===== カウンター入力（配置スロット・HP・バトンタッチ）：クリックしやすい大きめの±ボタン付き ===== */
+  .counterInputWrap { display: flex; align-items: stretch; gap: 6px; }
+  .counterInputWrap input[type=number] {
+    text-align: center; -moz-appearance: textfield;
+  }
+  .counterInputWrap input[type=number]::-webkit-inner-spin-button,
+  .counterInputWrap input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none; margin: 0; /* ネイティブの小さいスピナーは非表示にし、下のカスタムボタンに統一する */
+  }
+  .counterBtn {
+    flex: 0 0 auto; width: 44px; height: 44px; font-size: 22px; font-weight: bold; line-height: 1;
+    border-radius: 8px; border: 1px solid rgba(212,175,106,0.4); background: rgba(212,175,106,0.12);
+    color: var(--gold); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.1s; user-select: none;
+  }
+  .counterBtn:hover { background: rgba(212,175,106,0.25); }
+  .counterBtn:active { transform: scale(0.92); background: rgba(212,175,106,0.35); }
+
   .drop {
     border: 2px dashed rgba(212,175,106,0.5); border-radius: 10px; padding: 26px;
     text-align: center; cursor: pointer; transition: 0.2s;
@@ -699,7 +718,7 @@
       <summary>基本データ</summary>
       <div class="row">
         <div class="field"><label>セットコード（読取）</label><input id="f_setcode"></div>
-        <div class="field"><label>カード番号（末尾の数字のみ）</label><input id="f_num"></div>
+        <div class="field"><label>カード番号（末尾の数字のみ）</label><input id="f_num" inputmode="numeric" pattern="[0-9]*"></div>
       </div>
       <div class="row">
         <div class="field"><label>レア度（C/U/R/RR/SRなど）</label><input id="f_rarity"></div>
@@ -721,15 +740,23 @@
       </div>
       <div class="field" id="slotFieldWrap">
         <label id="slotLabel">配置スロット番号（手入力）</label>
-        <input type="number" id="f_slot" min="1" placeholder="例: 11">
+        <div class="counterInputWrap">
+          <button type="button" class="counterBtn counterMinus" data-target="f_slot" data-step="1">−</button>
+          <input type="number" id="f_slot" min="1" placeholder="例: 11">
+          <button type="button" class="counterBtn counterPlus" data-target="f_slot" data-step="1">＋</button>
+        </div>
         <div class="hint" id="slotHint"></div>
       </div>
 
       <div id="holomenFields" style="display:none; border-top:1px dashed rgba(212,175,106,0.3); margin-top:14px; padding-top:14px;">
         <div class="row">
           <div class="field">
-            <label>HP</label>
-            <input type="number" id="f_hp" min="0" placeholder="例: 110">
+            <label>HP（10刻み）</label>
+            <div class="counterInputWrap">
+              <button type="button" class="counterBtn counterMinus" data-target="f_hp" data-step="10">−</button>
+              <input type="number" id="f_hp" min="0" step="10" placeholder="例: 110">
+              <button type="button" class="counterBtn counterPlus" data-target="f_hp" data-step="10">＋</button>
+            </div>
           </div>
           <div class="field">
             <label>進化レベル</label>
@@ -743,7 +770,11 @@
         </div>
         <div class="field">
           <label>バトンタッチ（エール数）</label>
-          <input type="number" id="f_baton" min="0" placeholder="例: 1">
+          <div class="counterInputWrap">
+            <button type="button" class="counterBtn counterMinus" data-target="f_baton" data-step="1">−</button>
+            <input type="number" id="f_baton" min="0" placeholder="例: 1">
+            <button type="button" class="counterBtn counterPlus" data-target="f_baton" data-step="1">＋</button>
+          </div>
         </div>
       </div>
       <details class="field" id="skillsDetails" open>
