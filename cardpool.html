@@ -256,6 +256,23 @@
   .cpCard.owned { opacity: 1; border-color: var(--gold); }
   .cpCard[draggable="true"] { cursor: grab; }
   .cpCard[draggable="true"]:active { cursor: grabbing; }
+
+  /* ===== カードグリッド共通：ホバー時にそのカードを拡大し、隣接カードも少し拡大する演出 =====
+     マウス操作が前提の環境（PC）でのみ有効にし、タッチ端末では:hover状態が残ってしまう問題を避ける */
+  @media (hover: hover) and (pointer: fine) {
+    .cpCard, .cpUnownedGalleryCard {
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.15s, border-color 0.15s;
+    }
+    .cpCard.cpMagnifyActive, .cpUnownedGalleryCard.cpMagnifyActive {
+      transform: scale(1.18);
+      z-index: 5;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.55);
+    }
+    .cpCard.cpMagnifyNear, .cpUnownedGalleryCard.cpMagnifyNear {
+      transform: scale(1.06);
+      z-index: 2;
+    }
+  }
   .cpCardImgWrap { position: relative; }
   .cpCardImgWrap img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; background: #10182a; }
   .cpRarityBadge {
