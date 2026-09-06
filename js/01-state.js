@@ -28,6 +28,24 @@ document.getElementById('saveCfgBtn').addEventListener('click', () => {
 });
 loadCfg();
 
+// ===== ①弾の設定パネルの開閉トグル（常時表示ではなく、必要な時だけ開く） =====
+(function () {
+  const KEY = 'setPanelCollapsed';
+  const bodyEl = document.getElementById('setPanelBody');
+  const btn = document.getElementById('setPanelToggleBtn');
+  if (!bodyEl || !btn) return;
+  function apply(collapsed) {
+    bodyEl.style.display = collapsed ? 'none' : '';
+    btn.textContent = collapsed ? '開く' : '閉じる';
+  }
+  apply(localStorage.getItem(KEY) === 'true');
+  btn.addEventListener('click', () => {
+    const next = bodyEl.style.display !== 'none';
+    localStorage.setItem(KEY, next ? 'true' : 'false');
+    apply(next);
+  });
+})();
+
 // ===== カード番号：数字以外の入力を除去する（末尾のゼロ埋めはそのまま維持） =====
 const f_numEl = document.getElementById('f_num');
 if (f_numEl) {

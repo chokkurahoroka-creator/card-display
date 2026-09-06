@@ -143,11 +143,14 @@ async function handleFileManual(e) {
   continuousNextNum = null; continuousNextSlot = null; continuousNextType = null;
   setStatus('画像を読み込みました。全ての項目を手入力し、切り抜き枠を調整してから登録してください。');
 }
+// 手動アップロード表示中かどうか（登録完了後もこの状態を維持し、AI用ドロップゾーンへ戻さないようにするため）
+let manualModeActive = false;
+
 document.getElementById('manualUploadBtn').addEventListener('click', () => {
-  const showManual = manualDropZone.style.display === 'none';
-  manualDropZone.style.display = showManual ? 'block' : 'none';
+  manualModeActive = manualDropZone.style.display === 'none';
+  manualDropZone.style.display = manualModeActive ? 'flex' : 'none';
   // 手動アップロードを表示している間はAI解析用のドロップゾーンを隠し、誤って両方に触れないようにする
-  dropZone.style.display = showManual ? 'none' : '';
+  dropZone.style.display = manualModeActive ? 'none' : 'flex';
 });
 manualFileInputEl.addEventListener('change', handleFileManual);
 enableDragAndDrop(manualDropZone, manualFileInputEl, handleFileManual);

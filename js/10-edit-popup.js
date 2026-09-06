@@ -34,8 +34,11 @@ function closeEditModal() {
     panelUploadHome.parent.insertBefore(panel, panelUploadHome.next);
   }
   document.getElementById('uploadPanelTitle').style.display = '';
-  document.getElementById('dropZone').style.display = '';
   document.getElementById('manualUploadWrap').style.display = '';
+  // 手動アップロードを使用中だった場合はその状態を維持し、AI用ドロップゾーンへ勝手に戻さない
+  // （以前はここで常にdropZoneだけを再表示していたため、手動モードで登録した直後にAI側へ切り替わってしまっていた）
+  document.getElementById('dropZone').style.display = manualModeActive ? 'none' : 'flex';
+  document.getElementById('manualDropZone').style.display = manualModeActive ? 'flex' : 'none';
 
   document.getElementById('editModalOverlay').classList.remove('open');
 }
