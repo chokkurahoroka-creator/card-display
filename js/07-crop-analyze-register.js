@@ -144,7 +144,10 @@ async function handleFileManual(e) {
   setStatus('画像を読み込みました。全ての項目を手入力し、切り抜き枠を調整してから登録してください。');
 }
 document.getElementById('manualUploadBtn').addEventListener('click', () => {
-  manualDropZone.style.display = manualDropZone.style.display === 'none' ? 'block' : 'none';
+  const showManual = manualDropZone.style.display === 'none';
+  manualDropZone.style.display = showManual ? 'block' : 'none';
+  // 手動アップロードを表示している間はAI解析用のドロップゾーンを隠し、誤って両方に触れないようにする
+  dropZone.style.display = showManual ? 'none' : '';
 });
 manualFileInputEl.addEventListener('change', handleFileManual);
 enableDragAndDrop(manualDropZone, manualFileInputEl, handleFileManual);
