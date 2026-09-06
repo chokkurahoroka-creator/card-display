@@ -650,19 +650,28 @@ async function cpRenderUnownedDeckCardsPanel() {
     const short = need - owned;
     const deckNames = [...new Set(usageInfo[key].deckNames)].join('、');
     return `
-      <div class="cpUnownedDeckRow">
-        <img src="${card.imageUrl}" class="cpUnownedDeckThumb" alt="">
-        <div class="cpUnownedDeckInfo">
-          <div class="cpUnownedDeckName">${escapeHtml(card.cardName)}</div>
-          <div class="cpUnownedDeckMeta">所持${owned} / 必要${need}（使用デッキ: ${escapeHtml(deckNames)}）</div>
+      <div class="cpUnownedGalleryCard" title="${escapeHtml(deckNames)}">
+        <img src="${card.imageUrl}" alt="${escapeHtml(card.cardName)}" loading="lazy">
+        <div class="cpUnownedGalleryBody">
+          <div class="cpUnownedGalleryName">${escapeHtml(card.cardName)}</div>
+          <div class="cpUnownedGalleryMeta">所持${owned} / 必要${need}</div>
+          <div class="cpUnownedGalleryShortage">不足 ${short}枚</div>
         </div>
-        <span class="cpUnownedDeckShortage">不足 ${short}枚</span>
       </div>`;
   }).join('');
 }
 
+function cpOpenUnownedDeckOverlay() {
+  document.getElementById('cpUnownedDeckOverlay').style.display = 'flex';
+}
+function cpCloseUnownedDeckOverlay() {
+  document.getElementById('cpUnownedDeckOverlay').style.display = 'none';
+}
 document.getElementById('cpUnownedDeckToggleBtn').addEventListener('click', () => {
-  const panelEl = document.getElementById('cpUnownedDeckPanel');
-  panelEl.style.display = panelEl.style.display === 'none' ? 'block' : 'none';
-  cpScheduleFitGridHeights(); // パネルの開閉で下の一覧の高さが変わるため再計算する
+  cpOpenUnownedDeckOverlay();
+  cpRenderUnownedDeckCardsPanel(); // 開くたびに最新の所持数・デッキ内訳で再描画する
+});
+document.getElementById('cpUnownedDeckCloseBtn').addEventListener('click', cpCloseUnownedDeckOverlay);
+document.getElementById('cpUnownedDeckOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'cpUnownedDeckOverlay') cpCloseUnownedDeckOverlay();
 });
