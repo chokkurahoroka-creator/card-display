@@ -147,3 +147,62 @@ document.getElementById('cpIdOnboardConfirmBtn').addEventListener('click', async
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
   cpScheduleFitGridHeights();
 })();
+
+// ===== カードグリッド共通：ホバー時に対象カードを拡大し、周辺カードも少し拡大する演出 =====
+// 所持カード・図鑑・追加画面・デッキ確認・デッキ編集など、.cpCard（.cpUnownedGalleryCard含む）を
+// 使う全てのグリッドに対して、グリッドの再描画（innerHTML差し替え）に関わらず常に効くよう
+// document全体へのイベント委任で実装している（個々のカード要素に都度リスナーを張り直す必要が無い）
+(function () {
+  const CARD_SELECTOR = '.cpCard, .cpUnownedGalleryCard';
+  let magnifyContainer = null;
+
+  function clearMagnify() {
+    if (!magnifyContainer) return;
+    magnifyContainer.querySelectorAll('.cpMagnifyActive, .cpMagnifyNear').forEach(el => {
+      el.classList.remove('cpMagnifyActive', 'cpMagnifyNear');
+    });
+    magnifyContainer = null;
+  }
+
+  function applyMagnify(card) {
+    const container = card.parentElement;
+    if (!container) return;
+    clearMagnify();
+    magnifyContainer = container;
+    card.classList.add('cpMagnifyActive');
+
+    const hoveredRect = card.getBoundingClientRect();
+    const hcx = hoveredRect.left + hoveredRect.width / 2;
+    const hcy = hoveredRect.top + hoveredRect.height / 2;
+
+    Array.from(container.children).forEach(other => {
+      if (other === card || !other.matches(CARD_SELECTOR)) return;
+      const rect = other.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = Math.abs(cx - hcx);
+      const dy = Math.abs(cy - hcy);
+      const sameRow = dy < rect.height * 0.5;
+      const sameCol = dx < rect.width * 0.5;
+      // 同じ行で左右に隣接、または同じ列で上下に隣接するカードだけを「近傍」として少し拡大する
+      const isHorizontalNeighbor = sameRow && dx > 0 && dx < rect.width * 1.6;
+      const isVerticalNeighbor = sameCol && dy > 0 && dy < rect.height * 1.6;
+      if (isHorizontalNeighbor || isVerticalNeighbor) other.classList.add('cpMagnifyNear');
+    });
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const card = e.target.closest(CARD_SELECTOR);
+    if (!card || card.classList.contains('cpMagnifyActive')) return;
+    applyMagnify(card);
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    const card = e.target.closest(CARD_SELECTOR);
+    if (!card) return;
+    if (card.contains(e.relatedTarget)) return; // カード内の子要素間の移動は無視
+    const nextCard = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(CARD_SELECTOR);
+    if (nextCard && nextCard.parentElement === card.parentElement) return; // 同じグリッド内の別カードへ移動した場合はそちらに処理を任せる
+    clearMagnify();
+  });
+})();
