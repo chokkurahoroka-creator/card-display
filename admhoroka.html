@@ -101,8 +101,8 @@
   }
   .drop:hover { border-color: var(--gold); background: rgba(212,175,106,0.05); }
   .drop.dragover { border-color: var(--gold); background: rgba(212,175,106,0.12); }
-  /* AIドロップゾーンは操作頻度が高いため、縦幅を通常の.dropの約2倍に広げてクリック・ドロップしやすくする */
-  #dropZone { min-height: 160px; display: flex; align-items: center; justify-content: center; }
+  /* ドロップゾーンは操作頻度が高いため、AI用・手動用ともに縦幅を広げてクリック・ドロップしやすくする */
+  #dropZone, #manualDropZone { min-height: 160px; display: flex; align-items: center; justify-content: center; }
   input[type=file] { display: none; }
   #previewWrap {
     margin-top: 16px; text-align: center;
@@ -620,7 +620,11 @@
 
 <!-- ===== 弾（セット）設定 ===== -->
 <div class="panel panelSet">
-  <h2>① 弾の設定</h2>
+  <h2 style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+    <span>① 弾の設定</span>
+    <button type="button" class="secondary" id="setPanelToggleBtn" style="margin-top:0; padding:4px 10px; font-size:12px;">閉じる</button>
+  </h2>
+  <div id="setPanelBody">
   <div class="field" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed rgba(212,175,106,0.3);">
     <label>作業者名</label>
     <input id="worker_name" placeholder="例: うる">
@@ -670,10 +674,6 @@
     <span id="setEditingBadge" class="hint" style="display:none; color:var(--gold);"></span>
     <button type="button" class="secondary" id="setEditCancelBtn" style="display:none; margin-top:0; padding:4px 10px; font-size:12px;">新規作成に戻る</button>
   </div>
-  <div class="field" style="margin-top:14px;">
-    <label>登録先の弾を選択</label>
-    <select id="activeSet"></select>
-  </div>
 
   <details class="field" id="setStatusDetails" style="margin-top:18px;">
     <summary>弾ごとの公開ステータス・デフォルト表示・編集（登録済みパック一覧）</summary>
@@ -683,6 +683,7 @@
       <tbody></tbody>
     </table>
   </details>
+  </div>
 </div>
 
 <!-- ===== アップロード ===== -->
@@ -853,6 +854,11 @@
         <textarea id="rate_comment" rows="2" style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid rgba(212,175,106,0.3);background:#10182a;color:var(--text);font-size:13px;"></textarea>
       </div>
     </details>
+  </div>
+
+  <div class="field" style="margin-top:14px; padding-top:14px; border-top:1px dashed rgba(212,175,106,0.3);">
+    <label>登録先の弾を選択</label>
+    <select id="activeSet"></select>
   </div>
 
   <button class="primary" id="registerBtn" style="display:none;">この内容で登録する</button>
