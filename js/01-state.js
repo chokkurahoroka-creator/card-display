@@ -28,6 +28,32 @@ document.getElementById('saveCfgBtn').addEventListener('click', () => {
 });
 loadCfg();
 
+// ===== カード番号：数字以外の入力を除去する（末尾のゼロ埋めはそのまま維持） =====
+const f_numEl = document.getElementById('f_num');
+if (f_numEl) {
+  f_numEl.addEventListener('input', () => {
+    const cleaned = f_numEl.value.replace(/[^0-9]/g, '');
+    if (cleaned !== f_numEl.value) f_numEl.value = cleaned;
+  });
+}
+
+// ===== カウンター入力（配置スロット・HP・バトンタッチなど）の±ボタン共通処理 =====
+// data-target: 対象inputのid、data-step: 1クリックあたりの増減量（HPは10、その他は1）
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.counterBtn');
+  if (!btn) return;
+  const input = document.getElementById(btn.dataset.target);
+  if (!input || input.disabled) return;
+  const step = Number(btn.dataset.step) || 1;
+  const min = input.min !== '' ? Number(input.min) : -Infinity;
+  const current = Number(input.value) || 0;
+  const delta = btn.classList.contains('counterPlus') ? step : -step;
+  const next = Math.max(min, current + delta);
+  input.value = next;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+});
+
 let sets = [];
 
 // setCodeから弾名（パック名）を取得する
