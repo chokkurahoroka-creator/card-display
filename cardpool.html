@@ -264,21 +264,23 @@
       transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.15s, border-color 0.15s;
     }
     .cpCard.cpMagnifyActive, .cpUnownedGalleryCard.cpMagnifyActive {
-      transform: scale(1.18);
-      z-index: 5;
-      box-shadow: 0 10px 26px rgba(0,0,0,0.55);
+      transform: scale(1.35);
+      z-index: 6;
+      background: #161f33; /* 不透明な背景を敷き、拡大時に他のカードが透けて見えないようにする */
+      box-shadow: 0 16px 34px rgba(0,0,0,0.6);
     }
     .cpCard.cpMagnifyNear, .cpUnownedGalleryCard.cpMagnifyNear {
-      transform: scale(1.06);
-      z-index: 2;
+      transform: scale(1.08);
+      z-index: 3;
+      background: #161f33;
     }
   }
   .cpCardImgWrap { position: relative; }
   .cpCardImgWrap img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; background: #10182a; }
   .cpRarityBadge {
-    position: absolute; top: 2px; left: 2px; z-index: 2;
-    font-size: 8px; font-weight: 900; color: #1a1305; padding: 1px 4px; border-radius: 3px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5); letter-spacing: 0.3px;
+    position: absolute; bottom: 18px; right: 2px; z-index: 2;
+    font-size: 8px; font-weight: 400; color: #1a1305; padding: 1px 4px; border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5); letter-spacing: 0.3px; opacity: 0.8;
   }
   .cpQtyBadge {
     position: absolute; bottom: 2px; right: 2px; z-index: 2;
@@ -411,7 +413,7 @@
   .cpDeckIconPickerThumb:hover { border-color: rgba(212,175,106,0.5); }
   .cpDeckIconPickerThumb.selected { border-color: var(--gold); }
   /* ===== デッキ一覧タイルクリック時：デッキ内容プレビュー（読み取り専用） ===== */
-  .cpDeckPreviewBox { max-width: 760px; transition: transform 0.2s ease; }
+  .cpDeckPreviewBox { max-width: 820px; transition: transform 0.2s ease; }
   .cpModalDragHandle { display: none; }
   .cpDeckPreviewHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-right: 24px; gap: 10px; flex-wrap: wrap; }
   .cpDeckPreviewTitleWrap { min-width: 0; }
@@ -419,6 +421,8 @@
   .cpDeckPreviewMeta { font-size: 12px; color: #9aa5c0; }
   .cpDeckPreviewEditBtn { flex-shrink: 0; margin: 0; padding: 6px 14px; font-size: 12px; }
   .cpDeckPreviewSections { max-height: 65vh; overflow-y: auto; }
+  /* デッキの中身確認は常に横10枚固定にし、画面幅に応じてカード自体のサイズが伸縮するようにする */
+  .cpDeckPreviewSections .cpDeckSectionBlockGrid { grid-template-columns: repeat(10, 1fr); gap: 7px; }
   .cpDeckNameInput {
     padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(212,175,106,0.35);
     background: #10182a; color: var(--text); font-size: 15px; font-weight: bold;
@@ -731,7 +735,7 @@
     .cpQtyBtn { width: 13px; height: 13px; font-size: 9px; }
     .cpQtyValue { font-size: 9px; min-width: 11px; }
     .cpAddBtn { height: 15px; font-size: 9px; margin: 2px 3px 3px; width: calc(100% - 6px); }
-    .cpRarityBadge { font-size: 7px; padding: 0 3px; top: 1px; left: 1px; }
+    .cpRarityBadge { font-size: 7px; padding: 0 3px; bottom: 15px; right: 1px; }
     .cpQtyBadge { font-size: 8px; padding: 0 3px; bottom: 1px; right: 1px; }
     .cpCardRemoveBtn { width: 14px; height: 14px; font-size: 9px; }
     .cpCollectionControls { gap: 6px; }
@@ -776,6 +780,8 @@
     /* デッキタップ時の中身確認プレビューは、一覧の見やすさを優先して1行10枚固定にする */
     .cpDeckPreviewSections .cpDeckSectionBlockGrid { grid-template-columns: repeat(10, 1fr); gap: 5px; }
     .cpDeckMiniPreviewGrid { grid-template-columns: repeat(20, 1fr); gap: 2px; }
+    /* スマホでは縦幅に余裕があるため、デッキ中身確認の表示領域をもっと上まで広げる */
+    .cpDeckPreviewSections { max-height: 72vh; }
 
     /* ----- モーダル：下からせり上がるボトムシート風（アプリらしい見た目） ----- */
     .cpModalOverlay { padding: 0; align-items: flex-end; }
