@@ -521,6 +521,23 @@
   .cpUnownedDeckName { font-weight: bold; }
   .cpUnownedDeckMeta { color: #9aa5c0; font-size: 11px; margin-top: 2px; }
   .cpUnownedDeckShortage { color: #e37e7e; font-weight: bold; }
+
+  /* ===== 未所持カード（デッキ使用中）：モーダル内のギャラリー表示 ===== */
+  .cpUnownedGalleryGrid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;
+    max-height: 62vh; overflow-y: auto; padding-right: 2px;
+  }
+  .cpUnownedGalleryCard {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(212,175,106,0.25); border-radius: 8px; overflow: hidden;
+  }
+  .cpUnownedGalleryCard img { width: 100%; aspect-ratio: 5/7; object-fit: cover; display: block; background: #10182a; }
+  .cpUnownedGalleryBody { padding: 6px 8px 8px; }
+  .cpUnownedGalleryName {
+    font-size: 11.5px; font-weight: bold; line-height: 1.3; margin-bottom: 4px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cpUnownedGalleryMeta { font-size: 10.5px; color: #9aa5c0; }
+  .cpUnownedGalleryShortage { font-size: 11px; font-weight: bold; color: #e37e7e; margin-top: 3px; }
   /* ===== 所持カードクリック時：デッキ使用状況の詳細モーダル ===== */
   .cpModalOverlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 600;
@@ -537,8 +554,8 @@
     font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   .cpModalCloseBtn:hover { border-color: var(--gold); }
-  .cpCardUsageHeader { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; padding-right: 20px; }
-  .cpCardUsageThumb { width: 72px; aspect-ratio: 5/7; object-fit: cover; border-radius: 8px; border: 1px solid rgba(212,175,106,0.3); flex-shrink: 0; }
+  .cpCardUsageHeader { display: flex; gap: 18px; align-items: center; margin-bottom: 16px; padding-right: 20px; }
+  .cpCardUsageThumb { width: 160px; aspect-ratio: 5/7; object-fit: cover; border-radius: 10px; border: 1px solid rgba(212,175,106,0.35); box-shadow: 0 6px 18px rgba(0,0,0,0.35); flex-shrink: 0; }
   .cpCardUsageName { font-size: 15px; font-weight: bold; }
   .cpCardUsageMeta { font-size: 12px; color: #9aa5c0; margin-top: 4px; }
   .cpCardUsageListLabel { font-size: 12px; color: #9aa5c0; margin-bottom: 8px; }
@@ -754,10 +771,10 @@
       display: block; width: 40px; height: 4px; border-radius: 2px;
       background: rgba(212,175,106,0.4); margin: 0 auto 14px;
     }
-    .cpCardUsageHeader { gap: 10px; margin-bottom: 12px; }
-    .cpCardUsageThumb { width: 58px; }
-    .cpCardUsageName { font-size: 13.5px; }
-    .cpCardUsageMeta { font-size: 11px; }
+    .cpCardUsageHeader { flex-direction: column; align-items: center; text-align: center; gap: 10px; margin-bottom: 14px; padding-right: 0; }
+    .cpCardUsageThumb { width: 52vw; max-width: 220px; }
+    .cpCardUsageName { font-size: 15px; }
+    .cpCardUsageMeta { font-size: 12px; }
     .cpCardUsageRow { font-size: 12px; padding: 7px 10px; }
     .cpDeckPreviewName { font-size: 14.5px; }
     .cpDeckPreviewMeta { font-size: 11px; }
@@ -823,7 +840,6 @@
       </div>
       <div class="cpUnownedDeckPanelWrap">
         <button type="button" class="cpSecondaryBtn" id="cpUnownedDeckToggleBtn"><span class="cpBtnIcon"><svg class="cpIconSvg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L22 20H2Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> デッキで使用中の未所持カード <span id="cpUnownedDeckBadge" class="cpUnownedDeckBadge" style="display:none;">0</span></button>
-        <div id="cpUnownedDeckPanel" class="cpUnownedDeckPanel" style="display:none;"></div>
       </div>
     </div>
     <div class="cpViewToggle" id="cpOwnedViewToggle">
@@ -956,6 +972,16 @@
 <!-- ===== 所持カードクリック時：デッキ使用状況の詳細表示 ===== -->
 <div class="cpModalOverlay" id="cpCardUsageOverlay" style="display:none;">
   <div class="cpModalBox" id="cpCardUsageBox"></div>
+</div>
+
+<div class="cpModalOverlay" id="cpUnownedDeckOverlay" style="display:none;">
+  <div class="cpModalBox">
+    <div class="cpModalDragHandle"></div>
+    <button type="button" class="cpModalCloseBtn" id="cpUnownedDeckCloseBtn">×</button>
+    <h3 class="cpCardUsageName" style="margin:0 0 4px;">デッキで使用中の未所持カード</h3>
+    <div class="cpCardUsageListLabel" style="margin-bottom:12px;">カード下部に、所持数・必要数・不足枚数を表示しています</div>
+    <div id="cpUnownedDeckPanel" class="cpUnownedGalleryGrid"></div>
+  </div>
 </div>
 
 <!-- ===== デッキ一覧のアイコンをクリックした時：デッキ内容プレビュー（読み取り専用） ===== -->
