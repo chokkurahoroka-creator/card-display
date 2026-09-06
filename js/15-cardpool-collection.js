@@ -1,7 +1,7 @@
 // ===== 所持カード登録（左＝所持カード／右＝検索して追加、の2分割ビュー） =====
 let ownedCollection = {}; // { "setCode__type__slot": 枚数, ... }
-let cpSets = []; // 公開終了を除いた弾一覧（検索パネルのプルダウン用）
-let cpSetNameMap = {}; // setCode -> setName（公開終了も含む全弾。所持カードのパック見出し表示用）
+let cpSets = []; // カードプール非公開を除いた弾一覧（検索パネルのプルダウン用）
+let cpSetNameMap = {}; // setCode -> setName（非公開も含む全弾。所持カードのパック見出し表示用）
 let cpSearchTimer = null;
 let cpSaveTimer = null;
 let cpDropZonesInitialized = false;
@@ -11,7 +11,9 @@ async function cpLoadSets() {
   const all = await res.json();
   cpSetNameMap = {};
   all.forEach(s => { cpSetNameMap[s.setCode] = s.setName; });
-  cpSets = all.filter(s => s.status !== '公開終了');
+  // 新カード一覧（display.html）側のstatusではなく、カードプール管理専用のcardpoolStatusで判定する
+  // （管理画面①の「公開終了（カードプール）」チェックボックスと連動）
+  cpSets = all.filter(s => s.cardpoolStatus !== '公開終了');
   const sel = document.getElementById('cpSetSelect');
   sel.innerHTML = cpSets.map(s => `<option value="${escapeHtml(s.setCode)}">${escapeHtml(s.setCode)}（${escapeHtml(s.setName)}）</option>`).join('');
   if (cpSets.length) sel.value = cpSets[cpSets.length - 1].setCode;

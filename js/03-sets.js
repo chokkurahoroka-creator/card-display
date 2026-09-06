@@ -202,6 +202,7 @@ function renderSetStatusTable() {
       <td>${s.packType || '-'}</td>
       <td>${s.releaseDate || '-'}</td>
       <td><input type="checkbox" class="setStatusCb" data-setcode="${s.setCode}" ${s.status === '公開終了' ? 'checked' : ''}></td>
+      <td><input type="checkbox" class="setCardpoolStatusCb" data-setcode="${s.setCode}" ${s.cardpoolStatus === '公開終了' ? 'checked' : ''}></td>
       <td><input type="radio" name="defaultSetRadio" class="defaultSetRadio" data-setcode="${s.setCode}" ${defaultSetCode === s.setCode ? 'checked' : ''}></td>
       <td><button type="button" class="secondary setEditBtn" data-setcode="${s.setCode}" style="margin-top:0; padding:4px 10px; font-size:12px;">編集</button></td>
     </tr>
@@ -228,6 +229,24 @@ function renderSetStatusTable() {
       });
       const s = sets.find(x => x.setCode === cb.dataset.setcode);
       if (s) s.status = cb.checked ? '公開終了' : '公開中';
+    });
+  });
+
+  // カードプール管理（cardpool.html）向けの公開ステータス。新カード一覧（display.html）側とは独立して切り替える
+  tbody.querySelectorAll('.setCardpoolStatusCb').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const gasUrl = getCfg('gas');
+      await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'updateSetCardpoolStatus',
+          setCode: cb.dataset.setcode,
+          cardpoolStatus: cb.checked ? '公開終了' : '公開中'
+        })
+      });
+      const s = sets.find(x => x.setCode === cb.dataset.setcode);
+      if (s) s.cardpoolStatus = cb.checked ? '公開終了' : '公開中';
     });
   });
 
