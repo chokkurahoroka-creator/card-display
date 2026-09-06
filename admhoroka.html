@@ -101,6 +101,8 @@
   }
   .drop:hover { border-color: var(--gold); background: rgba(212,175,106,0.05); }
   .drop.dragover { border-color: var(--gold); background: rgba(212,175,106,0.12); }
+  /* AIドロップゾーンは操作頻度が高いため、縦幅を通常の.dropの約2倍に広げてクリック・ドロップしやすくする */
+  #dropZone { min-height: 160px; display: flex; align-items: center; justify-content: center; }
   input[type=file] { display: none; }
   #previewWrap {
     margin-top: 16px; text-align: center;
