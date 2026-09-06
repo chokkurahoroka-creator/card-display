@@ -33,6 +33,7 @@ function addYellRowTo(container, color, count) {
 
 function addArtsRow(art) {
   art = art || {};
+  const isSupportNow = (document.getElementById('f_tag').value || '').indexOf('サポート') !== -1;
   const wrap = document.getElementById('artsRows');
   const box = document.createElement('div');
   box.className = 'artsBox';
@@ -40,16 +41,16 @@ function addArtsRow(art) {
   box.style.cssText = 'border:1px solid rgba(229,140,90,0.35); border-left:4px solid #e88c4d; border-radius:8px; padding:10px; margin-bottom:10px; background:rgba(229,140,90,0.06);';
   box.innerHTML = `
     <div style="font-size:11px; font-weight:bold; color:#e88c4d; letter-spacing:0.05em; margin-bottom:8px;">⚔ アーツ</div>
-    <div class="row">
+    <div class="row artsHideForSupport">
       <div class="field"><label>アーツ名</label><input class="artsName" value="${escapeAttr(art.name || '')}"></div>
       <div class="field"><label>ダメージ</label><input class="artsDamage" value="${escapeAttr(art.damage || '')}"></div>
     </div>
-    <div class="field">
+    <div class="field artsHideForSupport">
       <label>エールコスト</label>
       <div class="artsYellRows"></div>
       <button type="button" class="secondary addArtsYellBtn">＋ エール追加</button>
     </div>
-    <div class="row">
+    <div class="row artsHideForSupport">
       <div class="field">
         <label>特攻対象色（あれば）</label>
         <select class="artsSpecialColor">
@@ -66,15 +67,36 @@ function addArtsRow(art) {
     <button type="button" class="secondary removeArtsBtn">このアーツを削除</button>
   `;
   const yellRowsEl = box.querySelector('.artsYellRows');
-  (art.yellCost || []).forEach(y => addYellRowTo(yellRowsEl, y.color, y.count));
+  // 新規追加（＋アーツ追加ボタン、art={}でyellCost未指定）の場合のみ「無色1」をデフォルトでセットする。
+  // 編集データの復元時（サポートの効果エントリなど、意図的にyellCost:[]が入っている場合）は上書きしない
+  const defaultYellCost = (!isSupportNow && art.yellCost === undefined) ? [{ color: '無色', count: 1 }] : (art.yellCost || []);
+  defaultYellCost.forEach(y => addYellRowTo(yellRowsEl, y.color, y.count));
   box.querySelector('.addArtsYellBtn').addEventListener('click', () => addYellRowTo(yellRowsEl, '無色', 1));
   box.querySelector('.removeArtsBtn').addEventListener('click', () => box.remove());
   wrap.appendChild(box);
+
+  // 特攻対象色を選択したら、特攻ダメージ欄に「+50」を自動入力する（外すと空に戻す。手動で数値を変えるのは選択後でもOK）
+  const specialColorEl = box.querySelector('.artsSpecialColor');
+  const specialDamageEl = box.querySelector('.artsSpecialDamage');
+  specialColorEl.addEventListener('change', () => {
+    specialDamageEl.value = specialColorEl.value ? '+50' : '';
+  });
 
   // テキスト量に応じて効果テキスト欄の高さを自動調整（入力時＋編集データ復元時の初期表示の両方に対応）
   const artsEffectEl = box.querySelector('.artsEffect');
   artsEffectEl.addEventListener('input', () => autoGrowTextarea(artsEffectEl));
   autoGrowTextarea(artsEffectEl);
+
+  applyArtsSupportVisibility(); // カードタイプが「サポート」の場合、効果テキスト以外の項目を即座に隠す
+}
+
+// カードタイプが「サポート」の間、アーツ入力欄は「アーツ効果テキスト」以外を非表示にする
+// （サポートカードは単一の効果テキストのみ使用し、アーツ名・ダメージ・エールコスト・特攻設定は使わないため）
+function applyArtsSupportVisibility() {
+  const isSupport = (document.getElementById('f_tag').value || '').indexOf('サポート') !== -1;
+  document.querySelectorAll('#artsRows .artsHideForSupport').forEach(el => {
+    el.style.display = isSupport ? 'none' : '';
+  });
 }
 
 function getArtsRows() {
@@ -294,6 +316,7 @@ function updateHolomenVisibility() {
   const isHolomen = tagVal.indexOf('ホロメン') !== -1;
   const isSupport = tagVal.indexOf('サポート') !== -1;
   document.getElementById('holomenFields').style.display = isHolomen ? 'block' : 'none';
+  applyArtsSupportVisibility();
   const supportFieldsEl = document.getElementById('supportFields');
   if (supportFieldsEl) supportFieldsEl.style.display = isSupport ? 'block' : 'none';
   updateRatingLabels();
