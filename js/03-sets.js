@@ -127,6 +127,17 @@ function loadSetForEdit(s) {
   }
 
   updateSetEditModeUI();
+  // このテーブルは🚧ページ公開設定モーダルの中にあるため、編集開始時はモーダルを閉じ、
+  // ①弾の設定パネルが閉じていれば開いた上で、そこまでスクロールする
+  const siteStatusOverlay = document.getElementById('siteStatusOverlay');
+  if (siteStatusOverlay) siteStatusOverlay.classList.remove('open');
+  const setPanelBody = document.getElementById('setPanelBody');
+  const setPanelToggleBtn = document.getElementById('setPanelToggleBtn');
+  if (setPanelBody && setPanelBody.style.display === 'none') {
+    setPanelBody.style.display = '';
+    if (setPanelToggleBtn) setPanelToggleBtn.textContent = '閉じる';
+    localStorage.setItem('setPanelCollapsed', 'false');
+  }
   document.querySelector('.panelSet').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
