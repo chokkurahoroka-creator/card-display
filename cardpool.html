@@ -1043,6 +1043,21 @@
   </div>
 </div>
 
+<!-- ===== 未所持カード出力：ダウンロード前のプレビュー ===== -->
+<div class="cpModalOverlay" id="cpExportPreviewOverlay" style="display:none;">
+  <div class="cpModalBox">
+    <div class="cpModalDragHandle"></div>
+    <button type="button" class="cpModalCloseBtn" id="cpExportPreviewCloseBtn">×</button>
+    <h3 class="cpCardUsageName" style="margin:0 0 4px;">未所持カード出力プレビュー</h3>
+    <div class="cpCardUsageListLabel" id="cpExportPreviewLabel" style="margin-bottom:12px;"></div>
+    <div id="cpExportPreviewGrid" class="cpUnownedGalleryGrid"></div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+      <button type="button" class="cpSecondaryBtn" id="cpExportPreviewCancelBtn" style="margin-top:0;">キャンセル</button>
+      <button type="button" class="cpSecondaryBtn" id="cpExportPreviewDownloadBtn" style="margin-top:0;">この内容でダウンロード</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== デッキ一覧のアイコンをクリックした時：デッキ内容プレビュー（読み取り専用） ===== -->
 <div class="cpModalOverlay" id="cpDeckPreviewOverlay" style="display:none;">
   <div class="cpModalBox cpDeckPreviewBox" id="cpDeckPreviewBox"></div>
