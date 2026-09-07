@@ -192,7 +192,19 @@ async function refreshSets() {
   const sel = document.getElementById('activeSet');
   const prevValue = sel.value;
   sel.innerHTML = sets.map(s => `<option value="${s.setCode}">${s.setCode}（${s.setName}）</option>`).join('');
-  if (prevValue && sets.some(s => s.setCode === prevValue)) sel.value = prevValue;
+  // 表示する弾の優先順位: ①この画面内で既に選択されていた弾 → ②前回リロード前に選んでいた弾（localStorage） → ③最後に登録された弾
+  const savedSetCode = localStorage.getItem('admActiveSetCode');
+  if (prevValue && sets.some(s => s.setCode === prevValue)) {
+    sel.value = prevValue;
+  } else if (savedSetCode && sets.some(s => s.setCode === savedSetCode)) {
+    sel.value = savedSetCode;
+  } else if (sets.length) {
+    sel.value = sets[sets.length - 1].setCode;
+  }
+  // 選択が変わるたびにlocalStorageへ保存し、リロード後も前回選択していた弾を維持する
+  sel.addEventListener('change', () => {
+    localStorage.setItem('admActiveSetCode', sel.value);
+  });
   sel.addEventListener('change', renderGallery, { once: false });
 
   const packIconMap = Object.fromEntries(sets.map(s => [s.setCode, s.packImageUrl]));
@@ -348,6 +360,7 @@ document.getElementById('saveSetBtn').addEventListener('click', async () => {
   clearSetForm();
   await refreshSets();
   document.getElementById('activeSet').value = setCode;
+  localStorage.setItem('admActiveSetCode', setCode);
   renderIconSelectOptions(document.getElementById('activeSet'), sets, Object.fromEntries(sets.map(s => [s.setCode, s.packImageUrl])));
   await renderGallery();
   await onTypeChange();
