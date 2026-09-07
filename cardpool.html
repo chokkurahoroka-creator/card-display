@@ -413,14 +413,18 @@
   .cpDeckIconPickerThumb:hover { border-color: rgba(212,175,106,0.5); }
   .cpDeckIconPickerThumb.selected { border-color: var(--gold); }
   /* ===== デッキ一覧タイルクリック時：デッキ内容プレビュー（読み取り専用） ===== */
-  #cpDeckPreviewBox { max-width: 1500px; max-height: 90vh; transition: transform 0.2s ease; }
+  #cpDeckPreviewBox { max-width: 1500px; max-height: 90vh; padding: 16px 20px; transition: transform 0.2s ease; }
+  /* デッキ確認は「なるべく一画面で収まる」ことを優先し、通常のデッキ編集画面より余白を詰めて表示する */
+  #cpDeckPreviewBox .cpDeckSectionBlock { margin-bottom: 0; }
+  #cpDeckPreviewBox .cpDeckSectionBlockHeader { margin-bottom: 6px; }
+  #cpDeckPreviewBox .cpDeckSectionDivider { margin: 10px 0; }
   .cpModalDragHandle { display: none; }
-  .cpDeckPreviewHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-right: 24px; gap: 10px; flex-wrap: wrap; }
+  .cpDeckPreviewHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-right: 24px; gap: 10px; flex-wrap: wrap; }
   .cpDeckPreviewTitleWrap { min-width: 0; }
   .cpDeckPreviewName { font-size: 16px; font-weight: bold; }
   .cpDeckPreviewMeta { font-size: 12px; color: #9aa5c0; }
   .cpDeckPreviewEditBtn { flex-shrink: 0; margin: 0; padding: 6px 14px; font-size: 12px; }
-  .cpDeckPreviewSections { max-height: 72vh; overflow-y: auto; }
+  .cpDeckPreviewSections { max-height: 80vh; overflow-y: auto; }
   /* デッキの中身確認は常に横10枚固定にし、画面幅に応じてカード自体のサイズが伸縮するようにする */
   .cpDeckPreviewSections .cpDeckSectionBlockGrid { grid-template-columns: repeat(10, 1fr); gap: 7px; }
   .cpDeckNameInput {
