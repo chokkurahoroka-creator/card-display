@@ -413,7 +413,7 @@
   .cpDeckIconPickerThumb:hover { border-color: rgba(212,175,106,0.5); }
   .cpDeckIconPickerThumb.selected { border-color: var(--gold); }
   /* ===== デッキ一覧タイルクリック時：デッキ内容プレビュー（読み取り専用） ===== */
-  .cpDeckPreviewBox { max-width: 1500px; max-height: 90vh; transition: transform 0.2s ease; }
+  #cpDeckPreviewBox { max-width: 1500px; max-height: 90vh; transition: transform 0.2s ease; }
   .cpModalDragHandle { display: none; }
   .cpDeckPreviewHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-right: 24px; gap: 10px; flex-wrap: wrap; }
   .cpDeckPreviewTitleWrap { min-width: 0; }
@@ -789,7 +789,7 @@
       max-width: 100%; width: 100%; border-radius: 16px 16px 0 0;
       max-height: 88vh; padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
     }
-    .cpDeckPreviewBox { max-width: 100%; }
+    #cpDeckPreviewBox { max-width: 100%; }
     /* デッキの中身確認だけは、下からのボトムシートではなく画面中央に大きく表示し、
        内容が画面の中心付近に来るようにする（他のモーダルは従来通りボトムシート） */
     #cpDeckPreviewOverlay { align-items: center; padding: 10px; }

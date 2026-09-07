@@ -248,10 +248,11 @@
   .sidebarToggleBtn:hover { border-color: var(--gold); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
 
   .siteStatusOverlayBox {
-    width: 480px; max-width: 92vw; max-height: 90vh; overflow-y: auto;
+    width: 900px; max-width: 94vw; max-height: 90vh; overflow-y: auto;
     background: linear-gradient(160deg, #1a2233, #10182a); border: 1px solid rgba(212,175,106,0.4);
     border-radius: 16px; padding: 26px; position: relative;
   }
+  .siteStatusOverlayBox #setStatusTable { display: block; overflow-x: auto; white-space: nowrap; }
   .siteStatusRow {
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
     padding: 14px 0; border-bottom: 1px solid rgba(212,175,106,0.18);
@@ -674,15 +675,6 @@
     <span id="setEditingBadge" class="hint" style="display:none; color:var(--gold);"></span>
     <button type="button" class="secondary" id="setEditCancelBtn" style="display:none; margin-top:0; padding:4px 10px; font-size:12px;">新規作成に戻る</button>
   </div>
-
-  <details class="field" id="setStatusDetails" style="margin-top:18px;">
-    <summary>弾ごとの公開ステータス・デフォルト表示・編集（登録済みパック一覧）</summary>
-    <div class="hint">「公開終了（新カード一覧）」は表示ページ(display.html)から、「公開終了（カードプール）」はカードプール管理(cardpool.html)から、それぞれ独立してそのパックを非表示にできます。「デフォルト表示」は表示ページを開いた時に最初に表示される弾です（1つだけ選べます）</div>
-    <table id="setStatusTable">
-      <thead><tr><th>画像</th><th>弾コード</th><th>名称</th><th>種類</th><th>発売日</th><th>公開終了<br><span class="hint" style="display:inline;">（新カード一覧）</span></th><th>公開終了<br><span class="hint" style="display:inline;">（カードプール）</span></th><th>デフォルト表示</th><th>操作</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </details>
   </div>
 </div>
 
@@ -956,6 +948,18 @@
     </div>
     <button type="button" class="secondary" id="siteStatusSaveBtn" style="margin-top:16px;">この内容を保存</button>
     <span id="siteStatusSaveStatus" class="hint" style="margin-left:10px; display:inline;"></span>
+
+    <div style="margin-top:22px; padding-top:18px; border-top:1px dashed rgba(212,175,106,0.3);">
+      <h3 style="margin:0 0 8px;">パックごとの公開設定（登録済みパック一覧）</h3>
+      <div class="hint" style="margin-bottom:10px;">
+        「公開終了（新カード一覧）」は表示ページ(display.html)から、「公開終了（カードプール）」はカードプール管理(cardpool.html)から、
+        それぞれ独立してそのパックを非表示にできます。「デフォルト表示」は表示ページを開いた時に最初に表示される弾です（1つだけ選べます）
+      </div>
+      <table id="setStatusTable">
+        <thead><tr><th>画像</th><th>弾コード</th><th>名称</th><th>種類</th><th>発売日</th><th>公開終了<br><span class="hint" style="display:inline;">（新カード一覧）</span></th><th>公開終了<br><span class="hint" style="display:inline;">（カードプール）</span></th><th>デフォルト表示</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
