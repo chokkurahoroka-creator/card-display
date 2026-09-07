@@ -418,6 +418,20 @@
   #cpDeckPreviewBox .cpDeckSectionBlock { margin-bottom: 0; }
   #cpDeckPreviewBox .cpDeckSectionBlockHeader { margin-bottom: 6px; }
   #cpDeckPreviewBox .cpDeckSectionDivider { margin: 10px 0; }
+  @media (hover: hover) and (pointer: fine) {
+    .cpDeckPreviewResizeHandle {
+      position: absolute; top: 0; right: -4px; width: 12px; height: 100%;
+      cursor: ew-resize; z-index: 20;
+    }
+    .cpDeckPreviewResizeHandle::after {
+      content: ''; position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+      width: 4px; height: 48px; border-radius: 3px; background: rgba(212,175,106,0.35);
+      transition: background 0.15s;
+    }
+    .cpDeckPreviewResizeHandle:hover::after, .cpDeckPreviewResizeHandle.resizing::after {
+      background: var(--gold);
+    }
+  }
   .cpModalDragHandle { display: none; }
   .cpDeckPreviewHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-right: 24px; gap: 10px; flex-wrap: wrap; }
   .cpDeckPreviewTitleWrap { min-width: 0; }
@@ -799,8 +813,16 @@
     #cpDeckPreviewOverlay { align-items: center; padding: 10px; }
     #cpDeckPreviewOverlay .cpDeckPreviewBox {
       width: 96%; max-width: 96%; max-height: 92vh; border-radius: 16px;
+      padding-left: 8px; padding-right: 8px; /* 左右の余白を減らし、カードを少しでも大きく表示する */
     }
     #cpDeckPreviewOverlay .cpModalDragHandle { display: none; }
+    /* スマホのデッキ確認：カードが小さいため、レア度バッジはさらに縮小し、
+       代わりにエールのスタック数バッジは大きく・タイルの角から半分はみ出す形にして見やすくする */
+    #cpDeckPreviewBox .cpRarityBadge { font-size: 5.5px; padding: 0 2px; bottom: 10px; right: 0px; }
+    #cpDeckPreviewBox .cpDeckYellTile .cpQtyBadge {
+      font-size: 15px; font-weight: 900; padding: 2px 6px; min-width: 20px;
+      bottom: -9px; right: -9px; border-radius: 10px; border-width: 2px;
+    }
     .cpModalDragHandle {
       display: block; width: 40px; height: 4px; border-radius: 2px;
       background: rgba(212,175,106,0.4); margin: 0 auto 14px;
@@ -961,7 +983,10 @@
             </div>
           </div>
         </div>
-        <button type="button" class="cpSecondaryBtn" id="cpBulkAddUnownedBtn" style="margin-top:10px;">未所持カードを一括追加</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+          <button type="button" class="cpSecondaryBtn" id="cpBulkAddUnownedBtn" style="margin-top:0;">未所持カードを一括追加</button>
+          <button type="button" class="cpSecondaryBtn" id="cpExportUnownedBtn" style="margin-top:0;">未所持カード出力</button>
+        </div>
       </div>
       <div id="cpDeckStatus" class="cpHint" style="padding:0 0 8px;"></div>
       <div class="cpDeckSummaryRow">
@@ -1063,6 +1088,7 @@
 <script src="js/14-cardpool-config.js"></script>
 <script src="js/15-cardpool-collection.js"></script>
 <script src="js/16-cardpool-decks.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="js/17-cardpool-boot.js"></script>
 <script src="js/13-page-zoom.js"></script>
 <script>const THIS_PAGE_KEY = 'cardpool';</script>
