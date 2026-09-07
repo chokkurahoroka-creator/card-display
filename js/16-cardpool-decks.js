@@ -650,7 +650,49 @@ async function cpOpenDeckPreview(deck) {
   boxEl.querySelectorAll('.cpDeckPreviewSections .cpCard img').forEach(img => {
     img.addEventListener('click', () => cpShowImageZoom(img.src));
   });
+
+  // PC専用：モーダル右端のハンドルをドラッグして横幅を変更できるようにする（設定した幅は次回も復元される）
+  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const handle = document.createElement('div');
+    handle.className = 'cpDeckPreviewResizeHandle';
+    boxEl.appendChild(handle);
+    const savedWidth = Number(localStorage.getItem('cpDeckPreviewWidth'));
+    if (savedWidth) boxEl.style.width = savedWidth + 'px';
+  }
 }
+
+// デッキ確認モーダルの右端ドラッグによる横幅リサイズ（PC専用）。
+// ハンドルはモーダルを開くたびに再生成されるため、document全体への委任で1回だけリスナーを登録する
+(function cpBindDeckPreviewResize() {
+  let resizing = false, startX = 0, startWidth = 0, handleEl = null;
+  document.addEventListener('mousedown', (e) => {
+    const handle = e.target.closest('.cpDeckPreviewResizeHandle');
+    if (!handle) return;
+    resizing = true;
+    handleEl = handle;
+    handle.classList.add('resizing');
+    startX = e.clientX;
+    startWidth = document.getElementById('cpDeckPreviewBox').getBoundingClientRect().width;
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!resizing) return;
+    const boxEl = document.getElementById('cpDeckPreviewBox');
+    const delta = e.clientX - startX;
+    const newWidth = Math.min(window.innerWidth * 0.96, Math.max(520, startWidth + delta));
+    boxEl.style.width = newWidth + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    if (!resizing) return;
+    resizing = false;
+    if (handleEl) handleEl.classList.remove('resizing');
+    handleEl = null;
+    document.body.style.userSelect = '';
+    const boxEl = document.getElementById('cpDeckPreviewBox');
+    localStorage.setItem('cpDeckPreviewWidth', Math.round(boxEl.getBoundingClientRect().width));
+  });
+})();
 
 function cpCloseDeckPreview() {
   document.getElementById('cpDeckPreviewOverlay').style.display = 'none';
@@ -867,4 +909,65 @@ document.getElementById('cpBulkAddUnownedBtn').addEventListener('click', async (
 
   await cpRefreshDeckEditor();
   if (typeof cpRenderUnownedDeckCardsPanel === 'function') cpRenderUnownedDeckCardsPanel();
+});
+
+// 「未所持カード出力」：このデッキ内（メイン+サイド合計）で所持数が足りていないカードの画像だけを
+// まとめてZIPダウンロードする（フォルダ名は「デッキ名+MMdd」形式）。所持カード側への反映は行わない
+document.getElementById('cpExportUnownedBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('cpExportUnownedBtn');
+  const statusEl = document.getElementById('cpDeckStatus');
+
+  const usage = {};
+  Object.values(cpEditingDeckCards).forEach(entry => {
+    usage[entry.cardKey] = (usage[entry.cardKey] || 0) + entry.qty;
+  });
+
+  const unownedKeys = Object.keys(usage).filter(ck => usage[ck] > (ownedCollection[ck] || 0));
+  if (!unownedKeys.length) {
+    alert('未所持のカードはありません。');
+    return;
+  }
+
+  await cpFetchCardsByKeys(unownedKeys); // 画像URL等が未取得のカードがあれば補完する
+
+  const original = btn.textContent;
+  btn.disabled = true;
+
+  try {
+    const zip = new JSZip();
+    const deckName = (document.getElementById('cpDeckNameInput').value || '').trim() || '新しいデッキ';
+    const now = new Date();
+    const mmdd = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+    const folderName = `${deckName}${mmdd}`;
+    const folder = zip.folder(folderName);
+
+    for (let i = 0; i < unownedKeys.length; i++) {
+      const ck = unownedKeys[i];
+      const card = collectionCardsCache[ck];
+      if (!card || !card.imageUrl) continue;
+      btn.textContent = `画像を取得中... (${i + 1}/${unownedKeys.length})`;
+      const res = await fetch(card.imageUrl);
+      const blob = await res.blob();
+      const shortage = usage[ck] - (ownedCollection[ck] || 0);
+      const safeName = `${(card.cardName || 'card').replace(/[^\w\-一-龠ぁ-んァ-ヶ]/g, '')}_不足${shortage}枚.jpg`;
+      folder.file(safeName, blob);
+    }
+
+    btn.textContent = 'ZIPを作成中...';
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    if (statusEl) statusEl.textContent = `未所持カード ${unownedKeys.length}種類の画像を出力しました`;
+  } catch (err) {
+    alert('未所持カードの出力に失敗しました: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 });

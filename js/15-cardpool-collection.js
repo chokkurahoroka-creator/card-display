@@ -6,6 +6,22 @@ let cpSearchTimer = null;
 let cpSaveTimer = null;
 let cpDropZonesInitialized = false;
 
+// 図鑑・所持カード一覧などのパック表示順を「発売日が新しい順」で並べる共通ヘルパー。
+// 発売日が未設定のパックは末尾側へ（新しい順で見るとどちらも情報が無いより「わかる方」を優先表示）、
+// 発売日が同じ・どちらも未設定の場合は弾コードの新しい順（自然順の降順）をフォールバックに使う
+function cpSortSetCodesByReleaseDate(codes) {
+  const releaseDateMap = {};
+  cpSets.forEach(s => { releaseDateMap[s.setCode] = s.releaseDate || ''; });
+  return codes.slice().sort((a, b) => {
+    const da = releaseDateMap[a] || '';
+    const db = releaseDateMap[b] || '';
+    if (da && db && da !== db) return db.localeCompare(da); // 'yyyy-MM-dd'文字列同士なので、そのまま比較すれば新しい順になる
+    if (da && !db) return -1;
+    if (!da && db) return 1;
+    return b.localeCompare(a, 'en', { numeric: true, sensitivity: 'base' });
+  });
+}
+
 async function cpLoadSets() {
   const res = await cpFetchWithTimeout(GAS_URL + '?action=listSets', {}, 20000);
   const all = await res.json();
@@ -321,14 +337,7 @@ async function cpRenderZukan() {
   const sortKey = document.getElementById('cpZukanSortSelect').value;
   const filterKey = document.getElementById('cpZukanFilterSelect').value;
 
-  const setOrder = cpSets.map(s => s.setCode);
-  const sortedSetCodes = Object.keys(cpZukanCardsBySet).sort((a, b) => {
-    const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ib - ia; // 新しい弾を上に表示
-  });
+  const sortedSetCodes = cpSortSetCodesByReleaseDate(Object.keys(cpZukanCardsBySet));
 
   const packsHtml = sortedSetCodes.map(sc => {
     const allCardsInPack = cpZukanCardsBySet[sc] || [];
@@ -425,14 +434,7 @@ function cpRenderGroupedCards(gridEl, cards, pane, emptyMessage) {
       return (a.cardName || '').localeCompare(b.cardName || '', 'ja');
     }));
 
-    const setOrder = cpSets.map(s => s.setCode);
-    const sortedSetCodes = Object.keys(groups).sort((a, b) => {
-      const ia = setOrder.indexOf(a), ib = setOrder.indexOf(b);
-      if (ia === -1 && ib === -1) return a.localeCompare(b);
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ib - ia;
-    });
+    const sortedSetCodes = cpSortSetCodesByReleaseDate(Object.keys(groups));
 
     // パックの折りたたみ（▶/▼）は「所持カード一覧」タブでのみ有効にする
     const collapsible = gridEl.id === 'cpOwnedListGrid';

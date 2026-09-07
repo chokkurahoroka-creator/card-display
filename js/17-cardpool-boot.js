@@ -160,8 +160,23 @@ document.getElementById('cpIdOnboardConfirmBtn').addEventListener('click', async
     if (!magnifyContainer) return;
     magnifyContainer.querySelectorAll('.cpMagnifyActive, .cpMagnifyNear').forEach(el => {
       el.classList.remove('cpMagnifyActive', 'cpMagnifyNear');
+      el.style.transformOrigin = '';
     });
     magnifyContainer = null;
+  }
+
+  // カードを内包するスクロール領域（モーダルの中身など）の外枠を取得する。
+  // モーダル等の端にあるカードを拡大した時、その枠の外へはみ出て見切れてしまうのを防ぐために使う
+  function getClippingRect(el) {
+    let node = el.parentElement;
+    while (node && node !== document.body) {
+      const style = getComputedStyle(node);
+      if (/(auto|scroll|hidden)/.test(style.overflowY) || /(auto|scroll|hidden)/.test(style.overflowX)) {
+        return node.getBoundingClientRect();
+      }
+      node = node.parentElement;
+    }
+    return { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
   }
 
   function applyMagnify(card) {
@@ -174,6 +189,17 @@ document.getElementById('cpIdOnboardConfirmBtn').addEventListener('click', async
     const hoveredRect = card.getBoundingClientRect();
     const hcx = hoveredRect.left + hoveredRect.width / 2;
     const hcy = hoveredRect.top + hoveredRect.height / 2;
+
+    // 端（モーダルの外枠やスクロール領域の境界）に近いカードは、拡大の起点をその端側へ寄せることで
+    // 拡大した部分が外側へはみ出て見切れるのを防ぐ（内側方向にだけ広がるようにする）
+    const clipRect = getClippingRect(card);
+    const edgeMargin = hoveredRect.width * 0.6;
+    let originX = 'center', originY = 'center';
+    if (hoveredRect.left - clipRect.left < edgeMargin) originX = 'left';
+    else if (clipRect.right - hoveredRect.right < edgeMargin) originX = 'right';
+    if (hoveredRect.top - clipRect.top < edgeMargin) originY = 'top';
+    else if (clipRect.bottom - hoveredRect.bottom < edgeMargin) originY = 'bottom';
+    card.style.transformOrigin = `${originX} ${originY}`;
 
     Array.from(container.children).forEach(other => {
       if (other === card || !other.matches(CARD_SELECTOR)) return;
