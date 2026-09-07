@@ -636,7 +636,10 @@ async function cpOpenDeckPreview(deck) {
         <div class="cpDeckPreviewName">${escapeHtml(deck.deckName)}</div>
         <div class="cpDeckPreviewMeta">${kinds}種類 / 計${totalAll}枚</div>
       </div>
-      <button type="button" class="cpSecondaryBtn cpDeckPreviewEditBtn" id="cpDeckPreviewEditBtn"><span class="cpBtnIcon">${cpIcon('edit', 13)}</span> 編集</button>
+      <div style="display:flex; gap:8px; flex-shrink:0;">
+        <button type="button" class="cpSecondaryBtn" id="cpDeckPreviewExportBtn" style="margin-top:0;">未所持カード出力</button>
+        <button type="button" class="cpSecondaryBtn cpDeckPreviewEditBtn" id="cpDeckPreviewEditBtn"><span class="cpBtnIcon">${cpIcon('edit', 13)}</span> 編集</button>
+      </div>
     </div>
     <div class="cpDeckPreviewSections">${sectionsHtml}</div>
   `;
@@ -644,6 +647,9 @@ async function cpOpenDeckPreview(deck) {
   document.getElementById('cpDeckPreviewEditBtn').addEventListener('click', () => {
     cpCloseDeckPreview();
     cpOpenDeckEditor(deck);
+  });
+  document.getElementById('cpDeckPreviewExportBtn').addEventListener('click', () => {
+    cpOpenExportPreview(deck.deckName, usageByCardKey);
   });
 
   // カードをタップすると画像を拡大表示する（このプレビューは閲覧専用のため、ドラッグ操作と競合しない）
@@ -913,32 +919,78 @@ document.getElementById('cpBulkAddUnownedBtn').addEventListener('click', async (
 
 // 「未所持カード出力」：このデッキ内（メイン+サイド合計）で所持数が足りていないカードの画像だけを
 // まとめてZIPダウンロードする（フォルダ名は「デッキ名+MMdd」形式）。所持カード側への反映は行わない
-document.getElementById('cpExportUnownedBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('cpExportUnownedBtn');
-  const statusEl = document.getElementById('cpDeckStatus');
-
+document.getElementById('cpExportUnownedBtn').addEventListener('click', () => {
   const usage = {};
   Object.values(cpEditingDeckCards).forEach(entry => {
     usage[entry.cardKey] = (usage[entry.cardKey] || 0) + entry.qty;
   });
+  const deckName = (document.getElementById('cpDeckNameInput').value || '').trim() || '新しいデッキ';
+  cpOpenExportPreview(deckName, usage);
+});
 
+// ===== 未所持カード出力：プレビュー→ダウンロードの共通フロー =====
+// デッキ編集画面・デッキ確認画面の両方の「未所持カード出力」ボタンから呼ばれる。
+// usage は { カードキー: デッキ内で必要な枚数 } の形式（メイン+サイド合計）
+let cpExportPreviewState = null; // { deckName, folderName, unownedKeys, usage }
+
+async function cpOpenExportPreview(deckName, usage) {
   const unownedKeys = Object.keys(usage).filter(ck => usage[ck] > (ownedCollection[ck] || 0));
   if (!unownedKeys.length) {
     alert('未所持のカードはありません。');
     return;
   }
 
-  await cpFetchCardsByKeys(unownedKeys); // 画像URL等が未取得のカードがあれば補完する
+  const gridEl = document.getElementById('cpExportPreviewGrid');
+  const labelEl = document.getElementById('cpExportPreviewLabel');
+  gridEl.innerHTML = cpLoadingHtml('読み込み中...');
+  labelEl.textContent = '';
+  document.getElementById('cpExportPreviewOverlay').style.display = 'flex';
 
+  await cpFetchCardsByKeys(unownedKeys);
+
+  const now = new Date();
+  const mmdd = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+  const folderName = `${deckName}${mmdd}`;
+  cpExportPreviewState = { deckName, folderName, unownedKeys, usage };
+
+  labelEl.textContent = `不足しているカード ${unownedKeys.length}種類。この内容でダウンロードします（フォルダ名: ${folderName}）`;
+  gridEl.innerHTML = unownedKeys.map(ck => {
+    const card = collectionCardsCache[ck];
+    if (!card) return '';
+    const owned = ownedCollection[ck] || 0;
+    const need = usage[ck];
+    const short = need - owned;
+    return `
+      <div class="cpUnownedGalleryCard">
+        <img src="${card.imageUrl}" alt="${escapeHtml(card.cardName)}" loading="lazy">
+        <div class="cpUnownedGalleryBody">
+          <div class="cpUnownedGalleryName">${escapeHtml(card.cardName)}</div>
+          <div class="cpUnownedGalleryMeta">所持${owned} / 必要${need}</div>
+          <div class="cpUnownedGalleryShortage">不足 ${short}枚</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function cpCloseExportPreview() {
+  document.getElementById('cpExportPreviewOverlay').style.display = 'none';
+}
+document.getElementById('cpExportPreviewCloseBtn').addEventListener('click', cpCloseExportPreview);
+document.getElementById('cpExportPreviewCancelBtn').addEventListener('click', cpCloseExportPreview);
+document.getElementById('cpExportPreviewOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'cpExportPreviewOverlay') cpCloseExportPreview();
+});
+
+document.getElementById('cpExportPreviewDownloadBtn').addEventListener('click', async () => {
+  if (!cpExportPreviewState) return;
+  const { folderName, unownedKeys, usage } = cpExportPreviewState;
+  const btn = document.getElementById('cpExportPreviewDownloadBtn');
   const original = btn.textContent;
   btn.disabled = true;
+  document.getElementById('cpExportPreviewCancelBtn').disabled = true;
 
   try {
     const zip = new JSZip();
-    const deckName = (document.getElementById('cpDeckNameInput').value || '').trim() || '新しいデッキ';
-    const now = new Date();
-    const mmdd = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
-    const folderName = `${deckName}${mmdd}`;
     const folder = zip.folder(folderName);
 
     for (let i = 0; i < unownedKeys.length; i++) {
@@ -963,11 +1015,15 @@ document.getElementById('cpExportUnownedBtn').addEventListener('click', async ()
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+
+    const statusEl = document.getElementById('cpDeckStatus');
     if (statusEl) statusEl.textContent = `未所持カード ${unownedKeys.length}種類の画像を出力しました`;
+    cpCloseExportPreview();
   } catch (err) {
     alert('未所持カードの出力に失敗しました: ' + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = original;
+    document.getElementById('cpExportPreviewCancelBtn').disabled = false;
   }
 });
