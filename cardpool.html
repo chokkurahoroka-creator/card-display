@@ -577,6 +577,21 @@
   }
   .cpUnownedGalleryMeta { font-size: 10.5px; color: #9aa5c0; }
   .cpUnownedGalleryShortage { font-size: 11px; font-weight: bold; color: #e37e7e; margin-top: 3px; }
+
+  /* ===== 未所持カード出力：ダウンロード前プレビューのモーダル ===== */
+  /* デッキ確認モーダル等の上に必ず表示されるよう、通常のモーダルより高いz-indexにする */
+  #cpExportPreviewOverlay { z-index: 650; }
+  #cpExportPreviewBox { width: 96%; max-width: 1000px; max-height: 90vh; }
+  /* カードの表示サイズを他の未所持カード一覧の半分程度に縮小し、一度に多く見渡せるようにする */
+  #cpExportPreviewGrid.cpUnownedGalleryGrid { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; }
+  #cpExportPreviewGrid .cpUnownedGalleryName { font-size: 9px; }
+  #cpExportPreviewGrid .cpUnownedGalleryMeta { font-size: 8px; }
+  #cpExportPreviewGrid .cpUnownedGalleryShortage { font-size: 8.5px; }
+  /* このモーダル内だけホバー時の拡大演出を無効化する（小さいカードが密集するため） */
+  #cpExportPreviewGrid .cpUnownedGalleryCard.cpMagnifyActive,
+  #cpExportPreviewGrid .cpUnownedGalleryCard.cpMagnifyNear {
+    transform: none !important; z-index: auto !important; box-shadow: none !important; background: transparent !important;
+  }
   /* ===== 所持カードクリック時：デッキ使用状況の詳細モーダル ===== */
   .cpModalOverlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 600;
@@ -1045,7 +1060,7 @@
 
 <!-- ===== 未所持カード出力：ダウンロード前のプレビュー ===== -->
 <div class="cpModalOverlay" id="cpExportPreviewOverlay" style="display:none;">
-  <div class="cpModalBox">
+  <div class="cpModalBox" id="cpExportPreviewBox">
     <div class="cpModalDragHandle"></div>
     <button type="button" class="cpModalCloseBtn" id="cpExportPreviewCloseBtn">×</button>
     <h3 class="cpCardUsageName" style="margin:0 0 4px;">未所持カード出力プレビュー</h3>
