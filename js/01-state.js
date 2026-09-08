@@ -47,11 +47,13 @@ loadCfg();
 })();
 
 // ===== カード番号：数字以外の入力を除去する（末尾のゼロ埋めはそのまま維持） =====
+// カード番号は数字以外（アルファベット等）も入力できるようにし、全角数字だけを半角に変換する
+// （例: "０３８" → "038"。文字種の制限自体はかけない）
 const f_numEl = document.getElementById('f_num');
 if (f_numEl) {
   f_numEl.addEventListener('input', () => {
-    const cleaned = f_numEl.value.replace(/[^0-9]/g, '');
-    if (cleaned !== f_numEl.value) f_numEl.value = cleaned;
+    const converted = f_numEl.value.replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+    if (converted !== f_numEl.value) f_numEl.value = converted;
   });
 }
 

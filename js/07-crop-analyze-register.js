@@ -76,11 +76,12 @@ const continuousModeToggle = document.getElementById('continuousModeToggle');
 let continuousNextNum = null;
 let continuousNextSlot = null;
 let continuousNextType = null;
+let continuousNextSetCode = null;
 if (continuousModeToggle) {
   continuousModeToggle.checked = localStorage.getItem('continuousMode') === 'true';
   continuousModeToggle.addEventListener('change', () => {
     localStorage.setItem('continuousMode', continuousModeToggle.checked ? 'true' : 'false');
-    if (!continuousModeToggle.checked) { continuousNextNum = null; continuousNextSlot = null; continuousNextType = null; }
+    if (!continuousModeToggle.checked) { continuousNextNum = null; continuousNextSlot = null; continuousNextType = null; continuousNextSetCode = null; }
   });
 }
 
@@ -108,17 +109,17 @@ async function handleFileManual(e) {
   document.getElementById('previewWrap').innerHTML = `<img src="${currentImg.src}">`;
   document.getElementById('stageImg').src = currentImg.src;
 
-  // 各項目を空欄にリセット
-  document.getElementById('f_setcode').value = '';
+  // 各項目を空欄にリセット（連続登録モードならパックコード・カード番号・区分・配置スロットは前回の値を引き継ぐ）
+  document.getElementById('f_setcode').value = continuousNextSetCode || '';
   document.getElementById('f_num').value = continuousNextNum || '';
   document.getElementById('f_rarity').value = '';
   document.getElementById('f_tag').value = '';
   document.getElementById('f_tags').value = '';
   document.getElementById('f_name').value = '';
   document.getElementById('f_attr').value = '';
-  document.getElementById('f_hp').value = '';
+  document.getElementById('f_hp').value = '100';   // ホロメンのHPは100で入力されているケースが多いため、初期値として入力しておく
   document.getElementById('f_stage').value = '';
-  document.getElementById('f_baton').value = '';
+  document.getElementById('f_baton').value = '1';  // バトンタッチも1が最多のため、初期値として入力しておく
   document.getElementById('f_limited').checked = false;
   setArtsRows([]); // ※以前はここが抜けていて、手動登録を繰り返すと前のカードのアーツが残ってしまっていた
   setSkillRows([]);
@@ -140,7 +141,7 @@ async function handleFileManual(e) {
   await onTypeChange();
   // 連続登録モードで算出しておいた次のスロット番号があれば、自動サジェストより優先して反映する
   if (continuousNextSlot !== null) { document.getElementById('f_slot').value = continuousNextSlot; }
-  continuousNextNum = null; continuousNextSlot = null; continuousNextType = null;
+  continuousNextNum = null; continuousNextSlot = null; continuousNextType = null; continuousNextSetCode = null;
   setStatus('画像を読み込みました。全ての項目を手入力し、切り抜き枠を調整してから登録してください。');
 }
 // 手動アップロード表示中かどうか（登録完了後もこの状態を維持し、AI用ドロップゾーンへ戻さないようにするため）
@@ -189,7 +190,8 @@ async function handleFile(e) {
       return;
     }
 
-    document.getElementById('f_setcode').value = data.setCode || '';
+    // 連続登録モードで前カードのパックコードが分かっていれば、AIの読み取り結果より優先する
+    document.getElementById('f_setcode').value = continuousNextSetCode || data.setCode || '';
     // 連続登録モードで次の番号が算出済みなら、AIの読み取り結果より優先する
     document.getElementById('f_num').value = continuousNextNum || data.cardNumber || '';
     document.getElementById('f_rarity').value = data.rarity || '';
@@ -232,7 +234,7 @@ async function handleFile(e) {
     await onTypeChange();
     // 連続登録モードで算出しておいた次のスロット番号があれば、自動サジェストより優先して反映する
     if (continuousNextSlot !== null) { document.getElementById('f_slot').value = continuousNextSlot; }
-    continuousNextNum = null; continuousNextSlot = null; continuousNextType = null;
+    continuousNextNum = null; continuousNextSlot = null; continuousNextType = null; continuousNextSetCode = null;
     setStatus('解析完了。区分と配置スロットを確認して登録してください。' + setMismatchNote);
   } catch (err) {
     setStatus('通信エラー: ' + err.message);
@@ -372,13 +374,14 @@ async function handleRegisterClick() {
     const doneMsg = (editingCard ? '更新完了: ' : '登録完了: ') + document.getElementById('f_name').value;
     const wasEditing = !!editingCard;
 
-    // 連続登録モード：新規登録（編集ではない）かつトグルONの場合、次のカード番号・配置スロット・区分を
-    // 算出して保持しておく。次に画像を読み込んだ時点でhandleFile/handleFileManualがこの値を自動セットする
+    // 連続登録モード：新規登録（編集ではない）かつトグルONの場合、次のカード番号・配置スロット・区分・
+    // パックコードを算出して保持しておく。次に画像を読み込んだ時点でhandleFile/handleFileManualがこの値を自動セットする
     const continuousOn = !!(continuousModeToggle && continuousModeToggle.checked) && !wasEditing;
     if (continuousOn) {
       continuousNextType = type;
       continuousNextNum = incrementNumberString(document.getElementById('f_num').value);
       continuousNextSlot = String((Number(slot) || 0) + 1);
+      continuousNextSetCode = document.getElementById('f_setcode').value;
     }
 
     setStatus(continuousOn

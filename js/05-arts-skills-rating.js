@@ -20,14 +20,26 @@ function addYellRowTo(container, color, count) {
     <div class="field" style="flex:2;">
       <select class="yellColor">${YELL_COLORS.map(c => `<option value="${c}" ${c===color?'selected':''}>${c}</option>`).join('')}</select>
     </div>
-    <div class="field" style="flex:1;">
-      <input type="number" class="yellCount" min="1" value="${count || 1}">
+    <div class="field" style="flex:1.6;">
+      <div class="counterInputWrap">
+        <button type="button" class="counterBtn yellCountMinus">−</button>
+        <input type="number" class="yellCount" min="1" value="${count || 1}">
+        <button type="button" class="counterBtn yellCountPlus">＋</button>
+      </div>
     </div>
     <div class="field" style="flex:0 0 auto;">
       <button type="button" class="secondary removeYellBtn">×</button>
     </div>
   `;
   div.querySelector('.removeYellBtn').addEventListener('click', () => div.remove());
+  div.querySelector('.yellCountMinus').addEventListener('click', () => {
+    const input = div.querySelector('.yellCount');
+    input.value = Math.max(1, (Number(input.value) || 1) - 1);
+  });
+  div.querySelector('.yellCountPlus').addEventListener('click', () => {
+    const input = div.querySelector('.yellCount');
+    input.value = (Number(input.value) || 1) + 1;
+  });
   container.appendChild(div);
 }
 
