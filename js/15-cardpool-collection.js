@@ -281,14 +281,19 @@ async function cpEnsureZukanData() {
   const gridEl = document.getElementById('cpZukanGrid');
   gridEl.innerHTML = cpLoadingHtml('図鑑を読み込み中...');
   try {
-    const results = await Promise.all(cpSets.map(async (s) => {
-      const res = await cpFetchWithTimeout(GAS_URL + `?action=list&setCode=${encodeURIComponent(s.setCode)}`, {}, 20000);
-      const cards = await res.json();
-      return [s.setCode, Array.isArray(cards) ? cards : []];
-    }));
-    cpZukanCardsBySet = Object.fromEntries(results);
-    // 取得したカード情報は他の画面（デッキ編集の詳細表示等）でも使い回せるようキャッシュしておく
-    results.forEach(([, cards]) => cards.forEach(c => { collectionCardsCache[cardKey(c)] = c; }));
+    // 以前はパックの数だけ同時にリクエストを送っていたが（例: 15パックなら15件同時）、
+    // アクセスが重なった時にGASの同時実行数の上限に達しやすくなる原因だったため、
+    // setCodeを指定せず全パック分のカードを1回のリクエストでまとめて取得するように変更した
+    const res = await cpFetchWithTimeout(GAS_URL + '?action=list', {}, 30000);
+    const allCards = await res.json();
+    const cardsBySet = {};
+    (Array.isArray(allCards) ? allCards : []).forEach(c => {
+      if (!cpSets.some(s => s.setCode === c.setCode)) return; // カードプール非公開のパックは除外
+      if (!cardsBySet[c.setCode]) cardsBySet[c.setCode] = [];
+      cardsBySet[c.setCode].push(c);
+      collectionCardsCache[cardKey(c)] = c; // 他の画面（デッキ編集の詳細表示等）でも使い回せるようキャッシュしておく
+    });
+    cpZukanCardsBySet = cardsBySet;
   } catch (e) {
     console.error('図鑑の読み込みに失敗しました:', e);
     gridEl.innerHTML = '<div class="cpHint">図鑑の読み込みに失敗しました（通信エラー）。<button type="button" class="cpSecondaryBtn cpRetryZukanBtn" style="margin-left:8px;">再読み込み</button></div>';
