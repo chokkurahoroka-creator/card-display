@@ -1001,7 +1001,10 @@ document.getElementById('cpExportPreviewDownloadBtn').addEventListener('click', 
       const res = await fetch(card.imageUrl);
       const blob = await res.blob();
       const shortage = usage[ck] - (ownedCollection[ck] || 0);
-      const safeName = `${(card.cardName || 'card').replace(/[^\w\-一-龠ぁ-んァ-ヶ]/g, '')}_不足${shortage}枚.jpg`;
+      // カード名だけだと、新規/再録/パラレルなど同名カードが複数ある場合にファイル名が衝突し、
+      // ZIP展開時に片方がもう片方を上書きしてしまう（＝ダウンロードしたのにカードが抜けて見える）原因になっていた。
+      // 区分＋配置スロット番号を必ず含めて一意になるようにする
+      const safeName = `${(card.cardName || 'card').replace(/[^\w\-一-龠ぁ-んァ-ヶ]/g, '')}_${card.type}${card.slot}_不足${shortage}枚.jpg`;
       folder.file(safeName, blob);
     }
 

@@ -263,7 +263,7 @@ document.getElementById('bingoDownloadBtn').addEventListener('click', async () =
       btn.textContent = `画像を取得中... (${i + 1}/${targets.length})`;
       const res = await fetch(w.card.imageUrl);
       const blob = await res.blob();
-      const safeName = `${w.label}_No${w.overallNumber}_${(w.card.cardName || 'card').replace(/[^\w\-一-龠ぁ-んァ-ヶ]/g, '')}.jpg`;
+      const safeName = `${w.label}_No${w.overallNumber}_${(w.card.cardName || 'card').replace(/[^\w\-一-龠ぁ-んァ-ヶ]/g, '')}_${w.card.type}${w.card.slot}.jpg`;
       zip.file(safeName, blob);
     }
     btn.textContent = 'ZIPを作成中...';
